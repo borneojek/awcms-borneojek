@@ -108,6 +108,7 @@ Legacy tables may still use tenant-only select policies and rely on admin UI ABA
 - Use `deleted_at` for deletions and filter it on reads.
 - Do not bypass RLS unless explicitly implementing platform admin features.
 - Supabase is the only backend.
+- Admin edit/detail routes use signed IDs (`{uuid}.{signature}`); use `encodeRouteParam` and `useSecureRouteParam` for non-guessable URLs.
 - Public telemetry (analytics events) must remain tenant-scoped and documented via consent notices.
 - Analytics events include IP address, page path, referrer, user agent, and geo headers; treat these as personal data and apply retention policies.
 - Admin-only profile metadata is encrypted at rest in `user_profile_admin` via pgcrypto and accessed only through RPC.

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ContentTable from '@/components/dashboard/ContentTable';
-import RoleEditor from '@/components/dashboard/RoleEditor';
 import { usePermissions } from '@/contexts/PermissionContext';
 import { sanitizeHTML } from '@/utils/sanitize';
 // Standard Permissions: tenant.role.read, tenant.role.create, tenant.role.update, tenant.role.delete
@@ -13,6 +13,7 @@ import { AdminPageLayout, PageHeader } from '@/templates/flowbite-admin';
 import { useSearch } from '@/hooks/useSearch';
 import MinCharSearchInput from '@/components/common/MinCharSearchInput';
 import { useTranslation } from 'react-i18next';
+import { encodeRouteParam } from '@/lib/routeSecurity';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +32,7 @@ function RolesManager() {
   const { toast } = useToast();
   const { hasPermission, isPlatformAdmin } = usePermissions();
   const { currentTenant } = useTenant();
+  const navigate = useNavigate();
 
   // State declarations
   const [roles, setRoles] = useState([]);
@@ -48,8 +50,6 @@ function RolesManager() {
     clearSearch
   } = useSearch({ context: 'admin' });
 
-  const [showEditor, setShowEditor] = useState(false);
-  const [selectedRole, setSelectedRole] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState(null);
 
@@ -90,9 +90,13 @@ function RolesManager() {
     }
   };
 
-  const handleEdit = (role) => {
-    setSelectedRole(role);
-    setShowEditor(true);
+  const handleEdit = async (role) => {
+    const routeId = await encodeRouteParam({ value: role.id, scope: 'roles.edit' });
+    if (!routeId) {
+      toast({ variant: 'destructive', title: t('common.error'), description: t('roles.errors.load_failed', 'Unable to open role editor.') });
+      return;
+    }
+    navigate(`/cmspanel/roles/edit/${routeId}`);
   };
 
   // Open delete confirmation dialog
@@ -206,7 +210,7 @@ function RolesManager() {
         <RefreshCw className="w-4 h-4" />
       </Button>
       {canCreate && (
-        <Button onClick={() => { setSelectedRole(null); setShowEditor(true); }} className="bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm">
+        <Button onClick={() => navigate('/cmspanel/roles/new')} className="bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm">
           <Plus className="w-4 h-4 mr-2" /> {t('roles.create_role')}
         </Button>
       )}
@@ -254,48 +258,40 @@ function RolesManager() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {showEditor ? (
-        <RoleEditor
-          role={selectedRole}
-          onClose={() => { setShowEditor(false); setSelectedRole(null); }}
-          onSave={() => { setShowEditor(false); setSelectedRole(null); fetchRoles(); }}
+      <>
+        <PageHeader
+          title={t('roles.title')}
+          description={t('roles.subtitle')}
+          icon={Shield}
+          breadcrumbs={breadcrumbs}
+          actions={headerActions}
         />
-      ) : (
-        <>
-          <PageHeader
-            title={t('roles.title')}
-            description={t('roles.subtitle')}
-            icon={Shield}
-            breadcrumbs={breadcrumbs}
-            actions={headerActions}
-          />
 
-          <div className="dashboard-surface dashboard-surface-hover overflow-hidden">
-            <div className="p-4 border-b border-slate-200/60 bg-slate-50/70">
-              <div className="max-w-sm">
-                <MinCharSearchInput
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  onClear={clearSearch}
-                  loading={loading || searchLoading}
-                  isValid={isSearchValid}
-                  message={searchMessage}
-                  minLength={minLength}
-                  placeholder={t('common.search_resource', { resource: t('roles.title') })}
-                />
-              </div>
+        <div className="dashboard-surface dashboard-surface-hover overflow-hidden">
+          <div className="p-4 border-b border-slate-200/60 bg-slate-50/70">
+            <div className="max-w-sm">
+              <MinCharSearchInput
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                onClear={clearSearch}
+                loading={loading || searchLoading}
+                isValid={isSearchValid}
+                message={searchMessage}
+                minLength={minLength}
+                placeholder={t('common.search_resource', { resource: t('roles.title') })}
+              />
             </div>
-
-            <ContentTable
-              data={filteredRoles}
-              columns={columns}
-              loading={loading}
-              onEdit={canEdit ? (role) => handleEdit(role) : null}
-              onDelete={canDelete ? (role) => openDeleteDialog(role) : null}
-            />
           </div>
-        </>
-      )}
+
+          <ContentTable
+            data={filteredRoles}
+            columns={columns}
+            loading={loading}
+            onEdit={canEdit ? (role) => handleEdit(role) : null}
+            onDelete={canDelete ? (role) => openDeleteDialog(role) : null}
+          />
+        </div>
+      </>
     </AdminPageLayout>
   );
 }

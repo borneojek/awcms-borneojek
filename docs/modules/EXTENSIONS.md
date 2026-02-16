@@ -187,6 +187,36 @@ export { default as AnalyticsDashboard } from './components/AnalyticsDashboard';
 
 ---
 
+## Route Security (Signed Params)
+
+If an extension route includes editable identifiers (for example `:id`), declare which params must be signed so the admin shell can enforce non-guessable URLs.
+
+```javascript
+addFilter('admin_routes', 'analytics_routes', (routes) => [
+  ...routes,
+  {
+    path: 'analytics/reports/:id',
+    element: AnalyticsReport,
+    permission: 'ext.analytics.reports',
+    secureParams: ['id'],
+    secureScope: 'ext.analytics.reports'
+  }
+]);
+```
+
+Inside the routed component, read decoded params via `useRouteSecurityParams()` or use `useSecureRouteParam()` for direct access.
+
+```javascript
+import useRouteSecurityParams from '@/hooks/useRouteSecurityParams';
+
+const AnalyticsReport = () => {
+  const { id } = useRouteSecurityParams();
+  // id is the decoded UUID
+};
+```
+
+Signed IDs follow the `{uuid}.{signature}` pattern and redirect legacy raw UUIDs on first load.
+
 ## Database Tables
 
 ### `extensions`

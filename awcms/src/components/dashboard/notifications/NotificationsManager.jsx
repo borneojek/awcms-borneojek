@@ -27,6 +27,7 @@ import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { usePermissions } from '@/contexts/PermissionContext';
+import { encodeRouteParam } from '@/lib/routeSecurity';
 
 function NotificationsManager() {
     // Hooks
@@ -421,7 +422,12 @@ function NotificationsManager() {
                         columns={columns}
                         loading={loading}
                         onDelete={canDelete ? deleteNotification : null}
-                        onView={(item) => item.id && navigate(`/cmspanel/notifications/${item.id}`)}
+                        onView={async (item) => {
+                            if (!item.id) return;
+                            const routeId = await encodeRouteParam({ value: item.id, scope: 'notifications.detail' });
+                            if (!routeId) return;
+                            navigate(`/cmspanel/notifications/${routeId}`);
+                        }}
                         extraActions={extraActions}
                         pagination={{
                             currentPage: page,

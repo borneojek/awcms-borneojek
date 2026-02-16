@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { usePermissions } from '@/contexts/PermissionContext';
 import { useTemplates } from '@/hooks/useTemplates';
+import { encodeRouteParam } from '@/lib/routeSecurity';
 
 const TemplatesList = () => {
     const navigate = useNavigate();
@@ -49,11 +50,20 @@ const TemplatesList = () => {
 
         try {
             const newTemplateData = await createTemplate(defaultTemplate);
+            const targetId = newTemplateData?.id || fallbackId;
+            const routeId = await encodeRouteParam({ value: targetId, scope: 'visual-editor.template' });
+            if (!routeId) return;
             // Navigate to Visual Editor
-            navigate(`/cmspanel/visual-editor?templateId=${newTemplateData?.id || fallbackId}`);
+            navigate(`/cmspanel/visual-editor/template/${routeId}`);
         } catch (error) {
             console.error("Failed to create template", error);
         }
+    };
+
+    const handleOpenEditor = async (templateId) => {
+        const routeId = await encodeRouteParam({ value: templateId, scope: 'visual-editor.template' });
+        if (!routeId) return;
+        navigate(`/cmspanel/visual-editor/template/${routeId}`);
     };
 
     const filteredTemplates = templates.filter(t =>
@@ -100,7 +110,12 @@ const TemplatesList = () => {
                                     <LayoutTemplate className="w-10 h-10 text-slate-300" />
                                 )}
                                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Button size="icon" variant="secondary" className="h-8 w-8 rounded-full shadow-sm" onClick={() => navigate(`/cmspanel/visual-editor?templateId=${template.id}`)}>
+                                    <Button
+                                        size="icon"
+                                        variant="secondary"
+                                        className="h-8 w-8 rounded-full shadow-sm"
+                                        onClick={() => handleOpenEditor(template.id)}
+                                    >
                                         <Edit className="w-4 h-4 text-slate-700" />
                                     </Button>
                                 </div>

@@ -6,6 +6,7 @@ import { Palette, Plus, Edit, Check, Trash2, Power, Copy, Download, Upload, Sear
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
+import { encodeRouteParam } from '@/lib/routeSecurity';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -233,7 +234,10 @@ const ThemesManager = () => {
             toast({ title: "Error", description: error.message, variant: "destructive" });
         } else {
             // Navigate to the new theme (using the returned ID or our fallback)
-            navigate(`/cmspanel/themes/${data?.id || fallbackId}`);
+            const targetId = data?.id || fallbackId;
+            const routeId = await encodeRouteParam({ value: targetId, scope: 'themes.edit' });
+            if (!routeId) return;
+            navigate(`/cmspanel/themes/edit/${routeId}`);
         }
     };
 
@@ -345,12 +349,16 @@ const ThemesManager = () => {
 
                                 <div className="mt-auto pt-4 flex gap-2">
                                     {hasPermission('tenant.setting.update') && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="flex-1"
-                                            onClick={() => navigate(`/cmspanel/themes/edit/${theme.id}`)}
-                                        >
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="flex-1"
+                                                onClick={async () => {
+                                                    const routeId = await encodeRouteParam({ value: theme.id, scope: 'themes.edit' });
+                                                    if (!routeId) return;
+                                                    navigate(`/cmspanel/themes/edit/${routeId}`);
+                                                }}
+                                            >
                                             <Edit className="w-3.5 h-3.5 mr-1.5" /> Customize
                                         </Button>
                                     )}

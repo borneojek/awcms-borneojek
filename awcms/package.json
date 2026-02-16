@@ -9,7 +9,7 @@
     "secrets:rotate": "node scripts/rotate_db_password.js",
     "dev": "node scripts/check_secrets.js && vite",
     "test": "vitest",
-    "docs:check": "npx markdown-link-check --config ../.mlc_config.json ../README.md ../AGENTS.md README.md ../DOCS_INDEX.md",
+    "docs:check": "npx markdown-link-check --config ../.mlc_config.json ../README.md ../AGENTS.md README.md ../DOCS_INDEX.md ../CHANGELOG.md ../CONTRIBUTING.md ../SECURITY.md ../CODE_OF_CONDUCT.md ../docs/**/*.md",
     "db:pull": "npx supabase db pull --schema public",
     "build": "vite build",
     "lint": "eslint ."
@@ -42,6 +42,7 @@
     "@tiptap/pm": "^3.13.0",
     "@tiptap/react": "^3.13.0",
     "@tiptap/starter-kit": "^3.13.0",
+    "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

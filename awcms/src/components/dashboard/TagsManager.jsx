@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Tag, Trash2, Filter, RefreshCw, Edit, Plus, RotateCcw, CheckCircle, AlertCircle, SortAsc, SortDesc } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
+import useSplatSegments from '@/hooks/useSplatSegments';
 
 const MODULES = [
     { value: 'all', label: 'All Modules' },
@@ -42,6 +44,9 @@ function TagsManager() {
     const { toast } = useToast();
     const { hasPermission, isPlatformAdmin } = usePermissions();
     const { currentTenant } = useTenant();
+    const navigate = useNavigate();
+    const segments = useSplatSegments();
+    const showTrash = segments[0] === 'trash';
 
     // Search
     const {
@@ -63,7 +68,11 @@ function TagsManager() {
     // Filters State
     const [moduleFilter, setModuleFilter] = useState('all');
     const [activeFilter, setActiveFilter] = useState('all');
-    const [showTrash, setShowTrash] = useState(false);
+    useEffect(() => {
+        if (segments.length > 0 && segments[0] !== 'trash') {
+            navigate('/cmspanel/tags', { replace: true });
+        }
+    }, [segments, navigate]);
 
     // Sort State
     const [sortConfig, setSortConfig] = useState({ key: 'total_usage', direction: 'desc' });
@@ -402,7 +411,10 @@ function TagsManager() {
             {(canSoftDelete || showTrash) && (
                 <Button
                     variant={showTrash ? "destructive" : "outline"}
-                    onClick={() => { setShowTrash(!showTrash); setCurrentPage(1); }}
+                    onClick={() => {
+                        navigate(showTrash ? '/cmspanel/tags' : '/cmspanel/tags/trash');
+                        setCurrentPage(1);
+                    }}
                     className={showTrash ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" : "text-muted-foreground hover:text-foreground"}
                 >
                     {showTrash ? "View Active Tags" : "Trash / Deleted"}

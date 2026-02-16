@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { UploadCloud, Trash2, RefreshCw, FolderClosed, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,11 +11,18 @@ import { FileStats } from './media/FileStats';
 import { useToast } from '@/components/ui/use-toast';
 import { useMedia } from '@/hooks/useMedia';
 import { AdminPageLayout, PageHeader } from '@/templates/flowbite-admin';
+import useSplatSegments from '@/hooks/useSplatSegments';
 
 const FilesManager = () => {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [showTrash, setShowTrash] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const segments = useSplatSegments();
+  const showTrash = segments[0] === 'trash';
+  const basePath = useMemo(() => (
+    location.pathname.startsWith('/cmspanel/media') ? '/cmspanel/media' : '/cmspanel/files'
+  ), [location.pathname]);
 
   // Category State
   const [categories, setCategories] = useState([]);
@@ -35,6 +43,16 @@ const FilesManager = () => {
   React.useEffect(() => {
     loadCategories();
   }, [loadCategories]);
+
+  useEffect(() => {
+    if (segments.length > 0 && segments[0] !== 'trash') {
+      navigate(basePath, { replace: true });
+    }
+  }, [segments, basePath, navigate]);
+
+  useEffect(() => {
+    if (showTrash) setSelectedCategory(null);
+  }, [showTrash]);
 
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) return;
@@ -70,7 +88,7 @@ const FilesManager = () => {
   };
 
   const breadcrumbs = [
-    { label: 'Media Library', icon: Image, href: showTrash ? '/cmspanel/files' : undefined },
+    { label: 'Media Library', icon: Image, href: showTrash ? basePath : undefined },
     ...(showTrash ? [{ label: 'Trash Bin', icon: Trash2 }] : [])
   ];
 
@@ -91,8 +109,7 @@ const FilesManager = () => {
       <Button
         variant={showTrash ? "outline" : "outline"}
         onClick={() => {
-          setShowTrash(!showTrash);
-          if (!showTrash) setSelectedCategory(null); // Reset category when going to trash
+          navigate(showTrash ? basePath : `${basePath}/trash`);
         }}
         className={`transition-colors border-border ${showTrash ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
       >

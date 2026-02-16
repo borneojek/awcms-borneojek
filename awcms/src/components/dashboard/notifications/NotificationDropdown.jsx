@@ -13,6 +13,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { encodeRouteParam } from '@/lib/routeSecurity';
 
 const getIcon = (type) => {
     switch (type) {
@@ -102,9 +103,11 @@ export function NotificationDropdown() {
                                             <Button
                                                 variant="link"
                                                 className="h-auto p-0 text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                                                onClick={(e) => {
+                                                onClick={async (e) => {
                                                     e.preventDefault();
-                                                    navigate(`/cmspanel/notifications/${notification.id}`);
+                                                    const routeId = await encodeRouteParam({ value: notification.id, scope: 'notifications.detail' });
+                                                    if (!routeId) return;
+                                                    navigate(`/cmspanel/notifications/${routeId}`);
                                                 }}
                                             >
                                                 View Details

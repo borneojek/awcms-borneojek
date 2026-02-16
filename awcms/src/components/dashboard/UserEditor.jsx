@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Save, X, User, Mail, Shield, Building, Phone, MapPin, Globe, Briefcase, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
+import { encodeRouteParam } from '@/lib/routeSecurity';
+import useSecureRouteParam from '@/hooks/useSecureRouteParam';
 
 import { usePermissions } from '@/contexts/PermissionContext';
 import { useTenant } from '@/contexts/TenantContext';
@@ -16,6 +19,11 @@ function UserEditor({ user, onClose, onSave }) {
   const { toast } = useToast();
   const { tenantId: userTenantId, isPlatformAdmin, hasPermission, isFullAccess } = usePermissions();
   const { currentTenant } = useTenant();
+  const navigate = useNavigate();
+  const { id: routeParam } = useParams();
+  const { value: routeUserId, loading: routeLoading, isLegacy } = useSecureRouteParam(routeParam, 'users.edit');
+  const [resolvedUser, setResolvedUser] = useState(user || null);
+  const userData = user || resolvedUser;
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [activeTab, setActiveTab] = useState("account");
@@ -55,7 +63,60 @@ function UserEditor({ user, onClose, onSave }) {
     admin_flags: ''
   });
 
-  const isEditing = !!user;
+  const isEditing = Boolean(userData || routeUserId);
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+    navigate('/cmspanel/users');
+  };
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (user) {
+        setResolvedUser(user);
+        return;
+      }
+      if (!routeUserId) return;
+      try {
+        setFetching(true);
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', routeUserId)
+          .single();
+
+        if (error) throw error;
+        setResolvedUser(data || null);
+      } catch (error) {
+        console.error('Error loading user:', error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to load user details.' });
+        navigate('/cmspanel/users');
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    fetchUser();
+  }, [user, routeUserId, toast, navigate]);
+
+  useEffect(() => {
+    if (!routeParam || routeLoading) return;
+    if (!routeUserId) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Invalid user link.' });
+      navigate('/cmspanel/users');
+      return;
+    }
+    if (!isLegacy) return;
+    const redirectLegacy = async () => {
+      const signedId = await encodeRouteParam({ value: routeUserId, scope: 'users.edit' });
+      if (!signedId || signedId === routeParam) return;
+      navigate(`/cmspanel/users/edit/${signedId}`, { replace: true });
+    };
+    redirectLegacy();
+  }, [routeParam, routeLoading, routeUserId, isLegacy, navigate, toast]);
 
   // Initialize Data
   useEffect(() => {
@@ -66,14 +127,14 @@ function UserEditor({ user, onClose, onSave }) {
 
   // Load User Data on Edit
   useEffect(() => {
-    if (isEditing && user) {
+    if (isEditing && userData) {
       // 1. Set Account Data
       setFormData({
-        full_name: user.full_name || '',
-        email: user.email || '',
+        full_name: userData.full_name || '',
+        email: userData.email || '',
         password: '',
-        role_id: user.role_id || '',
-        tenant_id: user.tenant_id || ''
+        role_id: userData.role_id || '',
+        tenant_id: userData.tenant_id || ''
       });
 
       // 2. Fetch Profile & Admin Data
@@ -84,7 +145,7 @@ function UserEditor({ user, onClose, onSave }) {
           const { data: profile, error: profileError } = await supabase
             .from('user_profiles')
             .select('*')
-            .eq('user_id', user.id)
+            .eq('user_id', userData.id)
             .maybeSingle();
 
           if (!profileError && profile) {
@@ -104,7 +165,7 @@ function UserEditor({ user, onClose, onSave }) {
           // Fetch Admin Fields if allowed
           if (canManageAdminFields) {
             const { data: adminFields, error: adminError } = await supabase
-              .rpc('get_user_profile_admin_fields', { p_user_id: user.id });
+              .rpc('get_user_profile_admin_fields', { p_user_id: userData.id });
 
             if (!adminError && adminFields && adminFields.length > 0) {
               // RPC returns an array
@@ -133,7 +194,7 @@ function UserEditor({ user, onClose, onSave }) {
       setFormData(prev => ({ ...prev, tenant_id: currentTenant?.id || userTenantId || '' }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, isEditing, currentTenant?.id, userTenantId]);
+  }, [userData, isEditing, currentTenant?.id, userTenantId]);
 
   const resolveRoleTenantId = () => {
     const fallbackTenantId = currentTenant?.id || userTenantId || null;
@@ -204,7 +265,7 @@ function UserEditor({ user, onClose, onSave }) {
       const selectedRole = roles.find(r => r.id === formData.role_id);
       const isGlobalRole = Boolean(selectedRole && (selectedRole.scope === 'platform' || selectedRole.is_platform_admin || selectedRole.is_full_access));
 
-      let userId = user?.id;
+      let userId = userData?.id;
 
       // 1. Create or Update Core User (Auth & Users Table)
       if (isEditing) {
@@ -221,7 +282,7 @@ function UserEditor({ user, onClose, onSave }) {
         const { error: userError } = await supabase
           .from('users')
           .update(updatePayload)
-          .eq('id', user.id);
+          .eq('id', userData.id);
 
         if (userError) throw userError;
       } else {
@@ -265,7 +326,7 @@ function UserEditor({ user, onClose, onSave }) {
         const profilePayload = {
           user_id: userId,
           ...profileData,
-          tenant_id: formData.tenant_id || user?.tenant_id || null
+          tenant_id: formData.tenant_id || userData?.tenant_id || null
         };
         // Remove empty strings if they cause issues? No, standard text fields.
 
@@ -299,7 +360,11 @@ function UserEditor({ user, onClose, onSave }) {
         title: "Success",
         description: isEditing ? "User updated successfully" : "User created successfully"
       });
-      onSave();
+      if (onSave) {
+        onSave();
+      } else {
+        navigate('/cmspanel/users');
+      }
     } catch (error) {
       console.error('Error saving user:', error);
       toast({
@@ -333,7 +398,7 @@ function UserEditor({ user, onClose, onSave }) {
               {isEditing ? 'Manage account, profile, and admin settings' : 'Add a new user to the system'}
             </p>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-slate-200/70 dark:hover:bg-slate-800">
+          <Button variant="ghost" size="icon" onClick={handleClose} className="rounded-full hover:bg-slate-200/70 dark:hover:bg-slate-800">
             <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
           </Button>
         </div>
@@ -402,7 +467,7 @@ function UserEditor({ user, onClose, onSave }) {
         </div>
 
         <div className="p-5 border-t border-slate-200/70 bg-slate-50/50 dark:border-slate-800/70 dark:bg-slate-900/30 flex justify-end gap-3 shrink-0 z-20">
-          <Button type="button" variant="ghost" onClick={onClose} disabled={loading} className="dark:text-slate-300">
+          <Button type="button" variant="ghost" onClick={handleClose} disabled={loading} className="dark:text-slate-300">
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 min-w-[120px]">

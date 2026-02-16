@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AdminPageLayout, PageHeader, PageTabs, TabsContent } from '@/templates/flowbite-admin';
 import TemplatesList from './templates/TemplatesList';
 import TemplatePartsList from './templates/TemplatePartsList';
 import TemplateAssignments from './templates/TemplateAssignments';
 import TemplateLanguageManager from './templates/TemplateLanguageManager';
 import { Layout, Puzzle, Link2, Languages } from 'lucide-react';
+import useSplatSegments from '@/hooks/useSplatSegments';
 
 /**
  * TemplatesManager - Manages admin templates and configurations.
@@ -12,7 +14,11 @@ import { Layout, Puzzle, Link2, Languages } from 'lucide-react';
  * Refactored to use awadmintemplate01 with ABAC enforcement.
  */
 const TemplatesManager = () => {
-    const [activeTab, setActiveTab] = useState('pages');
+    const navigate = useNavigate();
+    const segments = useSplatSegments();
+    const tabValues = ['pages', 'parts', 'assignments', 'languages'];
+    const hasTabSegment = tabValues.includes(segments[0]);
+    const activeTab = hasTabSegment ? segments[0] : 'pages';
 
     // Tab definitions
     const tabs = [
@@ -21,6 +27,12 @@ const TemplatesManager = () => {
         { value: 'assignments', label: 'Assignments', icon: Link2, color: 'emerald' },
         { value: 'languages', label: 'Languages', icon: Languages, color: 'amber' },
     ];
+
+    useEffect(() => {
+        if (segments.length > 0 && !hasTabSegment) {
+            navigate('/cmspanel/templates', { replace: true });
+        }
+    }, [segments, hasTabSegment, navigate]);
 
     // Breadcrumb
     const breadcrumbs = [
@@ -41,7 +53,13 @@ const TemplatesManager = () => {
             />
 
             {/* Tabs Navigation */}
-            <PageTabs value={activeTab} onValueChange={setActiveTab} tabs={tabs}>
+            <PageTabs
+                value={activeTab}
+                onValueChange={(value) => {
+                    navigate(value === 'pages' ? '/cmspanel/templates' : `/cmspanel/templates/${value}`);
+                }}
+                tabs={tabs}
+            >
                 <TabsContent value="pages" className="mt-0">
                     <TemplatesList />
                 </TabsContent>

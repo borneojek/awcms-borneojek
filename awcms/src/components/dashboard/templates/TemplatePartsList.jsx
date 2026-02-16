@@ -33,6 +33,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePermissions } from '@/contexts/PermissionContext';
 import { useTemplates } from '@/hooks/useTemplates';
+import { encodeRouteParam } from '@/lib/routeSecurity';
 
 const TemplatePartsList = () => {
     const navigate = useNavigate();
@@ -59,10 +60,18 @@ const TemplatePartsList = () => {
             setNewPartType('widget_area');
 
             // Navigate to Visual Editor with partId
-            navigate(`/cmspanel/visual-editor?partId=${data.id}`);
+            const routeId = await encodeRouteParam({ value: data.id, scope: 'visual-editor.part' });
+            if (!routeId) return;
+            navigate(`/cmspanel/visual-editor/part/${routeId}`);
         } catch (error) {
             console.error(error);
         }
+    };
+
+    const handleOpenEditor = async (partId) => {
+        const routeId = await encodeRouteParam({ value: partId, scope: 'visual-editor.part' });
+        if (!routeId) return;
+        navigate(`/cmspanel/visual-editor/part/${routeId}`);
     };
 
     const filteredParts = templateParts.filter(p =>
@@ -158,7 +167,7 @@ const TemplatePartsList = () => {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => navigate(`/cmspanel/visual-editor?partId=${part.id}`)}>
+                                    <DropdownMenuItem onClick={() => handleOpenEditor(part.id)}>
                                         <Edit className="w-4 h-4 mr-2" /> Edit Content
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />

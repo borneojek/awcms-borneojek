@@ -12,6 +12,8 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Save, Paintbrush } from 'lucide-react';
+import { encodeRouteParam } from '@/lib/routeSecurity';
+import useSecureRouteParam from '@/hooks/useSecureRouteParam';
 
 const PART_TYPES = [
     { value: 'header', label: 'Header' },
@@ -21,9 +23,10 @@ const PART_TYPES = [
 ];
 
 const TemplatePartEditor = () => {
-    const { id } = useParams();
+    const { id: routeParam } = useParams();
     const navigate = useNavigate();
     const { templateParts, updateTemplatePart, loading } = useTemplates();
+    const { value: partId, loading: routeLoading, isLegacy } = useSecureRouteParam(routeParam, 'template-parts.edit');
 
     const [formData, setFormData] = useState({
         name: '',
@@ -32,8 +35,8 @@ const TemplatePartEditor = () => {
 
     // Load part data
     useEffect(() => {
-        if (templateParts.length > 0 && id) {
-            const part = templateParts.find(p => p.id === id);
+        if (templateParts.length > 0 && partId) {
+            const part = templateParts.find(p => p.id === partId);
             if (part) {
                 // eslint-disable-next-line react-hooks/set-state-in-effect
                 setFormData({
@@ -42,18 +45,34 @@ const TemplatePartEditor = () => {
                 });
             }
         }
-    }, [templateParts, id]);
+    }, [templateParts, partId]);
+
+    useEffect(() => {
+        if (!routeParam || routeLoading) return;
+        if (!partId) {
+            navigate('/cmspanel/templates');
+            return;
+        }
+        if (!isLegacy) return;
+        const redirectLegacy = async () => {
+            const routeId = await encodeRouteParam({ value: partId, scope: 'template-parts.edit' });
+            if (!routeId || routeId === routeParam) return;
+            navigate(`/cmspanel/templates/parts/edit/${routeId}`, { replace: true });
+        };
+        redirectLegacy();
+    }, [routeParam, routeLoading, partId, isLegacy, navigate]);
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
     const handleSave = async () => {
-        await updateTemplatePart(id, formData);
+        if (!partId) return;
+        await updateTemplatePart(partId, formData);
         navigate('/cmspanel/templates');
     };
 
-    if (loading) return <div className="p-6">Loading...</div>;
+    if (loading || routeLoading) return <div className="p-6">Loading...</div>;
 
     return (
         <div className="p-6 max-w-2xl mx-auto space-y-8">
@@ -66,7 +85,15 @@ const TemplatePartEditor = () => {
                     <h1 className="text-2xl font-bold">Edit Template Part</h1>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => navigate(`/cmspanel/visual-editor?partId=${id}`)}>
+                    <Button
+                        variant="outline"
+                        onClick={async () => {
+                            if (!partId) return;
+                            const routeId = await encodeRouteParam({ value: partId, scope: 'visual-editor.part' });
+                            if (!routeId) return;
+                            navigate(`/cmspanel/visual-editor/part/${routeId}`);
+                        }}
+                    >
                         <Paintbrush className="w-4 h-4 mr-2" /> Design Content
                     </Button>
                     <Button onClick={handleSave}>

@@ -27,12 +27,15 @@ import { usePermissions } from '@/contexts/PermissionContext';
 import SensorChart from '@/components/esp32/SensorChart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
+import { encodeRouteParam } from '@/lib/routeSecurity';
+import useSecureRouteParam from '@/hooks/useSecureRouteParam';
 
 function DeviceDetail() {
     const { t } = useTranslation();
-    const { id } = useParams();
+    const { id: routeParam } = useParams();
     const navigate = useNavigate();
     const { tenantId } = usePermissions();
+    const { value: deviceId, loading: routeLoading, isLegacy } = useSecureRouteParam(routeParam, 'devices.detail');
     const [device, setDevice] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -43,19 +46,20 @@ function DeviceDetail() {
 
     // Fetch device
     useEffect(() => {
-        const fetchDevice = async () => {
-            if (!id || !tenantId) return;
+        if (!deviceId || !tenantId) return;
 
+        const fetchDevice = async () => {
+            
             const { data, error } = await supabase
                 .from('devices')
                 .select('*')
-                .eq('id', id)
+                .eq('id', deviceId)
                 .eq('tenant_id', tenantId)
                 .single();
 
             if (error) {
                 console.error('Failed to fetch device:', error);
-                navigate('/admin/devices');
+                navigate('/cmspanel/devices');
                 return;
             }
 
@@ -67,14 +71,14 @@ function DeviceDetail() {
 
         // Realtime subscription for device status
         const channel = supabase
-            .channel(`device-${id}`)
+            .channel(`device-${deviceId}`)
             .on(
                 'postgres_changes',
                 {
                     event: 'UPDATE',
                     schema: 'public',
                     table: 'devices',
-                    filter: `id=eq.${id}`,
+                        filter: `id=eq.${deviceId}`,
                 },
                 (payload) => {
                     setDevice(payload.new);
@@ -85,7 +89,22 @@ function DeviceDetail() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [id, tenantId, navigate]);
+    }, [deviceId, tenantId, navigate]);
+
+    useEffect(() => {
+        if (!routeParam || routeLoading) return;
+        if (!deviceId) {
+            navigate('/cmspanel/devices');
+            return;
+        }
+        if (!isLegacy) return;
+        const redirectLegacy = async () => {
+            const signedId = await encodeRouteParam({ value: deviceId, scope: 'devices.detail' });
+            if (!signedId || signedId === routeParam) return;
+            navigate(`/cmspanel/devices/${signedId}`, { replace: true });
+        };
+        redirectLegacy();
+    }, [routeParam, routeLoading, deviceId, isLegacy, navigate]);
 
     if (loading) {
         return (
@@ -115,7 +134,7 @@ function DeviceDetail() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => navigate('/admin/devices')}>
+                    <Button variant="ghost" size="icon" onClick={() => navigate('/cmspanel/devices')}>
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div>
@@ -140,7 +159,7 @@ function DeviceDetail() {
                         <RefreshCw className="mr-2 h-4 w-4" />
                         {t('devices.detail_page.refresh')}
                     </Button>
-                    <Button variant="outline" onClick={() => navigate(`/admin/devices/${id}/settings`)}>
+                    <Button variant="outline" onClick={() => navigate(`/admin/devices/${deviceId}/settings`)}>
                         <Settings className="mr-2 h-4 w-4" />
                         {t('devices.detail_page.settings')}
                     </Button>

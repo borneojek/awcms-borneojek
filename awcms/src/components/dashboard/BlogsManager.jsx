@@ -1,10 +1,14 @@
 import { useState } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import GenericContentManager from '@/components/dashboard/GenericContentManager';
 import BlogEditor from '@/components/dashboard/BlogEditor';
 import { AdminPageLayout, PageHeader, PageTabs, TabsContent } from '@/templates/flowbite-admin';
 import { FileText, FolderOpen, Tag, Layout, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import useSplatSegments from '@/hooks/useSplatSegments';
+import { encodeRouteParam } from '@/lib/routeSecurity';
 
 /**
  * BlogsManager - Manages blogs, categories, and tags.
@@ -12,7 +16,48 @@ import { Button } from '@/components/ui/button';
  */
 function BlogsManager() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState('blogs');
+  const navigate = useNavigate();
+  const segments = useSplatSegments();
+  const [searchParams] = useSearchParams();
+  const tabValues = ['blogs', 'categories', 'tags'];
+  const viewValues = ['queue'];
+  const hasTabSegment = tabValues.includes(segments[0]);
+  const hasViewSegment = viewValues.includes(segments[0]);
+  const activeTab = hasTabSegment ? segments[0] : 'blogs';
+  const activeView = hasViewSegment ? segments[0] : null;
+
+  const legacyEditId = searchParams.get('edit');
+  const legacyStatus = searchParams.get('status');
+
+  const blogFilters = useMemo(() => {
+    if (activeView === 'queue') {
+      return { workflow_state: 'reviewed' };
+    }
+    return {};
+  }, [activeView]);
+
+  useEffect(() => {
+    if (segments.length > 0 && !hasTabSegment && !hasViewSegment) {
+      navigate('/cmspanel/blogs', { replace: true });
+    }
+  }, [segments, hasTabSegment, hasViewSegment, navigate]);
+
+  useEffect(() => {
+    if (segments.length > 0) return;
+    if (legacyEditId) {
+      const redirectLegacy = async () => {
+        const routeId = await encodeRouteParam({ value: legacyEditId, scope: 'blogs.edit' });
+        const nextPath = routeId ? `/cmspanel/blogs/edit/${routeId}` : '/cmspanel/blogs';
+        navigate(nextPath, { replace: true });
+      };
+      redirectLegacy();
+      return;
+    }
+    if (legacyStatus) {
+      const nextPath = legacyStatus === 'reviewed' ? '/cmspanel/blogs/queue' : '/cmspanel/blogs';
+      navigate(nextPath, { replace: true });
+    }
+  }, [segments.length, legacyEditId, legacyStatus, navigate]);
 
   // Tab definitions
   // Tab definitions
@@ -25,7 +70,8 @@ function BlogsManager() {
 
   // Dynamic breadcrumb based on active tab
   const breadcrumbs = [
-    { label: t('menu.blogs'), href: activeTab !== 'blogs' ? '/cmspanel/blogs' : undefined, icon: FileText },
+    { label: t('menu.blogs'), href: activeTab !== 'blogs' || activeView ? '/cmspanel/blogs' : undefined, icon: FileText },
+    ...(activeView ? [{ label: t('common.review_queue', 'Review Queue') }] : []),
     ...(activeTab !== 'blogs' ? [{ label: activeTab === 'categories' ? t('menu.categories') : t('menu.tags') }] : []),
   ];
 
@@ -153,7 +199,9 @@ function BlogsManager() {
       {/* Tabs Navigation */}
       <PageTabs
         value={activeTab}
-        onValueChange={setActiveTab}
+        onValueChange={(value) => {
+          navigate(value === 'blogs' ? '/cmspanel/blogs' : `/cmspanel/blogs/${value}`);
+        }}
         tabs={tabs}
       >
         <TabsContent value="blogs" className="mt-0">
@@ -164,6 +212,7 @@ function BlogsManager() {
             formFields={blogFormFields}
             permissionPrefix="blog"
             showBreadcrumbs={false}
+            defaultFilters={blogFilters}
             EditorComponent={BlogEditor}
             customRowActions={customRowActions}
             customToolbarActions={customToolbarActions}

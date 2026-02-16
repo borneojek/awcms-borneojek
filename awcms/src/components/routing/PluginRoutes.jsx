@@ -8,6 +8,7 @@
 import { Suspense, useMemo } from 'react';
 import { Route } from 'react-router-dom';
 import { usePlugins } from '@/contexts/PluginContext';
+import SecureRouteGate from '@/components/routing/SecureRouteGate';
 
 // Loading fallback
 const RouteLoader = () => (
@@ -35,7 +36,10 @@ export const usePluginRoutes = () => {
                 path: route.path.startsWith('/') ? route.path.slice(1) : route.path,
                 element: route.element,
                 permission: route.permission || null,
-                lazy: route.lazy !== false
+                lazy: route.lazy !== false,
+                secureParams: route.secureParams || route.secure_params || [],
+                secureScope: route.secureScope || route.secure_scope || null,
+                secureFallback: route.secureFallback || route.secure_fallback || '/cmspanel'
             }));
     }, [applyFilters, isLoading]);
 
@@ -57,20 +61,36 @@ const PluginRoutes = () => {
         <>
             {routes.map((route) => {
                 const Element = route.element;
+                const renderElement = (secureParams) => {
+                    const elementProps = secureParams ? { secureParams } : {};
+                    return route.lazy ? (
+                        <Suspense fallback={<RouteLoader />}>
+                            <Element {...elementProps} />
+                        </Suspense>
+                    ) : (
+                        <Element {...elementProps} />
+                    );
+                };
+
+                const element = route.secureParams?.length ? (
+                    <SecureRouteGate
+                        routePath={route.path}
+                        secureParams={route.secureParams}
+                        scopeBase={route.secureScope}
+                        fallback={route.secureFallback}
+                        loadingFallback={<RouteLoader />}
+                    >
+                        {(secureParams) => renderElement(secureParams)}
+                    </SecureRouteGate>
+                ) : (
+                    renderElement(null)
+                );
 
                 return (
                     <Route
                         key={route.path}
                         path={route.path}
-                        element={
-                            route.lazy ? (
-                                <Suspense fallback={<RouteLoader />}>
-                                    <Element />
-                                </Suspense>
-                            ) : (
-                                <Element />
-                            )
-                        }
+                        element={element}
                     />
                 );
             })}

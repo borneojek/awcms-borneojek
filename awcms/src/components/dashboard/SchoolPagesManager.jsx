@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTenant } from '@/contexts/TenantContext';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -14,6 +15,7 @@ import LocalizedInput from '@/components/ui/LocalizedInput';
 import LocalizedArrayEditor from '@/components/ui/LocalizedArrayEditor';
 import { PositionArrayEditor, StaffArrayEditor } from '@/components/ui/PositionArrayEditor';
 import ImageUpload from '@/components/ui/ImageUpload';
+import useSplatSegments from '@/hooks/useSplatSegments';
 import {
     School,
     Save,
@@ -49,7 +51,11 @@ function SchoolPagesManager() {
     useTranslation();
     const { currentTenant } = useTenant();
     const { toast } = useToast();
-    const [activeTab, setActiveTab] = useState('profile');
+    const navigate = useNavigate();
+    const segments = useSplatSegments();
+    const tabValues = Object.keys(SETTINGS_KEYS);
+    const hasTabSegment = tabValues.includes(segments[0]);
+    const activeTab = hasTabSegment ? segments[0] : 'profile';
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [data, setData] = useState({});
@@ -88,6 +94,12 @@ function SchoolPagesManager() {
     useEffect(() => {
         loadData();
     }, [loadData]);
+
+    useEffect(() => {
+        if (segments.length > 0 && !hasTabSegment) {
+            navigate('/cmspanel/school-pages', { replace: true });
+        }
+    }, [segments, hasTabSegment, navigate]);
 
     // Save current tab data
     const handleSave = async () => {
@@ -209,7 +221,12 @@ function SchoolPagesManager() {
             />
 
             <div className="p-6">
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <Tabs
+                    value={activeTab}
+                    onValueChange={(value) => {
+                        navigate(value === 'profile' ? '/cmspanel/school-pages' : `/cmspanel/school-pages/${value}`);
+                    }}
+                >
                     <TabsList className="grid grid-cols-5 lg:grid-cols-10 h-auto gap-1 p-1">
                         {tabs.map((tab) => (
                             <TabsTrigger

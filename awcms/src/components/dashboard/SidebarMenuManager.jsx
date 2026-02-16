@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Reorder, AnimatePresence } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
 import {
@@ -21,6 +22,7 @@ import MinCharSearchInput from '@/components/common/MinCharSearchInput';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/use-toast';
+import useSplatSegments from '@/hooks/useSplatSegments';
 import {
     Dialog,
     DialogContent,
@@ -36,10 +38,15 @@ import { AdminPageLayout, PageHeader } from '@/templates/flowbite-admin';
 function SidebarMenuManager() {
     const { t } = useTranslation();
     const { menuItems, loading, updateMenuOrder, toggleVisibility, updateMenuItem, updateGroup, fetchMenu } = useAdminMenu();
-    const { hasPermission, isPlatformAdmin, isFullAccess, userRole, loading: permsLoading } = usePermissions();
+    const { hasPermission, hasAnyPermission, isPlatformAdmin, isFullAccess, userRole, loading: permsLoading } = usePermissions();
     const { currentTenant } = useTenant();
     const { applyFilters } = usePlugins();
     const { toast } = useToast();
+    const navigate = useNavigate();
+    const segments = useSplatSegments();
+    const tabValues = ['items', 'groups'];
+    const hasTabSegment = tabValues.includes(segments[0]);
+    const activeTab = hasTabSegment ? segments[0] : 'items';
 
     const {
         query,
@@ -53,7 +60,12 @@ function SidebarMenuManager() {
     } = useSearch({ context: 'admin' });
 
     const [items, setItems] = useState([]);
-    const [activeTab, setActiveTab] = useState('items');
+
+    useEffect(() => {
+        if (segments.length > 0 && !hasTabSegment) {
+            navigate('/cmspanel/admin-navigation', { replace: true });
+        }
+    }, [segments, hasTabSegment, navigate]);
 
     // Groups Management State
     const [groups, setGroups] = useState([]);
@@ -81,6 +93,7 @@ function SidebarMenuManager() {
     const visibleItems = useMemo(() => filterMenuItemsForSidebar({
         items: menuItems,
         hasPermission,
+        hasAnyPermission,
         isPlatformAdmin,
         isFullAccess,
         subscriptionTier: currentTenant?.subscription_tier,
@@ -89,6 +102,7 @@ function SidebarMenuManager() {
     }), [
         menuItems,
         hasPermission,
+        hasAnyPermission,
         isPlatformAdmin,
         isFullAccess,
         currentTenant?.subscription_tier,
@@ -350,7 +364,13 @@ function SidebarMenuManager() {
             <div>
 
                 {/* Main Content */}
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <Tabs
+                    value={activeTab}
+                    onValueChange={(value) => {
+                        navigate(value === 'items' ? '/cmspanel/admin-navigation' : `/cmspanel/admin-navigation/${value}`);
+                    }}
+                    className="w-full"
+                >
                     <div className="flex justify-between items-center mb-4">
                         <TabsList>
                             <TabsTrigger value="items">{t('sidebar_manager.tabs.items')}</TabsTrigger>

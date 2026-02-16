@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Save, Loader2, Monitor, Smartphone, Type, Palette as PaletteIcon, Layout, RotateCcw } from 'lucide-react';
 import { usePermissions } from '@/contexts/PermissionContext';
 import { shadcnHslToHex, hexToShadcnHsl, applyTheme } from '@/lib/themeUtils';
+import { encodeRouteParam } from '@/lib/routeSecurity';
+import useSecureRouteParam from '@/hooks/useSecureRouteParam';
 
 // Standard Web Fonts & Google Fonts Options
 const FONT_OPTIONS = [
@@ -72,10 +74,11 @@ const DEFAULT_DARK_COLORS = {
 };
 
 const ThemeEditor = () => {
-    const { id } = useParams();
+    const { id: routeParam } = useParams();
     const navigate = useNavigate();
     const { toast } = useToast();
     const { t } = useTranslation();
+    const { value: themeId, loading: routeLoading, isLegacy } = useSecureRouteParam(routeParam, 'themes.edit');
 
     // Permission Check
     const { hasPermission } = usePermissions();
@@ -98,11 +101,12 @@ const ThemeEditor = () => {
     });
 
     const fetchTheme = React.useCallback(async () => {
+        if (!themeId) return;
         setLoading(true);
         const { data, error } = await supabase
             .from('themes')
             .select('*')
-            .eq('id', id)
+            .eq('id', themeId)
             .is('deleted_at', null)
             .single();
 
@@ -129,11 +133,26 @@ const ThemeEditor = () => {
             });
         }
         setLoading(false);
-    }, [id, navigate, toast, t]);
+    }, [themeId, navigate, toast, t]);
 
     useEffect(() => {
         fetchTheme();
     }, [fetchTheme]);
+
+    useEffect(() => {
+        if (!routeParam || routeLoading) return;
+        if (!themeId) {
+            navigate('/cmspanel/themes');
+            return;
+        }
+        if (!isLegacy) return;
+        const redirectLegacy = async () => {
+            const routeId = await encodeRouteParam({ value: themeId, scope: 'themes.edit' });
+            if (!routeId || routeId === routeParam) return;
+            navigate(`/cmspanel/themes/edit/${routeId}`, { replace: true });
+        };
+        redirectLegacy();
+    }, [routeParam, routeLoading, themeId, isLegacy, navigate]);
 
     // When config changes, update live preview immediately
     useEffect(() => {
@@ -188,6 +207,11 @@ const ThemeEditor = () => {
             return;
         }
 
+        if (!themeId) {
+            toast({ title: t('theme_editor.toasts.error_title'), description: t('theme_editor.toasts.error_load'), variant: "destructive" });
+            return;
+        }
+
         if (!name.trim()) {
             toast({ title: t('theme_editor.toasts.error_title'), description: t('theme_editor.toasts.validation_name'), variant: "destructive" });
             return;
@@ -203,7 +227,7 @@ const ThemeEditor = () => {
                     config,
                     updated_at: new Date()
                 })
-                .eq('id', id);
+                .eq('id', themeId);
 
             if (error) throw error;
             toast({ title: t('theme_editor.toasts.success_save'), description: t('theme_editor.toasts.success_save') });

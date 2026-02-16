@@ -37,6 +37,25 @@ Describe the admin layout system and the shared template components.
 - `ExtensionErrorBoundary` wraps dynamic routes to prevent extension failures from crashing the shell.
 - The fallback loader is `PageLoader` inside `MainRouter.jsx`.
 
+### Route Conventions (Sub-Slugs)
+
+Admin routes use path-based sub-slugs so tab and trash views survive refreshes. Base module routes use `*` in `MainRouter.jsx` to allow nested paths, and legacy query-string links redirect to the new slugs.
+
+Edit/detail routes use signed IDs (`{id}.{signature}`) to prevent guessable links. Use `encodeRouteParam` when generating links and `useSecureRouteParam` to decode inside route screens.
+
+| Area | Base Route | Sub-Slug Patterns | Notes |
+| --- | --- | --- | --- |
+| Blogs | `/cmspanel/blogs` | `/categories`, `/tags`, `/queue`, `/edit/:id` | Review queue lives at `/queue`. |
+| Pages | `/cmspanel/pages` | `/categories`, `/tags` | Tabs map to sub-slugs. |
+| Users | `/cmspanel/users` | `/approvals/:status`, `/new`, `/edit/:id` | Approval statuses: `pending`, `completed`, `rejected`. |
+| Roles | `/cmspanel/roles` | `/new`, `/edit/:id` | Role editor is route-backed. |
+| Templates | `/cmspanel/templates` | `/parts`, `/assignments`, `/languages` | Tabs map to sub-slugs. |
+| Visual Pages | `/cmspanel/visual-pages` | `/layouts` | Layout manager is tabbed. |
+| Sidebar Manager | `/cmspanel/admin-navigation` | `/groups` | Items/groups tabs. |
+| Media Library | `/cmspanel/files` or `/cmspanel/media` | `/trash` | Trash view uses sub-slug. |
+| Tags | `/cmspanel/tags` | `/trash` | Trash view uses sub-slug. |
+| Visual Editor | `/cmspanel/visual-editor/:mode/:id` | `template`, `part`, `page`, `blog` | Legacy `?templateId`/`?partId` redirect here. |
+
 ## Implementation Patterns
 
 ### Standard Manager Component

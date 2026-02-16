@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import { Puck, Render } from '@puckeditor/core';
 import '@puckeditor/core/puck.css';
 import './puck-theme.css';
@@ -28,6 +28,8 @@ import { Settings } from 'lucide-react';
 
 import { usePermissions } from '@/contexts/PermissionContext';
 import { useTenant } from '@/contexts/TenantContext'; // Added TenantContext
+import { encodeRouteParam } from '@/lib/routeSecurity';
+import useSecureRouteParam from '@/hooks/useSecureRouteParam';
 
 const VisualPageBuilder = ({ page: initialPage, mode: initialMode, onClose, onSuccess: _onSuccess}) => {
     // Permission Hook
@@ -36,12 +38,65 @@ const VisualPageBuilder = ({ page: initialPage, mode: initialMode, onClose, onSu
     const { toast } = useToast();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const { mode: modeParam, id: idParam } = useParams();
+    const normalizedMode = modeParam ? modeParam.toLowerCase() : null;
+    const allowedModes = ['template', 'part', 'page', 'blog'];
+    const isAllowedMode = normalizedMode ? allowedModes.includes(normalizedMode) : false;
+    const routeScope = isAllowedMode ? `visual-editor.${normalizedMode}` : 'visual-editor';
+    const {
+        value: secureRouteId,
+        loading: routeLoading,
+        isLegacy: isLegacyRouteId,
+    } = useSecureRouteParam(idParam, routeScope);
+    const legacyTemplateId = !normalizedMode ? searchParams.get('templateId') : null;
+    const legacyPartId = !normalizedMode ? searchParams.get('partId') : null;
+    const legacyPageId = !normalizedMode ? searchParams.get('pageId') : null;
 
     // Determine mode and IDs
-    const templateId = searchParams.get('templateId');
-    const partId = searchParams.get('partId');
-    const pageId = searchParams.get('pageId'); // Optional, to support deep linking 
-    const mode = initialMode || (partId ? 'part' : (templateId ? 'template' : 'page'));
+    const resolvedRouteId = routeLoading ? null : secureRouteId;
+    const templateId = normalizedMode === 'template' && isAllowedMode ? resolvedRouteId : legacyTemplateId;
+    const partId = normalizedMode === 'part' && isAllowedMode ? resolvedRouteId : legacyPartId;
+    const pageId = (normalizedMode === 'page' || normalizedMode === 'blog') && isAllowedMode ? resolvedRouteId : legacyPageId;
+    const mode = initialMode || normalizedMode || (partId ? 'part' : (templateId ? 'template' : 'page'));
+
+    useEffect(() => {
+        if (!normalizedMode || !idParam || routeLoading) return;
+        if (!isAllowedMode) {
+            navigate('/cmspanel/visual-editor');
+            return;
+        }
+        if (!secureRouteId) {
+            navigate('/cmspanel/visual-editor');
+            return;
+        }
+        if (!isLegacyRouteId) return;
+        const redirectLegacy = async () => {
+            const signedId = await encodeRouteParam({ value: secureRouteId, scope: routeScope });
+            if (!signedId || signedId === idParam) return;
+            navigate(`/cmspanel/visual-editor/${normalizedMode}/${signedId}`, { replace: true });
+        };
+        redirectLegacy();
+    }, [normalizedMode, idParam, routeLoading, secureRouteId, isLegacyRouteId, routeScope, navigate, isAllowedMode]);
+
+    useEffect(() => {
+        if (normalizedMode) return;
+        const redirectLegacy = async () => {
+            if (legacyTemplateId) {
+                const signedId = await encodeRouteParam({ value: legacyTemplateId, scope: 'visual-editor.template' });
+                if (!signedId || signedId === legacyTemplateId) return;
+                navigate(`/cmspanel/visual-editor/template/${signedId}`, { replace: true });
+            } else if (legacyPartId) {
+                const signedId = await encodeRouteParam({ value: legacyPartId, scope: 'visual-editor.part' });
+                if (!signedId || signedId === legacyPartId) return;
+                navigate(`/cmspanel/visual-editor/part/${signedId}`, { replace: true });
+            } else if (legacyPageId) {
+                const signedId = await encodeRouteParam({ value: legacyPageId, scope: 'visual-editor.page' });
+                if (!signedId || signedId === legacyPageId) return;
+                navigate(`/cmspanel/visual-editor/page/${signedId}`, { replace: true });
+            }
+        };
+        redirectLegacy();
+    }, [normalizedMode, legacyTemplateId, legacyPartId, legacyPageId, navigate]);
 
     // State
     const [page, setPage] = useState(initialPage || null);

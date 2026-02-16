@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react';
 import { CheckCircle, ArrowRight, FileText } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { usePermissions } from '@/contexts/PermissionContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDistanceToNow } from 'date-fns';
+import { useToast } from '@/components/ui/use-toast';
+import { encodeRouteParam } from '@/lib/routeSecurity';
 
 export function MyApprovals() {
     const { hasPermission } = usePermissions();
+    const navigate = useNavigate();
+    const { toast } = useToast();
     const [approvals, setApprovals] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -74,8 +78,20 @@ export function MyApprovals() {
                                         <FileText className="w-3 h-3" />
                                         by {item.author?.email || 'Unknown'}
                                     </span>
-                                    <Button asChild size="sm" variant="ghost" className="h-6 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30">
-                                        <Link to={`/cmspanel/blogs?edit=${item.id}`}>Review</Link>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                                        onClick={async () => {
+                                            const routeId = await encodeRouteParam({ value: item.id, scope: 'blogs.edit' });
+                                            if (!routeId) {
+                                                toast({ variant: 'destructive', title: 'Error', description: 'Unable to open the review editor.' });
+                                                return;
+                                            }
+                                            navigate(`/cmspanel/blogs/edit/${routeId}`);
+                                        }}
+                                    >
+                                        Review
                                     </Button>
                                 </div>
                             </div>
@@ -89,7 +105,7 @@ export function MyApprovals() {
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
-                    <Link to="/cmspanel/blogs?status=reviewed" className="text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-center w-full">
+                    <Link to="/cmspanel/blogs/queue" className="text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-center w-full">
                         View All Queue <ArrowRight className="w-4 h-4 ml-1" />
                     </Link>
                 </div>

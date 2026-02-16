@@ -15,11 +15,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AdminPageLayout, PageHeader } from '@/templates/flowbite-admin';
 
 const ITEMS_PER_PAGE_OPTIONS = [5, 10, 25, 50];
+const APPROVAL_TABS = ['pending', 'completed', 'rejected'];
 
-const UserApprovalManager = () => {
+const UserApprovalManager = ({ activeTab: controlledTab, onTabChange }) => {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('pending');
+    const [internalTab, setInternalTab] = useState('pending');
+    const activeTab = controlledTab || internalTab;
+    const handleTabChange = onTabChange || setInternalTab;
+    const effectiveTab = APPROVAL_TABS.includes(activeTab) ? activeTab : 'pending';
     const [processingId, setProcessingId] = useState(null);
     const [rejectReason, setRejectReason] = useState('');
     const [selectedRequest, setSelectedRequest] = useState(null);
@@ -35,10 +39,17 @@ const UserApprovalManager = () => {
 
     const isSuperAdmin = isPlatformAdmin || isFullAccess;
 
+    useEffect(() => {
+        if (!onTabChange) return;
+        if (!controlledTab || !APPROVAL_TABS.includes(controlledTab)) {
+            onTabChange('pending');
+        }
+    }, [onTabChange, controlledTab]);
+
     // Reset page when tab changes
     useEffect(() => {
         setCurrentPage(1);
-    }, [activeTab]);
+    }, [effectiveTab]);
 
 
 
@@ -51,14 +62,14 @@ const UserApprovalManager = () => {
                 .order('created_at', { ascending: false });
 
             // Filter by status based on tab
-            if (activeTab === 'pending') {
+            if (effectiveTab === 'pending') {
                 if (isSuperAdmin) {
                     query = query.in('status', ['pending_admin', 'pending_super_admin']);
                 } else {
                     query = query.eq('status', 'pending_admin');
                 }
             } else {
-                query = query.eq('status', activeTab);
+                query = query.eq('status', effectiveTab);
             }
 
             // Apply pagination
@@ -77,11 +88,11 @@ const UserApprovalManager = () => {
         } finally {
             setLoading(false);
         }
-    }, [activeTab, currentPage, itemsPerPage, isSuperAdmin, toast]);
+    }, [effectiveTab, currentPage, itemsPerPage, isSuperAdmin, toast]);
 
     useEffect(() => {
         fetchRequests();
-    }, [activeTab, currentPage, itemsPerPage, fetchRequests]);
+    }, [effectiveTab, currentPage, itemsPerPage, fetchRequests]);
 
     const handleApprove = async (request) => {
         setProcessingId(request.id);
@@ -273,7 +284,7 @@ const UserApprovalManager = () => {
 
             <Card className="w-full">
                 <CardContent className="pt-6">
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+                    <Tabs value={effectiveTab} onValueChange={handleTabChange} className="space-y-4">
                         <TabsList>
                             <TabsTrigger value="pending">Pending</TabsTrigger>
                             <TabsTrigger value="completed">Approved</TabsTrigger>

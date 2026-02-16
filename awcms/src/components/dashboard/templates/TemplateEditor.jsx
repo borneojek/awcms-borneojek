@@ -14,11 +14,14 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Save, Eye } from 'lucide-react';
+import { encodeRouteParam } from '@/lib/routeSecurity';
+import useSecureRouteParam from '@/hooks/useSecureRouteParam';
 
 const TemplateEditor = () => {
-    const { id } = useParams();
+    const { id: routeParam } = useParams();
     const navigate = useNavigate();
     const { templates, templateParts, updateTemplate, loading } = useTemplates();
+    const { value: templateId, loading: routeLoading, isLegacy } = useSecureRouteParam(routeParam, 'templates.edit');
 
     const [formData, setFormData] = useState({
         name: '',
@@ -34,8 +37,8 @@ const TemplateEditor = () => {
 
     // Load template data
     useEffect(() => {
-        if (templates.length > 0 && id) {
-            const template = templates.find(t => t.id === id);
+        if (templates.length > 0 && templateId) {
+            const template = templates.find(t => t.id === templateId);
             if (template) {
                 // eslint-disable-next-line react-hooks/set-state-in-effect
                 setFormData({
@@ -48,7 +51,22 @@ const TemplateEditor = () => {
                 });
             }
         }
-    }, [templates, id]);
+    }, [templates, templateId]);
+
+    useEffect(() => {
+        if (!routeParam || routeLoading) return;
+        if (!templateId) {
+            navigate('/cmspanel/templates');
+            return;
+        }
+        if (!isLegacy) return;
+        const redirectLegacy = async () => {
+            const routeId = await encodeRouteParam({ value: templateId, scope: 'templates.edit' });
+            if (!routeId || routeId === routeParam) return;
+            navigate(`/cmspanel/templates/edit/${routeId}`, { replace: true });
+        };
+        redirectLegacy();
+    }, [routeParam, routeLoading, templateId, isLegacy, navigate]);
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -62,7 +80,8 @@ const TemplateEditor = () => {
     };
 
     const handleSave = async () => {
-        await updateTemplate(id, formData);
+        if (!templateId) return;
+        await updateTemplate(templateId, formData);
         navigate('/cmspanel/templates');
     };
 
@@ -70,7 +89,7 @@ const TemplateEditor = () => {
     const headers = templateParts.filter(p => p.type === 'header');
     const footers = templateParts.filter(p => p.type === 'footer');
 
-    if (loading) return <div className="p-6">Loading...</div>;
+    if (loading || routeLoading) return <div className="p-6">Loading...</div>;
 
     return (
         <div className="p-6 max-w-4xl mx-auto space-y-8">
@@ -83,7 +102,15 @@ const TemplateEditor = () => {
                     <h1 className="text-2xl font-bold">Edit Template</h1>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => navigate(`/cmspanel/visual-editor?templateId=${id}`)}>
+                    <Button
+                        variant="outline"
+                        onClick={async () => {
+                            if (!templateId) return;
+                            const routeId = await encodeRouteParam({ value: templateId, scope: 'visual-editor.template' });
+                            if (!routeId) return;
+                            navigate(`/cmspanel/visual-editor/template/${routeId}`);
+                        }}
+                    >
                         <Eye className="w-4 h-4 mr-2" /> Visual Editor
                     </Button>
                     <Button onClick={handleSave}>

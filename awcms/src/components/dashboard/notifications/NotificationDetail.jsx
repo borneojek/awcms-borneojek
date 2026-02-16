@@ -11,6 +11,8 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { usePermissions } from '@/contexts/PermissionContext';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
+import { encodeRouteParam } from '@/lib/routeSecurity';
+import useSecureRouteParam from '@/hooks/useSecureRouteParam';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     AlertDialog,
@@ -35,14 +37,32 @@ function NotificationDetail({ id: propId }) {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
 
+    const { value: routeId, loading: routeLoading, isLegacy } = useSecureRouteParam(paramId, 'notifications.detail');
+
     // Prioritize propId (passed from Dashboard) over paramId (from Router)
-    const id = propId || paramId;
+    const id = propId || routeId;
 
     const isSuperAdmin = isPlatformAdmin || isFullAccess;
     const canViewReaders = isSuperAdmin || hasPermission('tenant.notification.read');
     const canDelete = isSuperAdmin || hasPermission('tenant.notification.delete');
 
     useEffect(() => {
+        if (propId || !paramId || routeLoading) return;
+        if (!routeId) {
+            navigate('/cmspanel/notifications');
+            return;
+        }
+        if (!isLegacy) return;
+        const redirectLegacy = async () => {
+            const signedId = await encodeRouteParam({ value: routeId, scope: 'notifications.detail' });
+            if (!signedId || signedId === paramId) return;
+            navigate(`/cmspanel/notifications/${signedId}`, { replace: true });
+        };
+        redirectLegacy();
+    }, [propId, paramId, routeLoading, routeId, isLegacy, navigate]);
+
+    useEffect(() => {
+        if (!propId && routeLoading) return;
         if (!id || id === 'undefined') {
             navigate('/cmspanel/notifications');
             return;
@@ -94,7 +114,7 @@ function NotificationDetail({ id: propId }) {
         };
 
         fetchDetail();
-    }, [id, navigate, markAsRead, canViewReaders, toast]);
+    }, [id, propId, routeLoading, navigate, markAsRead, canViewReaders, toast]);
 
     if (loading) {
         return <div className="p-8 space-y-4">

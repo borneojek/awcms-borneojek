@@ -89,6 +89,15 @@ Roles are assigned via the `role_id` Foreign Key in `public.users`.
 - **Default Role**: New users are assigned by `handle_new_user()` using role flags (`is_default_public_registration` or `is_default_invite`).
 - **Changing Roles**: Only platform admins (full access) or tenant admins with `tenant.user.update` can update the `role_id` via the User Manager module.
 
+## Admin Routes
+
+| Route | Purpose | Notes |
+| --- | --- | --- |
+| `/cmspanel/users` | User list | Default tab for active users. |
+| `/cmspanel/users/new` | Create user | Opens the user editor. |
+| `/cmspanel/users/edit/:id` | Edit user | Deep-linkable editor. |
+| `/cmspanel/users/approvals/:status` | Registration approvals | Status values: `pending`, `completed`, `rejected`. |
+
 ## Tenant Roles (Multi-Tenancy)
 
 Users are strictly scoped to a single `tenant_id`. Platform admin/full-access roles may be global (`tenant_id` NULL).

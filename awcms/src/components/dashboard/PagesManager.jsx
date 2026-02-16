@@ -1,10 +1,12 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import GenericContentManager from '@/components/dashboard/GenericContentManager';
 import VisualPageBuilder from '@/components/visual-builder/VisualPageBuilder';
 import { AdminPageLayout, PageHeader, PageTabs, TabsContent } from '@/templates/flowbite-admin';
 import { FileText, FolderOpen, Layers, Paintbrush, Tags } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
+import useSplatSegments from '@/hooks/useSplatSegments';
 
 /**
  * PagesManager - Manages pages with Visual Builder support.
@@ -12,7 +14,11 @@ import { useTranslation } from 'react-i18next';
  */
 function PagesManager({ onlyVisual = false }) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState('pages');
+  const navigate = useNavigate();
+  const segments = useSplatSegments();
+  const tabValues = ['pages', 'categories', 'tags'];
+  const hasTabSegment = tabValues.includes(segments[0]);
+  const activeTab = hasTabSegment ? segments[0] : 'pages';
   const [visualBuilderPage, setVisualBuilderPage] = useState(null);
 
   // Tab definitions
@@ -21,6 +27,12 @@ function PagesManager({ onlyVisual = false }) {
     { value: 'categories', label: t('pages.tabs.categories'), icon: FolderOpen, color: 'purple' },
     { value: 'tags', label: t('pages.tabs.tags') || 'Tags', icon: Tags, color: 'green' },
   ], [onlyVisual, t]);
+
+  useEffect(() => {
+    if (!onlyVisual && segments.length > 0 && !hasTabSegment) {
+      navigate('/cmspanel/pages', { replace: true });
+    }
+  }, [onlyVisual, segments, hasTabSegment, navigate]);
 
   // Dynamic breadcrumb based on active tab
   const breadcrumbs = useMemo(() => [
@@ -213,7 +225,9 @@ function PagesManager({ onlyVisual = false }) {
       ) : (
         <PageTabs
           value={activeTab}
-          onValueChange={setActiveTab}
+          onValueChange={(value) => {
+            navigate(value === 'pages' ? '/cmspanel/pages' : `/cmspanel/pages/${value}`);
+          }}
           tabs={tabs}
         >
           <TabsContent value="pages" className="mt-0">

@@ -38,8 +38,12 @@ Explain how templates, parts, widgets, and assignments drive multi-channel rende
 
 ### Admin UI
 
-- `/cmspanel/templates` manages templates and parts.
+- `/cmspanel/templates` lists page templates.
+- `/cmspanel/templates/parts` manages template parts.
 - `/cmspanel/templates/assignments` manages route assignments by channel.
+- `/cmspanel/templates/languages` manages template strings.
+- `/cmspanel/visual-editor/template/:id` edits a template layout.
+- `/cmspanel/visual-editor/part/:id` edits a template part.
 - `/cmspanel/widgets` manages widget instances.
 
 ### Public Portal Rendering

@@ -36,6 +36,16 @@ Stored in `blogs` table:
 - `content`: HTML fallback (optional).
 - `puck_layout_jsonb`: Optional Visual Builder layout for "Long-form" posts.
 
+## Admin UI
+
+| Route | Purpose | Notes |
+| --- | --- | --- |
+| `/cmspanel/blogs` | Blog list | Default blog tab. |
+| `/cmspanel/blogs/categories` | Blog categories | Tabs map to sub-slugs. |
+| `/cmspanel/blogs/tags` | Blog tags | Tabs map to sub-slugs. |
+| `/cmspanel/blogs/queue` | Review queue | Filters `workflow_state = reviewed`. |
+| `/cmspanel/blogs/edit/:id` | Edit blog | Used by approval widgets and deep links. |
+
 ## Implementation Patterns
 
 1. **Draft**: Author creates content. Visible only to Author/Editor.

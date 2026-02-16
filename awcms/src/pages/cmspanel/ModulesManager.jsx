@@ -26,7 +26,7 @@ const ModulesManager = () => {
   const { toast } = useToast();
   const { menuItems, loading: menuLoading } = useAdminMenu();
   const { currentTenant } = useTenant();
-  const { hasPermission, isPlatformAdmin, isFullAccess, userRole } = usePermissions();
+  const { hasPermission, hasAnyPermission, isPlatformAdmin, isFullAccess, userRole } = usePermissions();
   const { applyFilters } = usePlugins();
 
   const [modules, setModules] = useState([]);
@@ -94,6 +94,7 @@ const ModulesManager = () => {
   const visibleMenuItems = useMemo(() => filterMenuItemsForSidebar({
     items: menuItems,
     hasPermission,
+    hasAnyPermission,
     isPlatformAdmin,
     isFullAccess,
     subscriptionTier: currentTenant?.subscription_tier,
@@ -102,6 +103,7 @@ const ModulesManager = () => {
   }), [
     menuItems,
     hasPermission,
+    hasAnyPermission,
     isPlatformAdmin,
     isFullAccess,
     currentTenant?.subscription_tier,

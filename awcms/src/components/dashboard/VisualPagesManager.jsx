@@ -1,9 +1,12 @@
 import PagesManager from './PagesManager';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ThemeLayoutManager from './ThemeLayoutManager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Layers, Palette, ShieldAlert } from 'lucide-react';
 import { usePermissions } from '@/contexts/PermissionContext';
 import { AdminPageLayout, PageHeader } from '@/templates/flowbite-admin';
+import useSplatSegments from '@/hooks/useSplatSegments';
 
 /**
  * VisualPagesManager
@@ -11,6 +14,17 @@ import { AdminPageLayout, PageHeader } from '@/templates/flowbite-admin';
  */
 const VisualPagesManager = () => {
     const { hasPermission } = usePermissions();
+    const navigate = useNavigate();
+    const segments = useSplatSegments();
+    const tabValues = ['pages', 'layouts'];
+    const hasTabSegment = tabValues.includes(segments[0]);
+    const activeTab = hasTabSegment ? segments[0] : 'pages';
+
+    useEffect(() => {
+        if (segments.length > 0 && !hasTabSegment) {
+            navigate('/cmspanel/visual-pages', { replace: true });
+        }
+    }, [segments, hasTabSegment, navigate]);
 
     if (!hasPermission('tenant.visual_pages.read')) {
         return (
@@ -33,7 +47,13 @@ const VisualPagesManager = () => {
                 breadcrumbs={[{ label: 'Visual Pages', icon: Layers }]}
             />
 
-            <Tabs defaultValue="pages" className="w-full">
+            <Tabs
+                value={activeTab}
+                onValueChange={(value) => {
+                    navigate(value === 'pages' ? '/cmspanel/visual-pages' : `/cmspanel/visual-pages/${value}`);
+                }}
+                className="w-full"
+            >
                 <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg inline-flex mb-6">
                     <TabsList className="bg-transparent dark:text-slate-200">
                         <TabsTrigger value="pages" className="flex items-center gap-2 px-4 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 dark:data-[state=active]:text-slate-100">

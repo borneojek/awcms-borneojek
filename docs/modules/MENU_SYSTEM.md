@@ -56,6 +56,7 @@ addFilter('admin_menu_items', 'my_plugin', items => [
 
 - Each menu item has a `permission` field.
 - The sidebar hides items when `usePermissions().hasPermission()` fails.
+- Platform admin/full-access roles bypass standard checks and see all visible items (including `platform_admin_only`).
 - `resources_registry.permission_prefix` is used to validate ABAC alignment.
 
 ## Security and Compliance Notes

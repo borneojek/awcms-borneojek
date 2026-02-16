@@ -32,6 +32,7 @@ import { useDevices } from '@/hooks/useDevices';
 import { usePermissions } from '@/contexts/PermissionContext';
 import DeviceCard from '@/components/esp32/DeviceCard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { encodeRouteParam } from '@/lib/routeSecurity';
 
 function DevicesManager() {
     const { t } = useTranslation();
@@ -203,7 +204,11 @@ function DevicesManager() {
                         <DeviceCard
                             key={device.id}
                             device={device}
-                            onView={(d) => navigate(`/admin/devices/${d.id}`)}
+                            onView={async (d) => {
+                                const routeId = await encodeRouteParam({ value: d.id, scope: 'devices.detail' });
+                                if (!routeId) return;
+                                navigate(`/cmspanel/devices/${routeId}`);
+                            }}
                             onEdit={(d) => navigate(`/admin/devices/${d.id}/settings`)}
                             onDelete={(d) => canManage && setDeleteTarget(d)}
                         />

@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ContentTable from '@/components/dashboard/ContentTable';
-import UserEditor from '@/components/dashboard/UserEditor';
 import UserApprovalManager from '@/components/dashboard/UserApprovalManager';
 import { AdminPageLayout, PageHeader, PageTabs, TabsContent } from '@/templates/flowbite-admin';
 import { usePermissions } from '@/contexts/PermissionContext';
@@ -15,6 +15,8 @@ import { useSearch } from '@/hooks/useSearch';
 import MinCharSearchInput from '@/components/common/MinCharSearchInput';
 import { useTenant } from '@/contexts/TenantContext';
 import { useTranslation } from 'react-i18next';
+import useSplatSegments from '@/hooks/useSplatSegments';
+import { encodeRouteParam } from '@/lib/routeSecurity';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +37,12 @@ function UsersManager() {
   const { toast } = useToast();
   const { hasPermission, isPlatformAdmin } = usePermissions();
   const { currentTenant } = useTenant();
+  const navigate = useNavigate();
+  const segments = useSplatSegments();
+  const tabValues = ['users', 'approvals'];
+  const hasTabSegment = tabValues.includes(segments[0]);
+  const activeTab = hasTabSegment ? segments[0] : 'users';
+  const approvalsSegments = hasTabSegment && segments[0] === 'approvals' ? segments.slice(1) : [];
 
   // State declarations
   const [users, setUsers] = useState([]);
@@ -55,11 +63,13 @@ function UsersManager() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
-  const [showEditor, setShowEditor] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
-  const [activeTab, setActiveTab] = useState('users');
+  useEffect(() => {
+    if (segments.length > 0 && !hasTabSegment) {
+      navigate('/cmspanel/users', { replace: true });
+    }
+  }, [segments, hasTabSegment, navigate]);
 
   // Permission checks
   const canView = hasPermission('tenant.user.read');
@@ -133,7 +143,7 @@ function UsersManager() {
       </Button>
       {canCreate ? (
         <Button
-          onClick={() => { setSelectedUser(null); setShowEditor(true); }}
+          onClick={() => navigate('/cmspanel/users/new')}
           className="bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
         >
           <Plus className="mr-2 h-4 w-4" />
@@ -149,15 +159,13 @@ function UsersManager() {
     }
   }, [activeTab, fetchUsers]);
 
-  const handleEdit = (user) => {
-    setSelectedUser(user);
-    setShowEditor(true);
-  };
-
-  const handleSave = () => {
-    setShowEditor(false);
-    setSelectedUser(null);
-    fetchUsers();
+  const handleEdit = async (user) => {
+    const routeId = await encodeRouteParam({ value: user.id, scope: 'users.edit' });
+    if (!routeId) {
+      toast({ variant: 'destructive', title: t('common.error'), description: t('users.errors.load_failed', 'Unable to open user editor.') });
+      return;
+    }
+    navigate(`/cmspanel/users/edit/${routeId}`);
   };
 
   const openDeleteDialog = (user) => {
@@ -245,16 +253,6 @@ function UsersManager() {
     { key: 'created_at', label: t('users.joined'), type: 'date' }
   ];
 
-  if (showEditor) {
-    return (
-      <UserEditor
-        user={selectedUser}
-        onClose={() => { setShowEditor(false); setSelectedUser(null); }}
-        onSave={handleSave}
-      />
-    );
-  }
-
   return (
     <AdminPageLayout requiredPermission="tenant.user.read">
       {/* Delete Confirmation Dialog */}
@@ -297,7 +295,17 @@ function UsersManager() {
       />
 
       {/* Tabs Navigation */}
-      <PageTabs value={activeTab} onValueChange={setActiveTab} tabs={tabs}>
+      <PageTabs
+        value={activeTab}
+        onValueChange={(value) => {
+          if (value === 'users') {
+            navigate('/cmspanel/users');
+          } else {
+            navigate('/cmspanel/users/approvals/pending');
+          }
+        }}
+        tabs={tabs}
+      >
         <TabsContent value="users" className="space-y-6 mt-0">
           {/* Search Bar */}
           <div className="bg-card p-4 rounded-xl border border-border shadow-sm flex flex-col gap-3 md:flex-row md:items-center">
@@ -345,7 +353,12 @@ function UsersManager() {
         </TabsContent>
 
         <TabsContent value="approvals" className="mt-0">
-          <UserApprovalManager />
+          <UserApprovalManager
+            activeTab={approvalsSegments[0]}
+            onTabChange={(value) => {
+              navigate(`/cmspanel/users/approvals/${value}`);
+            }}
+          />
         </TabsContent>
       </PageTabs>
     </AdminPageLayout>

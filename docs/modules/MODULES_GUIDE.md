@@ -21,9 +21,11 @@ Describe how admin modules are organized, where to find them, and how they map t
 | Component Type     | Location                                                    | Naming           |
 | :----------------- | :---------------------------------------------------------- | :--------------- |
 | Manager Components | `awcms/src/components/dashboard/`                           | `*Manager.jsx`   |
-| Route Pages        | `awcms/src/pages/cmspanel/`                                 | Module-specific  |
+| Route Definitions  | `awcms/src/components/MainRouter.jsx`                       | `/cmspanel/<module>/*` |
 | Sidebar Config     | `awcms/src/hooks/useAdminMenu.js`                           | `admin_menus`    |
 | Sidebar Rendering  | `awcms/src/templates/flowbite-admin/components/Sidebar.jsx` | menu renderer    |
+
+Route paths use `*` splats so sub-slugs (tabs, trash views, approvals) are URL-backed and survive refreshes.
 
 ## Available Modules (Core List)
 

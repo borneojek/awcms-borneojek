@@ -78,7 +78,9 @@ export const filterMenuItemsForSidebar = ({
   let filtered = baseItems.filter((item) => {
     if (!item?.is_visible) return false;
     if (item.permission === 'super_admin_only') return isFullAccess || isPlatformAdmin;
-    if (item.permission === 'platform_admin_only') return isPlatformAdmin;
+    if (item.permission === 'platform_admin_only') return isPlatformAdmin || isFullAccess;
+
+    if (isPlatformAdmin || isFullAccess) return true;
 
     if (!isPlatformAdmin && !isFullAccess) {
       const featureKey = getMenuFeatureKey(item);

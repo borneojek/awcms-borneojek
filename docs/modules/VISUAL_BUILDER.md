@@ -33,6 +33,15 @@ Explain the Visual Page Builder architecture and integration with public renderi
 - `awcms/src/components/visual-builder/VisualPageBuilder.jsx`
 - `awcms/src/components/visual-builder/config.js`
 
+### Admin Routes
+
+| Route | Purpose | Notes |
+| --- | --- | --- |
+| `/cmspanel/visual-editor/template/:id` | Edit a template layout | Redirects from legacy `?templateId=` links. |
+| `/cmspanel/visual-editor/part/:id` | Edit a template part | Redirects from legacy `?partId=` links. |
+| `/cmspanel/visual-editor/page/:id` | Edit a visual page layout | Used for Puck-backed pages. |
+| `/cmspanel/visual-editor/blog/:id` | Edit a visual blog layout | Optional for long-form posts. |
+
 ### Public Rendering
 
 - `awcms-public/primary/src/components/common/PuckRenderer.astro`

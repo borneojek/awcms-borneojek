@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Save, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -9,11 +10,16 @@ import { supabase } from '@/lib/customSupabaseClient';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePermissions } from '@/contexts/PermissionContext';
 import { useTenant } from '@/contexts/TenantContext';
+import { encodeRouteParam } from '@/lib/routeSecurity';
+import useSecureRouteParam from '@/hooks/useSecureRouteParam';
 
 function ExtensionSettings() {
   const { toast } = useToast();
   const { isPlatformAdmin } = usePermissions();
   const { currentTenant } = useTenant();
+  const navigate = useNavigate();
+  const { id: routeParam } = useParams();
+  const { value: extensionId, loading: routeLoading, isLegacy } = useSecureRouteParam(routeParam, 'extensions.settings');
   const [extensions, setExtensions] = useState([]);
   const [selectedExtension, setSelectedExtension] = useState(null);
   const [settings, setSettings] = useState({});
@@ -22,7 +28,22 @@ function ExtensionSettings() {
   useEffect(() => {
     fetchActiveExtensions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTenant?.id, isPlatformAdmin]);
+  }, [currentTenant?.id, isPlatformAdmin, extensionId]);
+
+  useEffect(() => {
+    if (!routeParam || routeLoading) return;
+    if (!extensionId) {
+      navigate('/cmspanel/extensions');
+      return;
+    }
+    if (!isLegacy) return;
+    const redirectLegacy = async () => {
+      const signedId = await encodeRouteParam({ value: extensionId, scope: 'extensions.settings' });
+      if (!signedId || signedId === routeParam) return;
+      navigate(`/cmspanel/extensions/settings/${signedId}`, { replace: true });
+    };
+    redirectLegacy();
+  }, [routeParam, routeLoading, extensionId, isLegacy, navigate]);
 
   const fetchActiveExtensions = async () => {
     try {
@@ -43,8 +64,10 @@ function ExtensionSettings() {
       if (error) throw error;
       setExtensions(data || []);
       if (data && data.length > 0) {
-        setSelectedExtension(data[0].id);
-        setSettings(data[0].config || {});
+        const preferred = extensionId ? data.find((ext) => ext.id === extensionId) : null;
+        const next = preferred || data[0];
+        setSelectedExtension(next.id);
+        setSettings(next.config || {});
       }
     } catch (error) {
       console.error('Error fetching extensions:', error);

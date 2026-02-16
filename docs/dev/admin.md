@@ -35,7 +35,7 @@ The Admin Panel (`awcms/`) is a React SPA built with Vite. It serves as the cent
 
 1. Register the module in `resources_registry` (scope, db_table, permission_prefix).
 2. Create a `Manager` component in `src/components/dashboard/`.
-3. Add a route in `src/components/MainRouter.jsx`.
+3. Add a route in `src/components/MainRouter.jsx` (use `/<module>/*` if the module needs sub-slugs for tabs or trash views).
 4. Insert a sidebar item in `admin_menus` (seed via `awcms/src/scripts/seed-sidebar.js`).
 5. Ensure the permission exists in `permissions` and is mapped via `role_permissions`.
 

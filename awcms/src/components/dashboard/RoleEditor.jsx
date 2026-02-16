@@ -1,11 +1,14 @@
 
 import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Shield, Save, X, Loader2, Lock, Info, CheckCircle2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
+import { encodeRouteParam } from '@/lib/routeSecurity';
+import useSecureRouteParam from '@/hooks/useSecureRouteParam';
 import { supabase } from '@/lib/customSupabaseClient';
 import PermissionMatrix from '@/components/dashboard/PermissionMatrix';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,6 +18,12 @@ import { useTenant } from '@/contexts/TenantContext';
 const RoleEditor = ({ role, onClose, onSave }) => {
   const { toast } = useToast();
   const { currentTenant } = useTenant();
+  const navigate = useNavigate();
+  const { id: routeParam } = useParams();
+  const { value: routeRoleId, loading: routeLoading, isLegacy } = useSecureRouteParam(routeParam, 'roles.edit');
+
+  const [resolvedRole, setResolvedRole] = useState(role || null);
+  const roleId = resolvedRole?.id || routeRoleId || null;
 
 
 
@@ -34,9 +43,57 @@ const RoleEditor = ({ role, onClose, onSave }) => {
   const [activeTemplate, setActiveTemplate] = useState('');
 
   // Protect system roles
-  const isSystemRole = Boolean(role?.is_system || role?.is_public || role?.is_guest);
-  const isFullAccessRole = Boolean(role?.is_full_access || role?.is_platform_admin);
+  const isSystemRole = Boolean(resolvedRole?.is_system || resolvedRole?.is_public || resolvedRole?.is_guest);
+  const isFullAccessRole = Boolean(resolvedRole?.is_full_access || resolvedRole?.is_platform_admin);
   const [syncingFullAccess, setSyncingFullAccess] = useState(false);
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      if (role || !routeRoleId) return;
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('roles')
+          .select('*')
+          .eq('id', routeRoleId)
+          .is('deleted_at', null)
+          .single();
+
+        if (error) throw error;
+        setResolvedRole(data || null);
+      } catch (err) {
+        console.error('Error loading role:', err);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to load role details.' });
+        navigate('/cmspanel/roles');
+      }
+    };
+
+    fetchRole();
+  }, [role, routeRoleId, toast, navigate]);
+
+  useEffect(() => {
+    if (!routeParam || routeLoading) return;
+    if (!routeRoleId) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Invalid role link.' });
+      navigate('/cmspanel/roles');
+      return;
+    }
+    if (!isLegacy) return;
+    const redirectLegacy = async () => {
+      const signedId = await encodeRouteParam({ value: routeRoleId, scope: 'roles.edit' });
+      if (!signedId || signedId === routeParam) return;
+      navigate(`/cmspanel/roles/edit/${signedId}`, { replace: true });
+    };
+    redirectLegacy();
+  }, [routeParam, routeLoading, routeRoleId, isLegacy, navigate, toast]);
+
+  useEffect(() => {
+    if (!resolvedRole) return;
+    setFormData({
+      name: resolvedRole.name || '',
+      description: resolvedRole.description || ''
+    });
+  }, [resolvedRole]);
 
   useEffect(() => {
     const fetchPermissions = async () => {
@@ -52,11 +109,11 @@ const RoleEditor = ({ role, onClose, onSave }) => {
         setPermissions(allPerms || []);
 
         // 2. If editing existing role, fetch its current permissions
-        if (role?.id) {
+        if (roleId) {
           const { data: rolePerms, error: rpError } = await supabase
             .from('role_permissions')
             .select('permission_id')
-            .eq('role_id', role.id)
+            .eq('role_id', roleId)
             .is('deleted_at', null);
 
           if (rpError) throw rpError;
@@ -73,7 +130,7 @@ const RoleEditor = ({ role, onClose, onSave }) => {
     };
 
     fetchPermissions();
-  }, [role, toast]);
+  }, [roleId, toast]);
 
   // Auto-select all permissions for full-access roles
   useEffect(() => {
@@ -153,7 +210,7 @@ const RoleEditor = ({ role, onClose, onSave }) => {
 
   // Sync Full Access: Persist all permissions for full-access roles to database
   const syncFullAccess = async () => {
-    if (!isFullAccessRole || !role?.id) return;
+    if (!isFullAccessRole || !roleId) return;
 
     setSyncingFullAccess(true);
     try {
@@ -161,12 +218,12 @@ const RoleEditor = ({ role, onClose, onSave }) => {
       await supabase
         .from('role_permissions')
         .update({ deleted_at: new Date().toISOString() })
-        .eq('role_id', role.id)
+        .eq('role_id', roleId)
         .is('deleted_at', null);
 
       // Insert all permissions for this role
       const allPerms = permissions.map(p => ({
-        role_id: role.id,
+        role_id: roleId,
         permission_id: p.id,
         deleted_at: null
       }));
@@ -179,7 +236,7 @@ const RoleEditor = ({ role, onClose, onSave }) => {
         if (error) throw error;
       }
 
-      toast({ title: "Full Access Synced", description: `${permissions.length} permissions activated for ${role.name}.` });
+      toast({ title: "Full Access Synced", description: `${permissions.length} permissions activated for ${resolvedRole?.name || formData.name}.` });
     } catch (err) {
       console.error('Sync error:', err);
       toast({ variant: 'destructive', title: 'Sync Failed', description: err.message });
@@ -188,22 +245,30 @@ const RoleEditor = ({ role, onClose, onSave }) => {
     }
   };
 
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+    navigate('/cmspanel/roles');
+  };
+
 
   const handleSave = async (e) => {
     e.preventDefault();
     if (isFullAccessRole) {
-      onClose(); // Just close, no save needed
+      handleClose();
       return;
     }
 
     setSaving(true);
-    console.log('Starting save for role:', role?.name || formData.name);
+    console.log('Starting save for role:', resolvedRole?.name || formData.name);
 
     try {
-      let roleId = role?.id;
+      let currentRoleId = roleId;
 
       // 1. Create/Update Role Metadata
-      if (roleId) {
+      if (currentRoleId) {
         const { error } = await supabase
           .from('roles')
           .update({
@@ -211,7 +276,7 @@ const RoleEditor = ({ role, onClose, onSave }) => {
             description: formData.description,
             updated_at: new Date().toISOString()
           })
-          .eq('id', roleId);
+          .eq('id', currentRoleId);
         if (error) throw error;
       } else {
         const { data, error } = await supabase
@@ -225,10 +290,10 @@ const RoleEditor = ({ role, onClose, onSave }) => {
           .select()
           .single();
         if (error) throw error;
-        roleId = data.id;
+        currentRoleId = data.id;
       }
 
-      console.log('Role ID secured:', roleId);
+      console.log('Role ID secured:', currentRoleId);
 
       // 2. Update Permissions (Matrix)
       // Standard pattern: Soft-delete all current permissions, then re-insert active ones.
@@ -237,7 +302,7 @@ const RoleEditor = ({ role, onClose, onSave }) => {
       const { error: deleteError } = await supabase
         .from('role_permissions')
         .update({ deleted_at: new Date().toISOString() })
-        .eq('role_id', roleId)
+        .eq('role_id', currentRoleId)
         .is('deleted_at', null);
 
       if (deleteError) {
@@ -248,7 +313,7 @@ const RoleEditor = ({ role, onClose, onSave }) => {
       // B. Insert/Restore selected permissions
       if (selectedPermissions.size > 0) {
         const newPerms = Array.from(selectedPermissions).map(permId => ({
-          role_id: roleId,
+          role_id: currentRoleId,
           permission_id: permId,
           deleted_at: null
         }));
@@ -267,7 +332,11 @@ const RoleEditor = ({ role, onClose, onSave }) => {
       }
 
       toast({ title: 'Success', description: 'Role and permissions saved successfully.' });
-      onSave();
+      if (onSave) {
+        onSave();
+      } else {
+        navigate('/cmspanel/roles');
+      }
 
     } catch (err) {
       console.error('Save failed:', err);
@@ -294,7 +363,7 @@ const RoleEditor = ({ role, onClose, onSave }) => {
           <div>
             <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
               <Shield className={`w-5 h-5 ${isFullAccessRole ? 'text-purple-600' : 'text-blue-600'}`} />
-              {role ? (role.scope === 'platform' ? 'Platform Role Configuration' : 'Edit Role Configuration') : 'Create New Role'}
+              {resolvedRole ? (resolvedRole.scope === 'platform' ? 'Platform Role Configuration' : 'Edit Role Configuration') : 'Create New Role'}
             </h2>
             <p className="text-sm text-slate-500 mt-1">
               {isFullAccessRole ? 'This System Root Role has complete 100% access. Configuration is read-only.' : 'Define access control policies and permission scopes.'}
@@ -349,7 +418,7 @@ const RoleEditor = ({ role, onClose, onSave }) => {
                 )}
               </Button>
             )}
-            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-slate-200/70 dark:hover:bg-slate-800">
+            <Button variant="ghost" size="icon" onClick={handleClose} className="rounded-full hover:bg-slate-200/70 dark:hover:bg-slate-800">
               <X className="w-5 h-5 text-slate-500" />
             </Button>
           </div>
@@ -471,7 +540,7 @@ const RoleEditor = ({ role, onClose, onSave }) => {
               Last updated: {new Date().toLocaleDateString()}
             </div>
             <div className="flex gap-3 w-full sm:w-auto justify-end">
-              <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={handleClose}>Cancel</Button>
               {!isFullAccessRole && (
                 <Button type="submit" disabled={saving || loading} className="bg-indigo-600 hover:bg-indigo-700 text-white min-w-[120px]">
                   {saving ? (

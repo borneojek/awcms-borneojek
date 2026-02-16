@@ -25,14 +25,17 @@ const AdminLayout = lazy(() => import('@/components/dashboard/AdminLayout'));
 const DashboardHome = lazy(() => import('@/components/dashboard/DashboardHome'));
 const BlogsManager = lazy(() => import('@/components/dashboard/BlogsManager'));
 const BlogEditor = lazy(() => import('@/components/dashboard/BlogEditor'));
+const BlogEditorRoute = lazy(() => import('@/components/dashboard/BlogEditorRoute'));
 const PagesManager = lazy(() => import('@/components/dashboard/PagesManager'));
 const VisualPagesManager = lazy(() => import('@/components/dashboard/VisualPagesManager'));
 const VisualPageBuilder = lazy(() => import('@/components/visual-builder/VisualPageBuilder'));
 const PageEditor = lazy(() => import('@/components/dashboard/PageEditor'));
+const PageEditorRoute = lazy(() => import('@/components/dashboard/PageEditorRoute'));
 const CategoriesManager = lazy(() => import('@/components/dashboard/CategoriesManager'));
 const TagsManager = lazy(() => import('@/components/dashboard/TagsManager'));
 const FilesManager = lazy(() => import('@/components/dashboard/FilesManager'));
 const UsersManager = lazy(() => import('@/components/dashboard/UsersManager'));
+const UserEditor = lazy(() => import('@/components/dashboard/UserEditor'));
 const UserProfile = lazy(() => import('@/components/dashboard/UserProfile'));
 const RolesManager = lazy(() => import('@/components/dashboard/RolesManager'));
 const RoleEditor = lazy(() => import('@/components/dashboard/RoleEditor'));
@@ -187,26 +190,27 @@ const MainRouter = () => {
           }
         >
           <Route index element={<DashboardHome />} />
-          <Route path="blogs" element={<BlogsManager />} />
+          <Route path="blogs/*" element={<BlogsManager />} />
           <Route path="blogs/new" element={<BlogEditor />} />
-          <Route path="blogs/edit/:id" element={<BlogEditor />} />
+          <Route path="blogs/edit/:id" element={<BlogEditorRoute />} />
 
-          <Route path="pages" element={<PagesManager />} />
+          <Route path="pages/*" element={<PagesManager />} />
           <Route path="pages/new" element={<PageEditor />} />
-          <Route path="pages/edit/:id" element={<PageEditor />} />
-          <Route path="visual-pages" element={<VisualPagesManager />} />
+          <Route path="pages/edit/:id" element={<PageEditorRoute />} />
+          <Route path="visual-pages/*" element={<VisualPagesManager />} />
 
           <Route path="categories" element={<CategoriesManager />} />
-          <Route path="tags" element={<TagsManager />} />
-          <Route path="media" element={<FilesManager />} />
-          <Route path="files" element={<FilesManager />} />
+          <Route path="tags/*" element={<TagsManager />} />
+          <Route path="media/*" element={<FilesManager />} />
+          <Route path="files/*" element={<FilesManager />} />
 
-          <Route path="users" element={<UsersManager />} />
+          <Route path="users/*" element={<UsersManager />} />
+          <Route path="users/new" element={<UserEditor />} />
+          <Route path="users/edit/:id" element={<UserEditor />} />
           <Route path="profile" element={<UserProfile />} />
 
           <Route path="roles" element={<RolesManager />} />
           <Route path="roles/new" element={<RoleEditor />} />
-          <Route path="roles/edit/:id" element={<RoleEditor />} />
           <Route path="roles/edit/:id" element={<RoleEditor />} />
           <Route path="permissions" element={<PermissionsManager />} />
           <Route path="policies" element={<PolicyManager />} />
@@ -237,7 +241,7 @@ const MainRouter = () => {
           <Route path="contact-messages" element={<ContactMessagesManager />} />
 
           <Route path="themes" element={<ThemesManager />} />
-          <Route path="templates" element={<TemplatesManager />} />
+          <Route path="templates/*" element={<TemplatesManager />} />
           <Route path="templates/edit/:id" element={<TemplateEditor />} />
           <Route path="templates/parts/edit/:id" element={<TemplatePartEditor />} />
           <Route path="widgets" element={<WidgetsManager />} />
@@ -246,7 +250,7 @@ const MainRouter = () => {
           <Route path="seo" element={<SeoManager />} />
           <Route path="seo-manager" element={<SeoManager />} />
 
-          <Route path="school-pages" element={<SchoolPagesManager />} />
+          <Route path="school-pages/*" element={<SchoolPagesManager />} />
           <Route path="site-images" element={<SiteImagesManager />} />
 
           <Route path="extensions" element={<ExtensionsManager />} />
@@ -266,7 +270,7 @@ const MainRouter = () => {
           <Route path="sso" element={<SSOManager />} />
 
 
-          <Route path="admin-navigation" element={<SidebarMenuManager />} />
+          <Route path="admin-navigation/*" element={<SidebarMenuManager />} />
           <Route path="modules" element={<ModulesManager />} />
           <Route path="tenants" element={<TenantsManager />} />
 
@@ -274,6 +278,7 @@ const MainRouter = () => {
           <Route path="notifications/:id" element={<NotificationDetail />} />
 
 
+          <Route path="visual-editor/:mode/:id/*" element={<VisualPageBuilder />} />
           <Route path="visual-editor" element={<VisualPageBuilder />} />
 
 
