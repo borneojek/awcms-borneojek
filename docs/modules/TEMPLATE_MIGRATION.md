@@ -25,7 +25,7 @@ Provide guidance for migrating legacy templates to the current template system.
 From repo root:
 
 ```bash
-npx supabase db push
+npx supabase db push --local
 ```
 
 ### 2. Ensure `tenant_id` is Set

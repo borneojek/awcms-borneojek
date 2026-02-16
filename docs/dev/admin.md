@@ -24,6 +24,11 @@ The Admin Panel (`awcms/`) is a React SPA built with Vite. It serves as the cent
 - `src/pages/`: Route components.
 - `src/templates/flowbite-admin/`: Main admin layout and shell.
 
+## 3.1 Environment Variables (Vite)
+
+- Client-exposed env vars must use the `VITE_` prefix.
+- Use `import.meta.env` in runtime code; use `loadEnv` in `vite.config` when env values are required at config time.
+
 ## 4. Common Tasks
 
 ### 4.1 Adding a New Module

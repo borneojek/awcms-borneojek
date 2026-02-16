@@ -25,7 +25,7 @@ AWCMS interacts with the following key components:
 - **Public Internet vs. Edge**: Cloudflare WAF protection.
 - **Client vs. API**: Authenticated via JWT (Supabase Auth).
 - **API vs. Database**: Protected by Postgres RLS.
-- **Service-to-Service**: Validated via Service Keys (strictly limited).
+- **Service-to-Service**: Validated via Supabase secret keys (`SUPABASE_SECRET_KEY`) limited to Edge Functions.
 
 ## 4. Key Threats & Mitigations
 
@@ -52,6 +52,7 @@ AWCMS interacts with the following key components:
 | SQL Injection | Parameterized queries via Supabase client / PostgREST | Native |
 | XSS (Cross-Site Scripting) | React/Astro auto-escaping, CSP headers | Implemented |
 | Sensitive Data Exposure | Encryption at rest (Supabase), TLS in transit | Native |
+| Admin Profile Data | `user_profile_admin` encrypted fields with pgcrypto | Implemented |
 
 ## 5. Logging & Monitoring (ASVS V7)
 

@@ -38,7 +38,7 @@ Document the RLS helpers and standard policy patterns used in AWCMS.
 ### Table Policy Sources
 
 - `supabase/migrations` contains the canonical SQL definitions.
-- Use `npx supabase db pull` to refresh local schema history when syncing with remote.
+- Use `npx supabase db pull --schema public,extensions` to refresh local schema history when syncing with remote.
 
 ### ⚠️ IMPORTANT: ABAC Policy Pattern (New Standard)
 
@@ -116,6 +116,12 @@ FOR SELECT USING (
   AND deleted_at IS NULL
 );
 ```
+
+### Performance Tips (Context7)
+
+- Use `(select auth.uid())` in policies to avoid recomputing per-row.
+- Add indexes for columns used in RLS filters (`tenant_id`, `user_id`, `region_id`).
+- Always scope policies to roles with `TO authenticated` or `TO anon` to avoid overly broad access.
 
 ## Security and Compliance Notes
 

@@ -36,7 +36,7 @@ In the AWCMS ecosystem, AI Agents are treated as specialized team members. We de
   - Optimizing for Cloudflare Pages static builds (cache headers, asset optimization).
 - **Constraints**:
   - **NO** direct database access (must use Supabase JS Client or Functions).
-  - **NO** Puck editor runtime in the public portal (use `PuckRenderer` only; `@puckeditor/puck` is types-only).
+- **NO** Puck editor runtime in the public portal (use `Render` from `@puckeditor/core` only).
 
 ---
 
@@ -51,7 +51,7 @@ Agents must be aware of the exact versions in use:
 | TailwindCSS      | 4.1.18   | Admin uses CSS-based config      |
 | Supabase JS      | 2.87.1 / 2.93.3 | Admin / Public clients     |
 | React Router DOM | 7.10.1   | Client-side routing              |
-| Puck             | 0.21.0   | Visual Editor (@puckeditor/puck) |
+| Puck             | 0.21.0   | Visual Editor (`@puckeditor/core`) |
 | TipTap           | 3.13.0   | Rich text editor (XSS-safe)      |
 | Framer Motion    | 12.23.26 | Animations                       |
 | Radix UI         | Latest   | Accessible UI primitives         |
@@ -110,6 +110,7 @@ To ensure successful code generation and integration, Agents must adhere to the 
    - **Agent Workspace**: The `awcms/.agent/` directory contains local MCP configurations and potential sensitive data. It MUST be ignored by adding `awcms/.agent/` to `.gitignore`.
    - **Template Updates**: `.env.example` must contain ALL keys found in any `.env` file, but populated ONLY with dummy secrets.
    - **Key Naming**: Use `VITE_SUPABASE_PUBLISHABLE_KEY` (public) and `SUPABASE_SECRET_KEY` (private/service role). Avoid `ANON` or `SERVICE_ROLE` terminology.
+   - **Vite Env Prefix**: Only `VITE_`-prefixed variables are exposed to client code; use `loadEnv` in `vite.config` when config values need env access.
 
 ### Context7 (Primary Reference)
 
@@ -408,6 +409,24 @@ const { error } = await supabase
   .from("blogs")
   .update({ deleted_at: new Date().toISOString() })
   .eq("id", blogId);
+```
+
+### User Profile Details (Extended)
+
+Store extended profile metadata in `user_profiles` and keep admin-only data in `user_profile_admin` with pgcrypto encryption. Access admin fields via RPC to preserve RLS boundaries.
+
+```javascript
+// Read admin-only profile fields (requires tenant.user.update)
+const { data, error } = await supabase.rpc('get_user_profile_admin_fields', {
+  p_user_id: userId,
+});
+
+// Update admin-only profile fields (encrypted server-side)
+await supabase.rpc('set_user_profile_admin_fields', {
+  p_user_id: userId,
+  p_admin_notes: notes,
+  p_admin_flags: flags,
+});
 ```
 
 ### React Router 7 Data Loading

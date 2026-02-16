@@ -29,11 +29,13 @@ Describe the monitoring tools and logging practices for AWCMS.
 - Audit logs are stored in `audit_logs`.
 - Extension logs are stored in `extension_logs`.
 - Visitor telemetry is stored in `analytics_events` (raw) and `analytics_daily` (aggregate).
+- All monitoring tables are tenant-scoped and should be filtered by `tenant_id`.
 
 ## Implementation Patterns
 
 - Use `useAuditLog()` and `useExtensionAudit()` hooks.
 - Prefer aggregated analytics queries for dashboards to avoid full scans of `analytics_events`.
+- Apply retention policies for `analytics_events` and log anonymization where required.
 
 ## Security and Compliance Notes
 

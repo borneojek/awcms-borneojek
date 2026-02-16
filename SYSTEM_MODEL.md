@@ -22,7 +22,7 @@ Agents must respect these exact versions to ensure compatibility across the mono
 * **Routing:** React Router DOM 7.10.1
 * **Key Libraries:**
   * UI: `shadcn/ui` (Radix Primitives + Tailwind)
-  * Editor: `@puckeditor/puck` v0.21.0
+  * Editor: `@puckeditor/core` v0.21.0 (Puck + Render)
   * Rich Text: `tiptap` v3.13.0
   * Motion: `framer-motion` v12.23.26
 
@@ -41,7 +41,7 @@ Agents must respect these exact versions to ensure compatibility across the mono
 * **Extensions:** Custom PostgreSQL extensions (`pga_...`) handle complex logic.
 * **Constraints:**
   * **NO** direct database access (Must use Supabase JS Client or Edge Functions).
-  * **NO** Puck Editor Runtime (Use `PuckRenderer` only).
+  * **NO** Puck Editor Runtime (Use `Render` from `@puckeditor/core` only).
 
 ### 1.3 Backend & Database
 
@@ -72,12 +72,13 @@ Agents must respect these exact versions to ensure compatibility across the mono
 * **Soft Delete:**
   * **Mechanism:** Tables must have a `deleted_at` (TIMESTAMPTZ) column.
   * **Operation:** `DELETE` SQL commands are forbidden for business data. Use `UPDATE table SET deleted_at = NOW()`.
-* **Soft Delete:**
-  * **Mechanism:** Tables must have a `deleted_at` (TIMESTAMPTZ) column.
-  * **Operation:** `DELETE` SQL commands are forbidden for business data. Use `UPDATE table SET deleted_at = NOW()`.
-  * **Filtering:** All read queries must filter `.is('deleted_at', null)`.
+* **Filtering:** All read queries must filter `.is('deleted_at', null)`.
 * **Foreign Keys:**
   * Must use `ON DELETE RESTRICT` or `ON DELETE SET NULL` to prevent accidental cascades, supporting the Soft Delete pattern.
+
+* **Admin-Only Profile Data:**
+  * Stored in `public.user_profile_admin` with pgcrypto encryption.
+  * Passphrase is derived from `user_profiles.description` + per-user salt and re-keyed on description changes.
 
 ### 2.3 Permissions (ABAC)
 

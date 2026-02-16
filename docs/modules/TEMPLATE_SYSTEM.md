@@ -48,6 +48,8 @@ Explain how templates, parts, widgets, and assignments drive multi-channel rende
 2. Merge header part, page content, and footer part.
 3. Render with `PuckRenderer` (`components/common/PuckRenderer.astro`) and widget mapping (`components/common/WidgetRenderer.astro`).
 
+**Context7 note**: Keep rendering in static builds to allow `getStaticPaths` and island hydration to work predictably.
+
 ## Implementation Patterns
 
 ```javascript
@@ -60,6 +62,8 @@ registerTemplateBlock({
   fields: { images: { type: 'array' } }
 });
 ```
+
+**Context7 note**: Use explicit field definitions in Puck configs and avoid rendering unknown blocks on the public portal.
 
 ## Permissions and Access
 

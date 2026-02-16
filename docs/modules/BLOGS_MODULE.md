@@ -55,6 +55,12 @@ The Public Portal fetches posts via `published_blogs_view` to ensure:
 
 `tiptap_doc_jsonb` stores structured content. If you enable TipTap JSON rendering, ensure it is converted to safe semantic HTML (no raw HTML injection).
 
+### Context7 Guidance (TipTap)
+
+- Use `StarterKit` as the base extension set.
+- Configure extensions explicitly via `.configure()` (e.g., Image, Table, TextAlign).
+- Avoid rendering untrusted HTML; prefer JSON-to-HTML mapping or sanitized HTML output.
+
 ---
 
 ## Permissions and Access

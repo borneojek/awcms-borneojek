@@ -49,8 +49,10 @@ For `awcms-public/smandapbun`:
 - Apply migrations from repo root:
 
 ```bash
-npx supabase db push
+npx supabase db push --linked
 ```
+
+> Use `--local` for local dev stacks and `--linked` for remote projects.
 
 - Deploy edge functions as needed:
 

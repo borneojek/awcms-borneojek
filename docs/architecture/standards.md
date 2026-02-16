@@ -1,6 +1,6 @@
 # AWCMS Core Standards
 
-> Version: 2.28.0 | Last Updated: 2026-02-03 | React: 19.2.4  
+> Version: 2.30.0 | Last Updated: 2026-02-16 | React: 19.2.4  
 > **Documentation Hierarchy**: [SYSTEM_MODEL.md](../../SYSTEM_MODEL.md) → [AGENTS.md](../../AGENTS.md) → This Document
 
 ## Purpose
@@ -30,7 +30,8 @@ Define the non-negotiable architecture and implementation standards for AWCMS ac
   - Context: `awcms/src/contexts/PermissionContext.jsx`
   - Hook: `usePermissions()` (role and permission checks)
   - Definition: `docs/modules/ROLE_HIERARCHY.md`
-- **Administrative Regions**: Indonesian administrative regions (Propinsi to Desa/Kelurahan) sourced from [cahyadsn/wilayah](https://github.com/cahyadsn/wilayah/blob/master/db/wilayah.sql) (Last Updated: 2026-01-13). Managed via `regions` table with standard hierarchy.
+- **Administrative Regions**: Indonesian administrative regions (Propinsi to Desa/Kelurahan) sourced from [cahyadsn/wilayah](https://github.com/cahyadsn/wilayah/blob/master/db/wilayah.sql) (Last Updated: 2026-01-13). Managed via `administrative_regions`.
+- **Operational Regions**: 10-level hierarchy managed via `regions`.
 - **Tenants**: Multi-tenancy support with `tenants` table and RLS policies.
   - Context: `awcms/src/contexts/TenantContext.jsx`
   - Hooks: `useTenant()`, `usePublicTenant()`, `useTenantTheme()`
@@ -43,7 +44,7 @@ Define the non-negotiable architecture and implementation standards for AWCMS ac
   - Security: `useTwoFactor()` and OTP verification
 - **Database Security**:
   - Safe client: `awcms/src/lib/customSupabaseClient.js` (RLS enforced)
-  - Privileged: `awcms/src/lib/supabaseAdmin.js` (service role only)
+  - Privileged: `awcms/src/lib/supabaseAdmin.js` (secret key only)
 - Rules: `docs/security/rls.md`
 - **Audit and Lifecycle**:
   - Logging: `useAuditLog()`, `useExtensionAudit()`
@@ -163,15 +164,15 @@ Define the non-negotiable architecture and implementation standards for AWCMS ac
 
 #### 5.1 Context7 Best Practices
 
-- **Supabase JS**: Use `createClient` with PKCE, `autoRefreshToken`, `persistSession`, `detectSessionInUrl`, and global headers; use a custom `fetch` in edge runtimes when required.
-- **React**: Use cleanup/ignore guards in async `useEffect` to prevent stale updates; keep effects side-effect only.
-- **React Router**: Prefer `createBrowserRouter` + `RouterProvider`; use `Link/NavLink` for navigation and `useNavigate` for programmatic redirects.
-- **Astro**: Prefer `getStaticPaths` for dynamic routes in static builds; use middleware only for SSR/runtime request logic.
-- **TailwindCSS**: Use the `@tailwindcss/vite` plugin and CSS variables (`@theme`, `var(--color-*)`) instead of `theme()` when possible.
-- **i18next**: Initialize with `LanguageDetector`, set `fallbackLng`, and define detection order (`querystring`, `cookie`, `localStorage`, `navigator`) as needed.
-- **TipTap**: Start with `StarterKit` and configure extensions via `.configure()` (e.g., Image, TextAlign).
-- **Puck**: Use `<Puck>` with a `config` + `data` model for editing, import `@measured/puck/puck.css`, and use `Render` for public rendering.
-- **Framer Motion**: Use explicit `initial/animate/transition` props and define layout transitions to avoid hydration conflicts.
+- **Supabase JS**: Use `createClient` with PKCE, `autoRefreshToken`, `persistSession`, `detectSessionInUrl`, and global headers; use a custom `fetch` implementation in edge runtimes when required.
+- **Vite**: Client-exposed variables must use the `VITE_` prefix; use `loadEnv` in `defineConfig` when env values are needed in the config itself.
+- **Astro**: Use `defineConfig`, set `site`, `output: "static"`, and a consistent `trailingSlash` strategy; use `getStaticPaths` for dynamic routes in static builds.
+- **TailwindCSS**: Prefer CSS-first configuration via `@import "tailwindcss"` and `@theme` tokens; use CSS variables for design tokens.
+- **React**: Keep effects focused and separated by concern; include full dependency arrays and place conditional logic inside the effect.
+- **React Router**: Prefer `createBrowserRouter` + `RouterProvider`; use `loader`/`useLoaderData` for data loading and `action`/`Form` for mutations.
+- **TipTap**: Start with `StarterKit` and configure extensions via `.configure()` (e.g., Image, Table, TextAlign).
+- **Puck**: Use `<Puck>` with a `config` + `data` model for editing, import `@puckeditor/core/puck.css`, and use `<Render>` for public rendering.
+- **Framer Motion**: Use `motion` components with explicit `initial/animate/transition` props and layout transitions to avoid hydration mismatches.
 
 **Standard**: Modern mobile/IoT integration, DevOps excellence, and high code quality.
 

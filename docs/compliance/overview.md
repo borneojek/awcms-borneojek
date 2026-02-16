@@ -24,6 +24,7 @@ Map AWCMS security controls to common compliance frameworks.
 - Soft delete is used for data lifecycle control.
 - Public analytics uses consent notices and tenant-scoped telemetry tables.
 - IP addresses, user agents, and referrers are treated as personal data and should follow retention policies.
+- Admin-only profile metadata is encrypted at rest in `user_profile_admin` using pgcrypto.
 
 ## Mapping
 

@@ -33,6 +33,12 @@ npx supabase db pull --schema public,extensions
 
 This avoids storage-managed objects that can churn migrations in local shadow databases.
 
+For local schema changes, prefer:
+
+```sh
+npx supabase db push --local
+```
+
 If using Context7 tools via `awcms-mcp`, set `CONTEXT7_API_KEY` in `awcms/.env`.
 
 ### 2.3 Install Dependencies

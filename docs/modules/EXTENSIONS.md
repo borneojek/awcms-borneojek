@@ -113,6 +113,13 @@ Source packages live under `awcms-ext/` and are served from the external extensi
 {basePath}/awcms-ext-{vendor}-{slug}/{entry}
 ```
 
+**Runtime Loading Notes (Vite)**:
+
+- `VITE_EXTERNAL_EXTENSIONS_PATH` must use the `VITE_` prefix to be readable in the client bundle.
+- If `manifest.external_path` is present, it overrides the computed `{basePath}` path.
+- If `entry` is omitted, the loader defaults to `dist/index.js`.
+- Extension bundles must be ESM and export either `register` or a `default` component (the loader validates this).
+
 ### Directory Structure
 
 ```text
@@ -161,6 +168,8 @@ export const deactivate = async (supabase, tenantId) => {
 // Export components for routing
 export { default as AnalyticsDashboard } from './components/AnalyticsDashboard';
 ```
+
+**Compatibility Rule**: `awcms_version` supports exact matches (`2.30.0`) or minimum constraints (`>=2.0.0`).
 
 ---
 

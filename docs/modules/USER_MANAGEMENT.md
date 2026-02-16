@@ -31,10 +31,31 @@ Supabase separates Auth Users (`auth.users`) from Application Data. AWCMS bridge
 
 1. **`auth.users`**: Stores credentials, encrypted passwords, and recovery data.
 2. **`public.users`**: Stores application profile (Full Name, Role ID, Language).
+3. **`public.user_profiles`**: Stores extended profile details (bio, job title, contact, socials).
+4. **`public.user_profile_admin`**: Stores admin-only profile metadata (encrypted).
 
 **Sync Mechanism**:
 
 - A Database Trigger `on_auth_user_created` automatically inserts a row into `public.users` when a new user signs up via Supabase Auth.
+- A Database Trigger `create_user_profile` ensures `public.user_profiles` is created for each user.
+
+### Admin-Only Profile Fields
+
+Sensitive administrative fields are stored in `user_profile_admin` and encrypted via pgcrypto. The passphrase is derived from the user profile description and a per-user salt, with re-keying on description updates.
+
+```javascript
+// Read admin-only fields (requires tenant.user.update)
+const { data, error } = await supabase.rpc('get_user_profile_admin_fields', {
+  p_user_id: userId,
+});
+
+// Update admin-only fields (encrypted server-side)
+await supabase.rpc('set_user_profile_admin_fields', {
+  p_user_id: userId,
+  p_admin_notes: notes,
+  p_admin_flags: flags,
+});
+```
 
 ### Region Assignment (Hierarchy)
 
@@ -42,6 +63,7 @@ To support administrative boundaries, users can be assigned to a specific **Regi
 
 - **Field**: `users.region_id` (Standard 10-level)
 - **Field**: `users.administrative_region_id` (Indonesian specific)
+- **Lookup Tables**: `regions`, `administrative_regions`
 - **Validation**:
   - Users can only be assigned to *one* region at a time.
   - Assignment is controlled by the `tenant.user.update` permission.
@@ -55,6 +77,7 @@ User management actions are strictly controlled by Attribute-Based Access Contro
 | **View Users** | `tenant.user.read` | `users_select_hierarchy` |
 | **Update User (Profile)** | `tenant.user.update` | `users_update_hierarchy` |
 | **Assign Region** | `tenant.user.update` | `users_update_hierarchy` |
+| **Admin Profile Fields** | `tenant.user.update` | `user_profile_admin_*` policies |
 | **Delete User** | `tenant.user.delete` | *TBD / Soft Delete* |
 
 > **Security Note**: The RLS policy `users_update_hierarchy` explicitly checks for the `tenant.user.update` permission for any intra-tenant user modification.
@@ -98,6 +121,7 @@ Users are strictly scoped to a single `tenant_id`. Platform admin/full-access ro
 - **Password Reset**: Handled via Supabase's built-in email recovery flow.
 - **Account Locking**: Managed by Supabase (rate limiting).
 - **Data Access**: Users can only see their own profile data unless they have `tenant.user.read` permission (Admin level).
+- **Admin Notes**: Encrypted at rest via pgcrypto; access is only via RPC and admin permissions.
 
 ## Registration & Approval Workflow
 

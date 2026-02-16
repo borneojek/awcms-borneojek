@@ -13,6 +13,7 @@ The AWCMS mobile app (`awcms-mobile/`) is a cross-platform Flutter application.
 - **Framework**: Flutter
 - **State Management**: Riverpod.
 - **Backend**: Supabase (via `supabase_flutter`).
+- **Security**: Use publishable keys in the app; privileged operations go through Edge Functions.
 
 ## 3. Flavors & Configuration
 

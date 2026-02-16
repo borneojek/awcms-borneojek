@@ -34,6 +34,12 @@ MAILKETING_API_TOKEN=...
 MAILKETING_DEFAULT_LIST_ID=1
 ```
 
+Recommended:
+
+```bash
+npx supabase secrets set MAILKETING_API_TOKEN=... MAILKETING_DEFAULT_LIST_ID=1
+```
+
 ### Deploy Function
 
 ```bash
@@ -60,6 +66,7 @@ await sendEmail({
 
 - Do not expose Mailketing secrets in client code.
 - Soft delete applies to `email_logs`.
+- Use `SUPABASE_SECRET_KEY` only inside Edge Functions.
 
 ## References
 

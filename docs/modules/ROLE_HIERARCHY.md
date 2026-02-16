@@ -61,6 +61,8 @@ The following matrix represents the *default* configuration for new tenants.
 | Editor | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Author | ✅ | ✅ | Own Only* | ❌ | ❌ | ❌ | ❌ |
 
+*Own Only = `tenant_id` + `created_by` checks (enforced in RLS and UI).* 
+
 ### System Operations
 
 | Role | User Mgmt | Role Mgmt | Settings | Audit Logs |
@@ -133,6 +135,8 @@ CREATE TABLE roles (
 - `is_admin_or_above()`: **Deprecated** for feature checks.
 
 **Action key note**: Use `permanent_delete` for destructive actions in permission keys (e.g., `tenant.blog.permanent_delete`).
+
+**Context7 note**: Prefer permission checks (`has_permission`) in both UI and RLS policies instead of role-name comparisons.
 
 > Platform admin access is determined by role flags (`is_platform_admin`/`is_full_access`), not role names.
 

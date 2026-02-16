@@ -18,6 +18,12 @@ npm install
 npm run dev
 ```
 
+### Required Env Keys
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+- `PUBLIC_TENANT_ID`
+
 ## Features
 
 - Tenant resolution via build-time `PUBLIC_TENANT_ID` (`awcms-public/primary/src/lib/publicTenant.ts`).

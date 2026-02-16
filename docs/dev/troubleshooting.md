@@ -48,7 +48,7 @@ Provide common fixes for local development and deployment issues.
 ### Migration History Mismatch
 
 - Use `supabase migration repair --status reverted <missing_version>`.
-- Re-run `npx supabase db push` after repairs.
+- Re-run `npx supabase db push --local` after repairs.
 
 ### Supabase DB Lint Warning (index_advisor)
 

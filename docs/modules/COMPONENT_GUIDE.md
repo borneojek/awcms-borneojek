@@ -1,7 +1,7 @@
 # Component Guide
 
 > **Documentation Authority**: [SYSTEM_MODEL.md](../../SYSTEM_MODEL.md) Section 2.4 - Styling & Theming  
-> **Context7 Reference**: `/websites/tailwindcss`, `/websites/react_dev` - See [AGENTS.md](../../AGENTS.md)
+> **Context7 Reference**: `websites/tailwindcss`, `websites/react_dev` - See [AGENTS.md](../../AGENTS.md)
 
 ## Purpose
 
@@ -31,6 +31,11 @@ Define UI component patterns for the admin panel and shared components.
 - UI primitives are composed into dashboard and module components.
 - Shared utilities live in `awcms/src/lib/utils.js`.
 - Layout components from `flowbite-admin` provide consistent page structure.
+
+### Context7 Guidance (Tailwind)
+
+- Prefer CSS-first tokens via `@theme` and map them to utilities.
+- Use CSS variables for brand colors and fonts (e.g., `--primary`, `--font-sans`).
 
 ## Implementation Patterns
 

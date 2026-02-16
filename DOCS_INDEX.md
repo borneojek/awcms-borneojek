@@ -10,16 +10,16 @@ Provide a single entry point for all AWCMS documentation across the monorepo and
 
 All documentation follows this authority structure:
 
-1. **[SYSTEM_MODEL.md](../SYSTEM_MODEL.md)** - **Single Source of Truth** for architecture, tech stack, and security mandates
-2. **[AGENTS.md](../AGENTS.md)** - AI agent guidelines and coding standards  
-3. **[DOCS_INDEX.md](./DOCS_INDEX.md)** - This file: navigation and canonical references
+1. **[SYSTEM_MODEL.md](SYSTEM_MODEL.md)** - **Single Source of Truth** for architecture, tech stack, and security mandates
+2. **[AGENTS.md](AGENTS.md)** - AI agent guidelines and coding standards  
+3. **[DOCS_INDEX.md](DOCS_INDEX.md)** - This file: navigation and canonical references
 4. **Implementation Guides** - Specific how-to documentation
 
 ## Prerequisites
 
-- **Start Here**: Read `SYSTEM_MODEL.md` for authoritative tech stack and architectural constraints
-- **For AI Agents**: Follow `AGENTS.md` over all other instructions
-- **For Developers**: Start with `docs/dev/setup.md` after reviewing SYSTEM_MODEL.md
+- **Start Here**: Read [SYSTEM_MODEL.md](SYSTEM_MODEL.md) for authoritative tech stack and architectural constraints
+- **For AI Agents**: Follow [AGENTS.md](AGENTS.md) over all other instructions
+- **For Developers**: Start with [docs/dev/setup.md](docs/dev/setup.md) after reviewing SYSTEM_MODEL.md
 
 ---
 
@@ -29,73 +29,75 @@ All documentation follows this authority structure:
 
 | Priority | Document | Purpose | Context7 Reference |
 |----------|----------|---------|-------------------|
-| **1** | [SYSTEM_MODEL.md](../SYSTEM_MODEL.md) | Tech stack versions, architectural pillars, security mandates | Primary authority |
-| **2** | [AGENTS.md](../AGENTS.md) | AI coding guidelines, Context7 library IDs, permission patterns | Agent operations |
-| **3** | [DOCS_INDEX.md](./DOCS_INDEX.md) | Navigation and canonical references | This document |
+| **1** | [SYSTEM_MODEL.md](SYSTEM_MODEL.md) | Tech stack versions, architectural pillars, security mandates | Primary authority |
+| **2** | [AGENTS.md](AGENTS.md) | AI coding guidelines, Context7 library IDs, permission patterns | Agent operations |
+| **3** | [DOCS_INDEX.md](DOCS_INDEX.md) | Navigation and canonical references | This document |
 
 ### General
 
 | Topic | Canonical Doc | Notes |
 | --- | --- | --- |
-| **System Model** | [SYSTEM_MODEL.md](../SYSTEM_MODEL.md) | **Authoritative: Stack versions, architecture, security** |
-| **AI Guidelines** | [AGENTS.md](../AGENTS.md) | **Authoritative: Coding standards, Context7 refs** |
-| **Wiki / Guide** | [docs/README.md](./README.md) | Detailed repository guide & concepts |
-| **Resource Map** | [RESOURCE_MAP.md](./RESOURCE_MAP.md) | Resource registry and permission mapping |
+| **System Model** | [SYSTEM_MODEL.md](SYSTEM_MODEL.md) | **Authoritative: Stack versions, architecture, security** |
+| **AI Guidelines** | [AGENTS.md](AGENTS.md) | **Authoritative: Coding standards, Context7 refs** |
+| **Wiki / Guide** | [docs/README.md](docs/README.md) | Detailed repository guide & concepts |
+| **Resource Map** | [docs/RESOURCE_MAP.md](docs/RESOURCE_MAP.md) | Resource registry and permission mapping |
 
 ### Architecture
 
 | Topic | Canonical Doc | Notes |
 | --- | --- | --- |
-| System Overview | [docs/architecture/overview.md](./architecture/overview.md) | Monorepo and runtime architecture |
-| Tech Stack | [docs/architecture/tech-stack.md](./architecture/tech-stack.md) | Technologies used (aligns with SYSTEM_MODEL.md) |
-| Core Standards | [docs/architecture/standards.md](./architecture/standards.md) | UI, coding, and quality standards |
-| Folder Structure | [docs/architecture/folder-structure.md](./architecture/folder-structure.md) | Monorepo layout |
-| Database Schema | [docs/architecture/database.md](./architecture/database.md) | Tables and relations |
+| System Overview | [docs/architecture/overview.md](docs/architecture/overview.md) | Monorepo and runtime architecture |
+| Tech Stack | [docs/architecture/tech-stack.md](docs/architecture/tech-stack.md) | Technologies used (aligns with SYSTEM_MODEL.md) |
+| Core Standards | [docs/architecture/standards.md](docs/architecture/standards.md) | UI, coding, and quality standards |
+| Folder Structure | [docs/architecture/folder-structure.md](docs/architecture/folder-structure.md) | Monorepo layout |
+| Database Schema | [docs/architecture/database.md](docs/architecture/database.md) | Tables and relations |
 
 ### Tenancy
 
 | Topic | Canonical Doc | Notes |
 | --- | --- | --- |
-| Multi-Tenancy | [docs/tenancy/overview.md](./tenancy/overview.md) | Tenant resolution and isolation |
-| Supabase Integration | [docs/tenancy/supabase.md](./tenancy/supabase.md) | Auth and service integration |
-| Smandapbun Portal | [docs/tenancy/smandapbun.md](./tenancy/smandapbun.md) | Tenant-specific public portal notes |
+| Multi-Tenancy | [docs/tenancy/overview.md](docs/tenancy/overview.md) | Tenant resolution and isolation |
+| Supabase Integration | [docs/tenancy/supabase.md](docs/tenancy/supabase.md) | Auth and service integration |
+| Smandapbun Portal | [docs/tenancy/smandapbun.md](docs/tenancy/smandapbun.md) | Tenant-specific public portal notes |
 
 ### Security
 
 | Topic | Canonical Doc | Notes |
 | --- | --- | --- |
-| Security Overview | [docs/security/overview.md](./security/overview.md) | High-level security policy |
-| Threat Model | [docs/security/threat-model.md](./security/threat-model.md) | OWASP ASVS alignment |
-| ABAC System | [docs/security/abac.md](./security/abac.md) | **Primary Permission Logic** |
-| RLS Policies | [docs/security/rls.md](./security/rls.md) | **Database Enforcement** |
+| Security Overview | [docs/security/overview.md](docs/security/overview.md) | High-level security policy |
+| Threat Model | [docs/security/threat-model.md](docs/security/threat-model.md) | OWASP ASVS alignment |
+| ABAC System | [docs/security/abac.md](docs/security/abac.md) | **Primary Permission Logic** |
+| RLS Policies | [docs/security/rls.md](docs/security/rls.md) | **Database Enforcement** |
 
 ### Modules & Guidelines
 
 | Topic | Canonical Doc | Notes |
 | --- | --- | --- |
-| Modules Guide | [docs/modules/MODULES_GUIDE.md](./modules/MODULES_GUIDE.md) | **Core Module Reference** |
-| Role Hierarchy | [docs/modules/ROLE_HIERARCHY.md](./modules/ROLE_HIERARCHY.md) | **Role & Permission Concepts** |
-| Theme System | [docs/modules/THEMING.md](./modules/THEMING.md) | Theme engine details |
-| Extension System | [docs/modules/EXTENSIONS.md](./modules/EXTENSIONS.md) | Plugin and extension architecture |
+| Modules Guide | [docs/modules/MODULES_GUIDE.md](docs/modules/MODULES_GUIDE.md) | **Core Module Reference** |
+| Role Hierarchy | [docs/modules/ROLE_HIERARCHY.md](docs/modules/ROLE_HIERARCHY.md) | **Role & Permission Concepts** |
+| User Management | [docs/modules/USER_MANAGEMENT.md](docs/modules/USER_MANAGEMENT.md) | User lifecycle, profiles, and roles |
+| Theme System | [docs/modules/THEMING.md](docs/modules/THEMING.md) | Theme engine details |
+| Extension System | [docs/modules/EXTENSIONS.md](docs/modules/EXTENSIONS.md) | Plugin and extension architecture |
 
 ### Developer Guides
 
 | Topic | Canonical Doc | Notes |
 | --- | --- | --- |
-| Setup Guide | [docs/dev/setup.md](./dev/setup.md) | **Start Here** |
-| Admin Panel | [docs/dev/admin.md](./dev/admin.md) | React Admin development |
-| Public Portal | [docs/dev/public.md](./dev/public.md) | Astro development |
-| Mobile App | [docs/dev/mobile.md](./dev/mobile.md) | Flutter development |
-| IoT Firmware | [docs/dev/esp32.md](./dev/esp32.md) | ESP32 platform |
-| CI/CD | [docs/dev/ci-cd.md](./dev/ci-cd.md) | GitHub Actions |
-| Testing | [docs/dev/testing.md](./dev/testing.md) | Vitest and smoke checks |
+| Setup Guide | [docs/dev/setup.md](docs/dev/setup.md) | **Start Here** |
+| Documentation Audit Plan | [docs/dev/documentation-audit-plan.md](docs/dev/documentation-audit-plan.md) | Context7-driven doc updates |
+| Admin Panel | [docs/dev/admin.md](docs/dev/admin.md) | React Admin development |
+| Public Portal | [docs/dev/public.md](docs/dev/public.md) | Astro development |
+| Mobile App | [docs/dev/mobile.md](docs/dev/mobile.md) | Flutter development |
+| IoT Firmware | [docs/dev/esp32.md](docs/dev/esp32.md) | ESP32 platform |
+| CI/CD | [docs/dev/ci-cd.md](docs/dev/ci-cd.md) | GitHub Actions |
+| Testing | [docs/dev/testing.md](docs/dev/testing.md) | Vitest and smoke checks |
 
 ### Deployment
 
 | Topic | Canonical Doc | Notes |
 | --- | --- | --- |
-| General Deployment | [docs/deploy/overview.md](./deploy/overview.md) | Deployment strategies |
-| Cloudflare | [docs/deploy/cloudflare.md](./deploy/cloudflare.md) | Hosting on Cloudflare |
+| General Deployment | [docs/deploy/overview.md](docs/deploy/overview.md) | Deployment strategies |
+| Cloudflare | [docs/deploy/cloudflare.md](docs/deploy/cloudflare.md) | Hosting on Cloudflare |
 
 ---
 
@@ -113,7 +115,7 @@ When implementing features, reference these Context7 library IDs:
 - `puckeditor/puck` - Visual builder
 - `grx7/framer-motion` - Animations
 
-See [AGENTS.md](../AGENTS.md) for detailed Context7 usage patterns.
+See [AGENTS.md](AGENTS.md) for detailed Context7 usage patterns.
 
 ---
 
@@ -135,18 +137,18 @@ All documentation must:
 
 ### For New Developers
 
-1. Read [SYSTEM_MODEL.md](../SYSTEM_MODEL.md) (5 min)
-2. Read [docs/dev/setup.md](./dev/setup.md) (10 min)
-3. Start coding with [AGENTS.md](../AGENTS.md) as your reference
+1. Read [SYSTEM_MODEL.md](SYSTEM_MODEL.md) (5 min)
+2. Read [docs/dev/setup.md](docs/dev/setup.md) (10 min)
+3. Start coding with [AGENTS.md](AGENTS.md) as your reference
 
 ### For AI Agents
 
-1. **Primary**: [SYSTEM_MODEL.md](../SYSTEM_MODEL.md) - Architecture & constraints
-2. **Secondary**: [AGENTS.md](../AGENTS.md) - Implementation patterns
+1. **Primary**: [SYSTEM_MODEL.md](SYSTEM_MODEL.md) - Architecture & constraints
+2. **Secondary**: [AGENTS.md](AGENTS.md) - Implementation patterns
 3. **Navigation**: This index for topic location
 
 ### For DevOps/Operations
 
-1. [docs/deploy/overview.md](./deploy/overview.md) - Deployment strategies
-2. [docs/security/overview.md](./security/overview.md) - Security requirements
-3. [SYSTEM_MODEL.md](../SYSTEM_MODEL.md) - Tech stack specifications
+1. [docs/deploy/overview.md](docs/deploy/overview.md) - Deployment strategies
+2. [docs/security/overview.md](docs/security/overview.md) - Security requirements
+3. [SYSTEM_MODEL.md](SYSTEM_MODEL.md) - Tech stack specifications

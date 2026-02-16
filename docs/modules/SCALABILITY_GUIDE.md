@@ -33,7 +33,8 @@ Outline scalability considerations for AWCMS deployments.
 
 - Use pagination and server-side filtering.
 - Avoid loading unscoped data across tenants.
-- Index `tenant_id` and `created_at` on high-volume tables like `analytics_events`.
+- Index `tenant_id`, `created_at`, and frequently filtered columns (`user_id`, `status`) on high-volume tables like `analytics_events`.
+- Prefer `analytics_daily` for dashboards to avoid scanning raw events.
 
 ## Security and Compliance Notes
 

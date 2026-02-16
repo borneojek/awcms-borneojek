@@ -26,7 +26,7 @@ Document how AWCMS uses the Supabase client APIs for data, auth, storage, and ed
 import { supabase } from '@/lib/customSupabaseClient';
 ```
 
-**Context7 note**: Supabase clients should be initialized with PKCE flow and global headers.
+**Context7 note**: Supabase clients should be initialized with PKCE flow, session persistence, and global headers.
 
 ```javascript
 import { createClient } from '@supabase/supabase-js';
@@ -36,6 +36,10 @@ const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env
     flowType: 'pkce',
     autoRefreshToken: true,
     persistSession: true,
+    detectSessionInUrl: true,
+  },
+  db: {
+    schema: 'public',
   },
   global: {
     headers: { 'x-application-name': 'awcms' },
@@ -50,6 +54,8 @@ import { createScopedClient } from '../lib/supabase';
 
 const supabase = createScopedClient({ 'x-tenant-id': tenantId }, runtimeEnv);
 ```
+
+> **Vite Env Reminder**: Only `VITE_`-prefixed variables are exposed to client code. Use `loadEnv` in `vite.config` when config values must read non-prefixed keys.
 
 ### Authentication
 

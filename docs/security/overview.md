@@ -110,6 +110,7 @@ Legacy tables may still use tenant-only select policies and rely on admin UI ABA
 - Supabase is the only backend.
 - Public telemetry (analytics events) must remain tenant-scoped and documented via consent notices.
 - Analytics events include IP address, page path, referrer, user agent, and geo headers; treat these as personal data and apply retention policies.
+- Admin-only profile metadata is encrypted at rest in `user_profile_admin` via pgcrypto and accessed only through RPC.
 
 ## Operational Concerns
 
@@ -119,7 +120,7 @@ Development headers are set in `awcms/vite.config.js`. Production headers must b
 
 ### Secrets Management
 
-- Never commit `.env.local` or service role keys.
+- Never commit `.env.local` or `SUPABASE_SECRET_KEY` values.
 - Store production secrets in CI or Cloudflare Pages environment variables.
 
 ## Troubleshooting

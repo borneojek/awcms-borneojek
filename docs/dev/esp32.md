@@ -16,7 +16,7 @@ The IoT component (`awcms-esp32/`) provides firmware for ESP32 devices interacti
 ## 3. Connectivity
 
 - **WiFi**: Connects to local network.
-- **MQTT/HTTP**: Communicates with Supabase Edge Functions or directly via REST (if using restricted service key, though recommended to go through Edge Function proxy for security).
+- **MQTT/HTTP**: Communicates with Supabase Edge Functions or scoped REST endpoints. Avoid shipping `SUPABASE_SECRET_KEY` on devices.
 
 ## 4. Secrets
 

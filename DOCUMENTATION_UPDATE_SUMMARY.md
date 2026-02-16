@@ -1,12 +1,36 @@
 # Documentation Review & Update Summary
 
-**Date**: 2026-02-07  
-**Scope**: Comprehensive documentation audit and alignment with Context7 MCP  
+**Date**: 2026-02-16  
+**Scope**: Documentation audit plan, link corrections, and core doc cleanup  
 **Authority**: SYSTEM_MODEL.md → AGENTS.md → Implementation Guides
 
 ---
 
 ## Summary of Changes
+
+### 2026-02-16 Updates
+
+- Added a Context7-driven documentation audit plan at `docs/dev/documentation-audit-plan.md`.
+- Corrected DOCS_INDEX.md links to resolve from repository root.
+- Linked the audit plan from README.md and docs/README.md.
+- Removed duplicate soft delete guidance in SYSTEM_MODEL.md.
+- Expanded database, user management, and RLS docs to reflect user profile tables, region hierarchies, and Context7 performance tips.
+- Updated README and developer setup to reflect local Supabase CLI usage.
+- Aligned Puck package references with `@puckeditor/core` and updated visual builder guidance.
+- Updated admin/public dev docs and standards with Context7 best practices (Vite env, Astro config, Tailwind @theme).
+- Verified documentation links with `npm run docs:check`.
+- Refreshed API usage, template migration, troubleshooting, and security overview docs with Context7-aligned guidance.
+- Updated extension, performance, scalability, monitoring, theming, and blog docs with Context7 best practices and runtime details.
+- Added mobile/IoT security notes and expanded threat model protections.
+- Refined admin UI, i18n, menu system, CI/CD, compliance, and public portal readmes for current runtime behavior and env requirements.
+- Updated audit trail, role hierarchy, and template system docs with Context7 guidance and tenant-scoped query reminders.
+- Normalized Supabase key naming in docs (publishable vs secret) and removed legacy "anon/service role" wording.
+- Aligned RLS and deployment docs with current Supabase CLI flags (`--schema public,extensions`, `--linked`).
+- Synced UI version metadata to `awcms/package.json`.
+
+---
+
+### 2026-02-07 Updates
 
 This document summarizes all documentation updates made to align with the Context7 MCP (Model Context Protocol) standards.
 

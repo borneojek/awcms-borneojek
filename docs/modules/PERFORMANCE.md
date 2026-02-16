@@ -22,17 +22,24 @@ Summarize performance strategies implemented in AWCMS.
 - Route-level code splitting with `React.lazy`.
 - Local caching via `UnifiedDataManager` (60s TTL).
 - Vite 7 warmup for faster dev startup.
+- React Router loaders reduce redundant client fetches.
 
 ## How It Works
 
 - Code splitting is defined in `awcms/src/components/MainRouter.jsx`.
 - `UnifiedDataManager` caches read operations and invalidates on writes.
+  - Cache entries are stored in localStorage with a 60s TTL (`udm_cache_` prefix).
 
 ## Implementation Patterns
 
 ```javascript
 const BlogsManager = lazy(() => import('@/components/dashboard/BlogsManager'));
 ```
+
+### Context7 Guidance (React + Router)
+
+- Prefer `loader` + `useLoaderData` for route data to reduce duplicate `useEffect` fetches.
+- Keep effects separated by concern and include full dependency arrays.
 
 ## Permissions and Access
 

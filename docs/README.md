@@ -11,6 +11,7 @@ AWCMS (**AhliWeb Content Management System**) is an **enterprise-grade, multi-te
 - **[SYSTEM_MODEL.md](../SYSTEM_MODEL.md)** - Authoritative tech stack and architecture
 - **[AGENTS.md](../AGENTS.md)** - AI coding guidelines and Context7 references  
 - **[DOCS_INDEX.md](../DOCS_INDEX.md)** - Documentation navigation
+- **[Documentation Audit Plan](./dev/documentation-audit-plan.md)** - Context7-driven doc updates
 - **[RESOURCE_MAP.md](./RESOURCE_MAP.md)** - Resource and permission registry
 
 ---
@@ -157,13 +158,13 @@ The README points to a **Developer Setup Guide** and per-client guides. If you�
 
    * `cd awcms`
    * `npm install`
-   * configure env (Supabase URL + anon key)
+   * configure env (Supabase URL + publishable key)
    * `npm run dev`
 3. **Public portal**
 
    * `cd awcms-public/primary`
    * `npm install`
-   * configure env (tenant slug, public API keys)
+   * configure env (tenant slug, publishable keys)
    * `npm run dev`
 4. **Local Supabase** *(if supported by repo)*
 
@@ -299,7 +300,7 @@ For multi-tenant CMS + ABAC, typical core tables:
 ### Minimum hardening checklist
 
 1. **Enable RLS on all tenant tables**
-2. **No client-side secrets** (use anon key only on web clients)
+2. **No client-side secrets** (use publishable keys only on web clients)
 3. **Edge Functions for privileged operations**
 4. **Audit trails** for admin and approval actions
 5. **Content sanitization** (XSS defenses)
@@ -374,7 +375,7 @@ The repository includes:
 
 ### 1) Supabase keys are set but auth fails
 
-* Verify you’re using the **anon key** in web clients
+* Verify you’re using the **publishable key** in web clients
 * Ensure redirect URLs are set in Supabase auth settings
 * Check RLS policies for `auth.uid()` behavior
 
@@ -382,7 +383,7 @@ The repository includes:
 
 * Confirm every tenant table has `tenant_id`
 * Confirm RLS policies always filter `tenant_id`
-* Remove any “service role” usage from the client
+* Remove any **secret key** usage from the client
 
 ### 3) Build fails on React 19 / Vite 7.x
 

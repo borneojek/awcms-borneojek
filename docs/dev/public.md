@@ -17,6 +17,12 @@ The Public Portal (`awcms-public/`) handles the visitor-facing websites for each
 - **Analytics**: Server-side logging is available only when middleware runs (SSR/runtime). Static builds require client-side instrumentation or edge functions.
 - **View Transitions**: Enabled via `astro:transitions` `ClientRouter` in `Layout.astro`.
 
+### Astro Config (Context7)
+
+- Use `defineConfig` in `astro.config.mjs`.
+- Set `site`, `output: "static"`, and a consistent `trailingSlash` policy.
+- Register framework integrations (React, sitemap) in the `integrations` array.
+
 ## 3. Multi-Tenancy Strategy
 
 Each tenant has a dedicated directory under `awcms-public/`. We currently use a "primary" template that can be cloned.

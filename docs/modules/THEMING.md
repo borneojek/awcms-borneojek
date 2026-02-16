@@ -23,6 +23,7 @@ Describe how tenant branding is stored and applied across the admin UI.
 - `useTenantTheme()` applies CSS variables at runtime.
 - Components use Tailwind tokens that map to CSS variables.
 - Public portal widgets follow the same CSS variable tokens for consistent theming.
+- Tailwind v4 uses CSS-first tokens via `@theme` in the public portal.
 
 ## How It Works
 
@@ -30,6 +31,7 @@ Describe how tenant branding is stored and applied across the admin UI.
 - Variables set on `document.documentElement`:
   - `--primary`
   - `--font-sans`
+- `brandColor` expects a hex `#RRGGBB` value and is validated before being applied.
 
 ## Implementation Patterns
 
@@ -51,6 +53,11 @@ Describe how tenant branding is stored and applied across the admin UI.
   Action
 </Button>
 ```
+
+### Context7 Guidance (Tailwind)
+
+- Define design tokens using `@theme` and CSS variables.
+- Apply tenant tokens via `--primary` and `--font-sans` to keep utilities consistent.
 
 ## Permissions and Access
 

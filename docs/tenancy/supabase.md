@@ -63,7 +63,7 @@ const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env
 ### Edge Functions
 
 - Stored in `supabase/functions/*`.
-- Use `supabaseAdmin` (service role) for cross-tenant operations and elevated workflows.
+- Use `supabaseAdmin` (`SUPABASE_SECRET_KEY`) for cross-tenant operations and elevated workflows.
 - Must enforce tenant context checks and resource sharing rules before mutating data.
 
 ## Implementation Patterns
@@ -98,7 +98,7 @@ const { data, error } = await supabase.functions.invoke('manage-users', {
 
 ## Security and Compliance Notes
 
-- Never expose the service role key in client code.
+- Never expose `SUPABASE_SECRET_KEY` in client code.
 - Every request must be scoped to the tenant and filtered for `deleted_at`.
 - All public reads must use `status = 'published'` where applicable.
 
@@ -124,10 +124,10 @@ const { data, error } = await supabase.functions.invoke('manage-users', {
 Run from repo root:
 
 ```bash
-npx supabase db pull --schema public
+npx supabase db pull --schema public,extensions
 ```
 
-> **Note**: We explicitly pull only the `public` schema to avoid permission errors with the managed `storage` and `auth` schemas.
+> **Note**: We explicitly pull only the `public` and `extensions` schemas to avoid permission errors with the managed `storage` and `auth` schemas.
 
 If migration history is mismatched:
 

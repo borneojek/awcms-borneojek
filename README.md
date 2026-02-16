@@ -55,11 +55,13 @@ This repository follows a strict documentation hierarchy aligned with the **Cont
 - **[AGENTS.md](AGENTS.md)**: AI agent guidelines and coding standards
 - **[DOCS_INDEX.md](DOCS_INDEX.md)**: Central navigation for all documentation
 - **[docs/README.md](docs/README.md)**: Detailed wiki and concepts
+- **[docs/dev/documentation-audit-plan.md](docs/dev/documentation-audit-plan.md)**: Context7-driven doc audit workflow
 
 ## Database & Migrations
 
 - Canonical migrations live in `supabase/migrations/` and are mirrored in `awcms/supabase/migrations/` for the Admin runtime.
-- Use `npx supabase db push` to apply new migrations and `supabase db pull` to sync remote history.
+- Use `npx supabase db push --local` for local dev and `npx supabase db push --linked` for remote.
+- Use `npx supabase db pull --schema public,extensions` to sync remote history when needed.
 - If migration history is out of sync, use `supabase migration repair` before pushing.
 
 ## Context7 MCP Integration

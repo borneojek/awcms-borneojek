@@ -24,6 +24,7 @@ Describe the GitHub Actions workflows used for AWCMS.
 
 - `.github/workflows/ci-push.yml` (pushes to `main`/`develop`, deploys)
 - `.github/workflows/ci-pr.yml` (pull requests to `main`)
+- `.github/workflows/docs-link-check.yml` (scheduled link validation)
 
 ### Trigger Events
 
@@ -43,9 +44,11 @@ Describe the GitHub Actions workflows used for AWCMS.
 ### Required Secrets
 
 - `VITE_SUPABASE_URL` (admin build)
-- `VITE_SUPABASE_PUBLISHABLE_KEY` (admin build)
+- `VITE_SUPABASE_PUBLISHABLE_KEY` (admin build, preferred)
+- `VITE_SUPABASE_ANON_KEY` (legacy CI alias; keep aligned with publishable key)
 - `PUBLIC_SUPABASE_URL` (public build fallback)
-- `PUBLIC_SUPABASE_PUBLISHABLE_KEY` (public build fallback)
+- `PUBLIC_SUPABASE_PUBLISHABLE_KEY` (public build fallback, preferred)
+- `PUBLIC_SUPABASE_ANON_KEY` (legacy CI alias; keep aligned with publishable key)
 - `PUBLIC_TENANT_ID` (public build tenant scope)
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ENABLED` (repo variable; must be `true` to deploy)
@@ -76,7 +79,7 @@ flutter test
 
 - Missing env vars: verify secrets and repo variables.
 - Cloudflare deploys: `CLOUDFLARE_API_TOKEN` is required and must be scoped to a single account with access to the Accounts API. The workflow resolves the account ID automatically via the Cloudflare Accounts API.
-- Public build env mismatch: CI injects `PUBLIC_SUPABASE_*`, while runtime code prefers `VITE_SUPABASE_*`. Keep values aligned; `createClientFromEnv` accepts both.
+- Public build env mismatch: CI injects `PUBLIC_SUPABASE_*`, while runtime code prefers `VITE_SUPABASE_*`. Keep values aligned; `createClientFromEnv` accepts both. Legacy `*_ANON_KEY` aliases should match the publishable keys.
 
 ## References
 

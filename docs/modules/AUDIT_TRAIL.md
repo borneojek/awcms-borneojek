@@ -30,6 +30,7 @@ The audit trail captures all significant system actions, providing:
 - **Where** the action occurred (table, record, channel)
 - **When** the action happened (timestamp)
 - **How** the data changed (before/after snapshots)
+- **Context** (tenant, channel, IP where available)
 
 ---
 
@@ -94,6 +95,8 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
+**Context7 note**: When reading audit logs in the UI, prefer filtered queries and indexes (`tenant_id`, `created_at`) to avoid full-table scans.
+
 ### Applying Trigger
 
 ```sql
@@ -124,6 +127,7 @@ Features:
 const { data: logs } = await supabase
   .from('audit_logs')
   .select('*, user:users(email)')
+  .eq('tenant_id', tenantId)
   .order('created_at', { ascending: false })
   .limit(100);
 ```
@@ -194,7 +198,7 @@ WHERE created_at < NOW() - INTERVAL '365 days';
 1. **Don't Log Sensitive Data**: Exclude passwords, tokens in new_value
 2. **Enable on Critical Tables**: blogs, users, roles, settings
 3. **Monitor Log Growth**: Large tables need retention policies
-4. **Index Appropriately**: Index `created_at`, `user_id`, `table_name`
+4. **Index Appropriately**: Index `tenant_id`, `created_at`, `user_id`, `resource`
 
 ---
 

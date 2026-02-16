@@ -61,7 +61,7 @@ i18n
     },
     fallbackLng: 'en', // Default to English
     interpolation: {
-      escapeValue: false // React already safes from XSS
+      escapeValue: false // React already escapes from XSS
     },
     detection: {
       order: ['localStorage', 'navigator'],
@@ -78,7 +78,7 @@ export default i18n;
 2. **navigator**: Falls back to browser language settings.
 3. **fallbackLng**: Uses English if no match found.
 
-**Context7 note**: i18next recommends supporting querystring/cookie detection when needed (`querystring`, `cookie`, `localStorage`, `navigator`). AWCMS keeps admin detection minimal to avoid extra state.
+**Context7 note**: i18next recommends supporting querystring/cookie detection when needed (`querystring`, `cookie`, `localStorage`, `navigator`). AWCMS keeps admin detection minimal to avoid extra state but can expand the `order` when deep-linking or SSR localization is required.
 
 ---
 

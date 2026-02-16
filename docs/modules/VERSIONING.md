@@ -24,6 +24,8 @@ Define how AWCMS versions are managed across code and documentation.
 - `awcms/package.json` provides the build/version metadata for the Admin package.
 - Release process should update both files to keep them aligned.
 - Documentation-only releases should use a patch bump.
+- `awcms-public/primary/package.json` tracks the public portal template version and may differ from the admin version.
+- If `version.js` drifts from `package.json`, the UI will display a stale version.
 
 ## How It Works
 

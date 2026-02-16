@@ -21,6 +21,7 @@ This appendix maps AWCMS security controls to ISO 27001/27002 controls.
 | **A.9.4.1 Access to Information** | RLS Policies (Tenant Isolation) | `docs/security/rls.md` |
 | **A.12.3.1 Backup** | Supabase PITR & Daily Backups | Supabase Dashboard |
 | **A.12.4.1 Event Logging** | `audit_logs` table (Write Ops) | `docs/security/threat-model.md` |
+| **A.8.24 Use of Cryptography** | `user_profile_admin` encrypted fields (pgcrypto) | `docs/security/overview.md` |
 | **A.13.1.1 Network Controls** | Cloudflare WAF, TLS 1.3 | `docs/deploy/cloudflare.md` |
 | **A.14.2.1 Secure Development** | CI/CD Linting, Security Scanning | `docs/dev/ci-cd.md` |
 | **A.5.34 Privacy and PII** | Consent notice + telemetry disclosure | `docs/dev/public.md` |

@@ -20,7 +20,7 @@ Explain the Visual Page Builder architecture and integration with public renderi
 
 ## Core Concepts
 
-- Admin uses `@puckeditor/puck` editor to build layouts.
+- Admin uses `@puckeditor/core` editor components to build layouts.
 - Output is stored in `puck_layout_jsonb`.
 - Public portal renders JSON via `PuckRenderer` with an allow-list registry.
 - `editor_type` controls whether public pages render Puck JSON (`visual`) or HTML (`richtext`).
@@ -55,7 +55,7 @@ registerTemplateBlock({
 
 ### Context7 Guidance (Puck)
 
-Puck components should define explicit fields and render functions in a config object. Import `@measured/puck/puck.css` in the editor UI, use `<Puck>` for editing, and use the `Render` component for public rendering. Avoid rendering unknown blocks on the public portal.
+Puck components should define explicit fields and render functions in a config object. Import `@puckeditor/core/puck.css` in the editor UI, use `<Puck>` for editing, and use `<Render>` or the Astro `PuckRenderer` allow-list for public rendering. Avoid rendering unknown blocks on the public portal.
 
 ## Permissions and Access
 

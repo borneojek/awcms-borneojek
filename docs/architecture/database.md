@@ -238,23 +238,22 @@ CREATE TABLE analytics_daily (
 ```sql
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
   email TEXT UNIQUE NOT NULL,
   full_name TEXT,
-  role_id UUID REFERENCES roles(id),
   avatar_url TEXT,
-  phone TEXT,
-  bio TEXT,
-  is_active BOOLEAN DEFAULT TRUE,
+  role_id UUID REFERENCES roles(id),
+  language TEXT DEFAULT 'id',
+  created_by UUID REFERENCES users(id),
+  tenant_id UUID REFERENCES tenants(id) ON DELETE SET NULL,
   -- Approval Workflow
   approval_status TEXT DEFAULT 'approved', -- 'pending_admin', 'pending_super_admin' (platform admin), 'approved', 'rejected'
   admin_approved_at TIMESTAMPTZ,
-  admin_approved_by UUID,
+  admin_approved_by UUID REFERENCES users(id),
   super_admin_approved_at TIMESTAMPTZ, -- platform admin approval timestamp
-  super_admin_approved_by UUID, -- platform admin approver
+  super_admin_approved_by UUID REFERENCES users(id), -- platform admin approver
   rejection_reason TEXT,
-  
-  email_verified_at TIMESTAMPTZ,
+  region_id UUID REFERENCES regions(id) ON DELETE SET NULL,
+  administrative_region_id UUID REFERENCES administrative_regions(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   deleted_at TIMESTAMPTZ
@@ -262,6 +261,103 @@ CREATE TABLE users (
 
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role_id ON users(role_id);
+CREATE INDEX idx_users_region_id ON users(region_id);
+CREATE INDEX idx_users_admin_region_id ON users(administrative_region_id);
+```
+
+### regions (Operational Hierarchy)
+
+Ten-level operational hierarchy for global segmentation.
+
+```sql
+CREATE TABLE regions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL,
+  level INTEGER NOT NULL CHECK (level BETWEEN 1 AND 10),
+  parent_id UUID REFERENCES regions(id) ON DELETE SET NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (slug)
+);
+
+CREATE INDEX idx_regions_parent_id ON regions(parent_id);
+```
+
+### administrative_regions (Indonesia)
+
+Government hierarchy from the `cahyadsn/wilayah` dataset, used for compliance and reporting.
+
+```sql
+CREATE TABLE administrative_regions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code TEXT NOT NULL,
+  name TEXT NOT NULL,
+  level TEXT NOT NULL CHECK (level IN ('provinsi', 'kabupaten', 'kota', 'kecamatan', 'kelurahan', 'desa')),
+  parent_id UUID REFERENCES administrative_regions(id) ON DELETE SET NULL,
+  postal_code TEXT,
+  latitude NUMERIC,
+  longitude NUMERIC,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (code)
+);
+
+CREATE INDEX idx_admin_regions_parent_id ON administrative_regions(parent_id);
+CREATE INDEX idx_admin_regions_code ON administrative_regions(code);
+CREATE INDEX idx_admin_regions_level ON administrative_regions(level);
+```
+
+### user_profiles
+
+Extended profile metadata, separate from `users` for scalability.
+
+```sql
+CREATE TABLE user_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE RESTRICT,
+  tenant_id UUID REFERENCES tenants(id) ON DELETE RESTRICT,
+  description TEXT,
+  job_title TEXT,
+  department TEXT,
+  phone TEXT,
+  alternate_email TEXT,
+  location TEXT,
+  timezone TEXT,
+  website_url TEXT,
+  linkedin_url TEXT,
+  twitter_url TEXT,
+  github_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ,
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_user_profiles_tenant_id ON user_profiles(tenant_id);
+```
+
+### user_profile_admin
+
+Admin-only profile fields encrypted with pgcrypto. Encryption uses a per-user salt and a passphrase derived from `user_profiles.description`. Updates to `description` re-key these fields via trigger.
+
+```sql
+CREATE TABLE user_profile_admin (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE RESTRICT,
+  tenant_id UUID REFERENCES tenants(id) ON DELETE RESTRICT,
+  admin_notes_encrypted BYTEA,
+  admin_flags_encrypted BYTEA,
+  admin_salt TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ,
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_user_profile_admin_tenant_id ON user_profile_admin(tenant_id);
 ```
 
 ### account_requests (New - Staging)
