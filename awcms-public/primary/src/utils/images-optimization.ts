@@ -42,7 +42,6 @@ export type ImagesOptimizer = (
 
 /* ******* */
 const config = {
-  // FIXME: Use this when image.width is minor than deviceSizes
   imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
 
   deviceSizes: [
@@ -64,6 +63,27 @@ const config = {
   ],
 
   formats: ["image/webp"],
+};
+
+const smallestDeviceSize = Math.min(...config.deviceSizes);
+
+const getResponsiveBreakpoints = (
+  width?: number,
+  breakpoints?: number[],
+): number[] => {
+  const defaultBreakpoints = breakpoints || config.deviceSizes;
+  if (!width) {
+    return defaultBreakpoints;
+  }
+
+  const sourceBreakpoints =
+    width < smallestDeviceSize ? config.imageSizes : defaultBreakpoints;
+  const filtered = sourceBreakpoints.filter((value) => value <= width);
+  if (!filtered.includes(width)) {
+    filtered.push(width);
+  }
+
+  return filtered.length ? filtered : [width];
 };
 
 const computeHeight = (width: number, aspectRatio: number) => {
@@ -222,7 +242,7 @@ const getBreakpoints = ({
     layout === "responsive" ||
     layout === "contained"
   ) {
-    return breakpoints || config.deviceSizes;
+    return getResponsiveBreakpoints(width, breakpoints);
   }
   if (!width) {
     return [];

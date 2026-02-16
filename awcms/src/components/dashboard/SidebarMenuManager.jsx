@@ -38,7 +38,7 @@ function SidebarMenuManager() {
     const { menuItems, loading, updateMenuOrder, toggleVisibility, updateMenuItem, updateGroup, fetchMenu } = useAdminMenu();
     const { hasPermission, isPlatformAdmin, isFullAccess, userRole, loading: permsLoading } = usePermissions();
     const { currentTenant } = useTenant();
-    const { applyFilters, registeredPlugins, externalPlugins } = usePlugins();
+    const { applyFilters } = usePlugins();
     const { toast } = useToast();
 
     const {
@@ -93,9 +93,7 @@ function SidebarMenuManager() {
         isFullAccess,
         currentTenant?.subscription_tier,
         applyFilters,
-        userRole,
-        registeredPlugins,
-        externalPlugins
+        userRole
     ]);
 
     useEffect(() => {

@@ -7,6 +7,8 @@ All notable changes to the **AWCMS** project will be documented in this file.
 
 ### Security
 
+- **Admin Profile Encryption**: Added encrypted admin-only profile fields keyed by salted profile descriptions.
+
 ### Added
 
 - **Turnstile Host Mapping**: Added `VITE_TURNSTILE_SITE_KEY_MAP` support for per-domain Turnstile keys and a localhost test-key fallback.
@@ -16,6 +18,8 @@ All notable changes to the **AWCMS** project will be documented in this file.
 - **Auth Shell**: Introduced a shared authentication layout for login, reset, and registration flows.
 - **Shipping Calculation**: Implemented dynamic shipping cost calculation in Checkout with support for multiple couriers (JNE, J&T, POS, TIKI).
 - **Turnstile Debugging**: Added `VITE_TURNSTILE_DEBUG` to enable host/key resolution logging when needed.
+
+- **User Profiles**: Added `user_profiles` and `user_profile_admin` tables with richer profile fields and admin note support.
 
 - **Mobile App**: Added profile customization, theme switcher, and permission handling.
 - **Admin Configuration**: Added Context7 server configuration in `.bashrc` and codebase.

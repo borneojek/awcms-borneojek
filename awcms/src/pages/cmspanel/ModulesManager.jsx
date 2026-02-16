@@ -27,7 +27,7 @@ const ModulesManager = () => {
   const { menuItems, loading: menuLoading } = useAdminMenu();
   const { currentTenant } = useTenant();
   const { hasPermission, isPlatformAdmin, isFullAccess, userRole } = usePermissions();
-  const { applyFilters, registeredPlugins, externalPlugins } = usePlugins();
+  const { applyFilters } = usePlugins();
 
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -106,9 +106,7 @@ const ModulesManager = () => {
     isFullAccess,
     currentTenant?.subscription_tier,
     applyFilters,
-    userRole,
-    registeredPlugins,
-    externalPlugins
+    userRole
   ]);
 
   const displayModules = useMemo(() => {

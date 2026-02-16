@@ -1,10 +1,11 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Lock, Shield, Save, Key, AlertCircle, CheckCircle2, Crown, Camera } from 'lucide-react';
+import { User, Mail, Lock, Shield, Save, Key, AlertCircle, CheckCircle2, Crown, Camera, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
@@ -14,7 +15,7 @@ import { ImageUpload } from '@/components/ui/ImageUpload';
 
 function UserProfile() {
   const { user } = useAuth();
-  const { userRole, permissions, isPlatformAdmin, isFullAccess } = usePermissions();
+  const { userRole, permissions, isPlatformAdmin, isFullAccess, hasPermission, tenantId } = usePermissions();
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(false);
@@ -26,36 +27,86 @@ function UserProfile() {
     avatar_url: ''
   });
 
+  const [profileDetails, setProfileDetails] = useState({
+    description: '',
+    job_title: '',
+    department: '',
+    phone: '',
+    alternate_email: '',
+    location: '',
+    timezone: '',
+    website_url: '',
+    linkedin_url: '',
+    twitter_url: '',
+    github_url: ''
+  });
+
+  const [adminData, setAdminData] = useState({
+    admin_notes: '',
+    admin_flags: ''
+  });
+
   const [passwordData, setPasswordData] = useState({
     password: '',
     confirmPassword: ''
   });
+
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(false);
+
+  const canManageAdminFields = hasPermission('tenant.user.update') || isPlatformAdmin || isFullAccess;
 
   // Initialize data
   useEffect(() => {
     if (user) {
       const fetchProfile = async () => {
         try {
-          // Explicitly specify the relationship to avoid PGRST200 error
-          const { data, error } = await supabase
-            .from('users')
-            .select(`
-              full_name, 
-              email, 
-              avatar_url,
-              roles:roles!users_role_id_fkey (
-                name,
+          const [userResponse, detailsResponse] = await Promise.all([
+            supabase
+              .from('users')
+              .select(`
+                full_name, 
+                email, 
+                avatar_url,
+                roles:roles!users_role_id_fkey (
+                  name,
+                  description,
+                  is_platform_admin,
+                  is_full_access
+                )
+              `)
+              .eq('id', user.id)
+              .maybeSingle(),
+            supabase
+              .from('user_profiles')
+              .select(`
                 description,
-                is_platform_admin,
-                is_full_access
-              )
-            `)
-            .eq('id', user.id)
-            .maybeSingle();
+                job_title,
+                department,
+                phone,
+                alternate_email,
+                location,
+                timezone,
+                website_url,
+                linkedin_url,
+                twitter_url,
+                github_url
+              `)
+              .eq('user_id', user.id)
+              .is('deleted_at', null)
+              .maybeSingle()
+          ]);
 
-          if (error) {
-            console.error('Error fetching profile:', error);
+          if (userResponse.error) {
+            console.error('Error fetching profile:', userResponse.error);
           }
+
+          if (detailsResponse.error) {
+            console.error('Error fetching profile details:', detailsResponse.error);
+          }
+
+          const data = userResponse.data;
+          const details = detailsResponse.data;
 
           setProfileData({
             full_name: data?.full_name || user.user_metadata?.full_name || '',
@@ -66,13 +117,42 @@ function UserProfile() {
             role_is_platform_admin: Boolean(data?.roles?.is_platform_admin),
             role_is_full_access: Boolean(data?.roles?.is_full_access)
           });
+
+          setProfileDetails({
+            description: details?.description || '',
+            job_title: details?.job_title || '',
+            department: details?.department || '',
+            phone: details?.phone || '',
+            alternate_email: details?.alternate_email || '',
+            location: details?.location || '',
+            timezone: details?.timezone || '',
+            website_url: details?.website_url || '',
+            linkedin_url: details?.linkedin_url || '',
+            twitter_url: details?.twitter_url || '',
+            github_url: details?.github_url || ''
+          });
+
+          if (canManageAdminFields) {
+            const { data: adminFields, error: adminError } = await supabase
+              .rpc('get_user_profile_admin_fields', { p_user_id: user.id });
+
+            if (adminError) {
+              console.error('Error fetching admin profile fields:', adminError);
+            }
+
+            const adminRow = Array.isArray(adminFields) ? adminFields[0] : adminFields;
+            setAdminData({
+              admin_notes: adminRow?.admin_notes || '',
+              admin_flags: adminRow?.admin_flags || ''
+            });
+          }
         } catch (err) {
           console.error('Unexpected error in fetchProfile:', err);
         }
       };
       fetchProfile();
     }
-  }, [user]);
+  }, [user, canManageAdminFields]);
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
@@ -190,6 +270,78 @@ function UserProfile() {
     }
   };
 
+  const handleDetailsUpdate = async (e) => {
+    e.preventDefault();
+    setDetailsLoading(true);
+
+    try {
+      const profileTenantId = tenantId ?? null;
+      const { error } = await supabase
+        .from('user_profiles')
+        .upsert({
+          user_id: user.id,
+          tenant_id: profileTenantId,
+          description: profileDetails.description,
+          job_title: profileDetails.job_title,
+          department: profileDetails.department,
+          phone: profileDetails.phone,
+          alternate_email: profileDetails.alternate_email,
+          location: profileDetails.location,
+          timezone: profileDetails.timezone,
+          website_url: profileDetails.website_url,
+          linkedin_url: profileDetails.linkedin_url,
+          twitter_url: profileDetails.twitter_url,
+          github_url: profileDetails.github_url
+        }, { onConflict: 'user_id' });
+
+      if (error) throw error;
+
+      toast({
+        title: "Profile Details Saved",
+        description: "Your profile details have been updated successfully."
+      });
+    } catch (error) {
+      console.error('Profile details update error:', error);
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message || "Failed to update profile details."
+      });
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  const handleAdminUpdate = async (e) => {
+    e.preventDefault();
+    setAdminLoading(true);
+
+    try {
+      const { error } = await supabase
+        .rpc('set_user_profile_admin_fields', {
+          p_user_id: user.id,
+          p_admin_notes: adminData.admin_notes,
+          p_admin_flags: adminData.admin_flags
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Admin Fields Saved",
+        description: "Encrypted admin notes have been updated successfully."
+      });
+    } catch (error) {
+      console.error('Admin profile update error:', error);
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message || "Failed to update admin fields."
+      });
+    } finally {
+      setAdminLoading(false);
+    }
+  };
+
   return (
     <div className="w-full space-y-8 pb-12">
       <div className="flex flex-col gap-1">
@@ -198,7 +350,7 @@ function UserProfile() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-        {/* Left Column: Profile, Password, 2FA */}
+        {/* Left Column: Profile Details + Security */}
         <div className="lg:col-span-2 space-y-6">
 
           {/* Personal Information Card */}
@@ -307,11 +459,215 @@ function UserProfile() {
             </div>
           </motion.div>
 
-          {/* 2FA Settings Component */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
+            className="dashboard-surface dashboard-surface-hover overflow-hidden"
+          >
+            <div className="flex items-center gap-3 border-b border-slate-200/60 bg-slate-50/70 px-6 py-5 dark:border-slate-800/70 dark:bg-slate-900/60">
+              <div className="rounded-xl bg-emerald-100/70 p-2 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-900 dark:text-white">Profile Details</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Add richer profile information</p>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <form onSubmit={handleDetailsUpdate} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="description" className="text-sm font-medium text-slate-600 dark:text-slate-300">Profile Description</Label>
+                  <Textarea
+                    id="description"
+                    value={profileDetails.description}
+                    onChange={(e) => setProfileDetails({ ...profileDetails, description: e.target.value })}
+                    className="min-h-[120px] rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
+                    placeholder="Share a short bio or summary"
+                  />
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="job_title" className="text-sm font-medium text-slate-600 dark:text-slate-300">Job Title</Label>
+                    <Input
+                      id="job_title"
+                      value={profileDetails.job_title}
+                      onChange={(e) => setProfileDetails({ ...profileDetails, job_title: e.target.value })}
+                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
+                      placeholder="e.g. Operations Lead"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="department" className="text-sm font-medium text-slate-600 dark:text-slate-300">Department</Label>
+                    <Input
+                      id="department"
+                      value={profileDetails.department}
+                      onChange={(e) => setProfileDetails({ ...profileDetails, department: e.target.value })}
+                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
+                      placeholder="e.g. Student Affairs"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-sm font-medium text-slate-600 dark:text-slate-300">Phone</Label>
+                    <Input
+                      id="phone"
+                      value={profileDetails.phone}
+                      onChange={(e) => setProfileDetails({ ...profileDetails, phone: e.target.value })}
+                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
+                      placeholder="+62 812-3456-7890"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="alternate_email" className="text-sm font-medium text-slate-600 dark:text-slate-300">Alternate Email</Label>
+                    <Input
+                      id="alternate_email"
+                      type="email"
+                      value={profileDetails.alternate_email}
+                      onChange={(e) => setProfileDetails({ ...profileDetails, alternate_email: e.target.value })}
+                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
+                      placeholder="secondary@email.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="location" className="text-sm font-medium text-slate-600 dark:text-slate-300">Location</Label>
+                    <Input
+                      id="location"
+                      value={profileDetails.location}
+                      onChange={(e) => setProfileDetails({ ...profileDetails, location: e.target.value })}
+                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
+                      placeholder="City, Province"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="timezone" className="text-sm font-medium text-slate-600 dark:text-slate-300">Timezone</Label>
+                    <Input
+                      id="timezone"
+                      value={profileDetails.timezone}
+                      onChange={(e) => setProfileDetails({ ...profileDetails, timezone: e.target.value })}
+                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
+                      placeholder="Asia/Jakarta"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="website_url" className="text-sm font-medium text-slate-600 dark:text-slate-300">Website</Label>
+                    <Input
+                      id="website_url"
+                      value={profileDetails.website_url}
+                      onChange={(e) => setProfileDetails({ ...profileDetails, website_url: e.target.value })}
+                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
+                      placeholder="https://your-site.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="linkedin_url" className="text-sm font-medium text-slate-600 dark:text-slate-300">LinkedIn</Label>
+                    <Input
+                      id="linkedin_url"
+                      value={profileDetails.linkedin_url}
+                      onChange={(e) => setProfileDetails({ ...profileDetails, linkedin_url: e.target.value })}
+                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
+                      placeholder="https://linkedin.com/in/username"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="twitter_url" className="text-sm font-medium text-slate-600 dark:text-slate-300">Twitter/X</Label>
+                    <Input
+                      id="twitter_url"
+                      value={profileDetails.twitter_url}
+                      onChange={(e) => setProfileDetails({ ...profileDetails, twitter_url: e.target.value })}
+                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
+                      placeholder="https://x.com/username"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="github_url" className="text-sm font-medium text-slate-600 dark:text-slate-300">GitHub</Label>
+                    <Input
+                      id="github_url"
+                      value={profileDetails.github_url}
+                      onChange={(e) => setProfileDetails({ ...profileDetails, github_url: e.target.value })}
+                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
+                      placeholder="https://github.com/username"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <Button type="submit" disabled={detailsLoading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                    {detailsLoading ? 'Saving...' : 'Save Details'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </motion.div>
+
+          {canManageAdminFields && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.12 }}
+              className="dashboard-surface dashboard-surface-hover overflow-hidden"
+            >
+              <div className="flex items-center gap-3 border-b border-slate-200/60 bg-slate-50/70 px-6 py-5 dark:border-slate-800/70 dark:bg-slate-900/60">
+                <div className="rounded-xl bg-rose-100/70 p-2 text-rose-600 dark:bg-rose-900/30 dark:text-rose-300">
+                  <Shield className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 dark:text-white">Administrative Notes</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Encrypted admin-only fields</p>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <form onSubmit={handleAdminUpdate} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="admin_notes" className="text-sm font-medium text-slate-600 dark:text-slate-300">Admin Notes</Label>
+                    <Textarea
+                      id="admin_notes"
+                      value={adminData.admin_notes}
+                      onChange={(e) => setAdminData({ ...adminData, admin_notes: e.target.value })}
+                      className="min-h-[120px] rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-rose-500/60 focus:ring-rose-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
+                      placeholder="Sensitive notes for admin users only"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin_flags" className="text-sm font-medium text-slate-600 dark:text-slate-300">Admin Flags</Label>
+                    <Input
+                      id="admin_flags"
+                      value={adminData.admin_flags}
+                      onChange={(e) => setAdminData({ ...adminData, admin_flags: e.target.value })}
+                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-rose-500/60 focus:ring-rose-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
+                      placeholder="vip, compliance, sensitive"
+                    />
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Comma-separated, encrypted on save.</p>
+                  </div>
+                  <div className="pt-2 flex justify-end">
+                    <Button type="submit" disabled={adminLoading} className="bg-rose-600 hover:bg-rose-700 text-white">
+                      {adminLoading ? 'Saving...' : 'Save Admin Fields'}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          )}
+
+          {/* 2FA Settings Component */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
           >
             <TwoFactorSettings />
           </motion.div>
@@ -320,7 +676,7 @@ function UserProfile() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.25 }}
             className="dashboard-surface dashboard-surface-hover overflow-hidden"
           >
             <div className="flex items-center gap-3 border-b border-slate-200/60 bg-slate-50/70 px-6 py-5 dark:border-slate-800/70 dark:bg-slate-900/60">
