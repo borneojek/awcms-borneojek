@@ -17,9 +17,10 @@ All notable changes to the **AWCMS** project will be documented in this file.
 - **Dashboard UI**: Added shared `dashboard-surface` and `dashboard-surface-hover` utilities for consistent card styling.
 - **Auth Shell**: Introduced a shared authentication layout for login, reset, and registration flows.
 - **Shipping Calculation**: Implemented dynamic shipping cost calculation in Checkout with support for multiple couriers (JNE, J&T, POS, TIKI).
-- **Turnstile Debugging**: Added `VITE_TURNSTILE_DEBUG` to enable host/key resolution logging when needed.
+- **Turnstile Debugging**: Added `VITE_TURNSTILE_DEBUG` to ensure host/key resolution logging when needed.
+- **Supabase MCP**: Integrated Supabase MCP for improved project management and local development support.
 
-- **User Profiles**: Added `user_profiles` and `user_profile_admin` tables with richer profile fields and admin note support.
+- **User Profiles**: Added `user_profiles` and `user_profile_admin` tables, and refactored `UserEditor`/`UsersManager` for detailed profile and admin field management.
 
 - **Mobile App**: Added profile customization, theme switcher, and permission handling.
 - **Admin Configuration**: Added Context7 server configuration in `.bashrc` and codebase.
@@ -29,6 +30,7 @@ All notable changes to the **AWCMS** project will be documented in this file.
 
 ### Changed
 
+- **Security Standards**: Standardized Supabase API key terminology (`PUBLISHABLE_KEY`, `SECRET_KEY`) globally and strictly enforced usage rules.
 - **Docs**: Recommended `supabase db pull --schema public,extensions` to avoid storage churn in shadow DBs.
 - **Turnstile Logging**: Key-selection logs are now dev-only.
 - **Admin UX**: Refined dashboard layout, page header hierarchy, sidebar styling, and card surfaces for a more polished UI.
