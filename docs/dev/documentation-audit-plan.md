@@ -12,6 +12,13 @@ Establish a repeatable, Context7-driven workflow to audit and update all AWCMS d
 - Actual scripts and runtime behavior in each package
 - Latest library best practices (Context7 MCP is the primary reference)
 
+## Current Focus (2026-02-16)
+
+- Admin routes now use sub-slugs for tabs, trash views, and approvals.
+- Edit/detail routes use signed IDs (`{uuid}.{signature}`) with legacy redirects.
+- Dashboard widgets share a consistent header frame (core + plugin widgets).
+- Supabase admin client updated to `@supabase/supabase-js` 2.93.3.
+
 ## Scope
 
 | Area | Primary Sources | Notes |
@@ -26,6 +33,9 @@ Establish a repeatable, Context7-driven workflow to audit and update all AWCMS d
 | Admin app | awcms/README.md, awcms/package.json scripts | React + Vite guidance |
 | MCP | awcms-mcp/README.md, awcms-mcp/src/tools/* | Tooling and MCP usage |
 | Mobile/IoT | awcms-mobile/**, awcms-esp32/** | Platform-specific setup |
+| Database ops | awcms/supabase/migrations/*.sql | Ignore `current_*.sql` snapshots; validate timestamped migrations |
+| Routing & security | docs/modules/ADMIN_UI_ARCHITECTURE.md, docs/security/* | Sub-slug routing + signed route params |
+| Dashboard UX | docs/modules/EXTENSIONS.md | Widget headers + plugin frame conventions |
 
 ## Context7 MCP Reference Workflow
 
@@ -51,17 +61,20 @@ Establish a repeatable, Context7-driven workflow to audit and update all AWCMS d
 
 - Verify versions in SYSTEM_MODEL.md match `package.json` for each package.
 - Confirm Node.js requirement (>= 20.0.0) is consistent across docs.
+- Verify Supabase client versions (admin/public) match AGENTS.md and `package.json`.
 
 ### 2. Database Accuracy
 
 - Compare schema docs with `supabase/migrations` and `awcms/supabase/migrations`.
 - Ensure new tables (e.g., `user_profiles`, `user_profile_admin`) appear where user data is documented.
 - Validate RLS patterns and permission keys match AGENTS.md and security docs.
+- Ensure migration guidance references timestamped migrations (ignore `current_*.sql` snapshots).
 
 ### 3. Script and CLI Accuracy
 
 - Validate `npm run` scripts listed in docs match each package `package.json`.
 - Update migration instructions to use `npx supabase db push --local` when intended for local.
+- Record any `supabase migration repair` steps required for local history mismatches.
 
 ### 4. Environment Keys
 
@@ -72,6 +85,14 @@ Establish a repeatable, Context7-driven workflow to audit and update all AWCMS d
 
 - Confirm that links in DOCS_INDEX.md resolve correctly from the repo root.
 - Ensure definitions (tenant isolation, permissions) match SYSTEM_MODEL.md.
+- Align route conventions (sub-slugs, signed IDs) across admin docs and module guides.
+- Align dashboard widget header guidance with `docs/modules/EXTENSIONS.md`.
+
+### 6. Routing & URL Security
+
+- Verify admin routes document sub-slug patterns for tabs, approvals, and trash views.
+- Confirm edit/detail links use signed IDs (`{uuid}.{signature}`) in docs and examples.
+- Ensure extensions declare `secureParams` for routes that accept identifiers.
 
 ## Update Standards
 
@@ -79,6 +100,7 @@ Establish a repeatable, Context7-driven workflow to audit and update all AWCMS d
 - Use tables for structured data (versions, configs, checklists).
 - Include a short **Verified Against** section with references to code or migrations.
 - Use relative links only (no absolute URLs for internal docs).
+- Note when UI conventions (card headers, badges, empty states) are expected for dashboard widgets.
 
 ## Deliverables
 
@@ -91,3 +113,4 @@ Establish a repeatable, Context7-driven workflow to audit and update all AWCMS d
 
 - `npm run docs:check` (from `awcms/`) to verify link health.
 - `npm run check` (from `awcms-public/primary`) when public docs are updated.
+- `npx supabase db pull --local --schema public` to confirm schema docs match local database.

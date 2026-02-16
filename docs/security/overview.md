@@ -110,6 +110,29 @@ Legacy tables may still use tenant-only select policies and rely on admin UI ABA
 - Supabase is the only backend.
 - Admin edit/detail routes use signed IDs (`{uuid}.{signature}`); use `encodeRouteParam` and `useSecureRouteParam` for non-guessable URLs.
 - Public telemetry (analytics events) must remain tenant-scoped and documented via consent notices.
+
+Example (core routes):
+
+```javascript
+import { encodeRouteParam } from '@/lib/routeSecurity';
+
+const handleEdit = async (role) => {
+  const routeId = await encodeRouteParam({ value: role.id, scope: 'roles.edit' });
+  if (!routeId) return;
+  navigate(`/cmspanel/roles/edit/${routeId}`);
+};
+```
+
+```javascript
+import useSecureRouteParam from '@/hooks/useSecureRouteParam';
+import { useParams } from 'react-router-dom';
+
+const RoleEditor = () => {
+  const { id: routeParam } = useParams();
+  const { value: roleId } = useSecureRouteParam(routeParam, 'roles.edit');
+  // roleId is decoded UUID or null
+};
+```
 - Analytics events include IP address, page path, referrer, user agent, and geo headers; treat these as personal data and apply retention policies.
 - Admin-only profile metadata is encrypted at rest in `user_profile_admin` via pgcrypto and accessed only through RPC.
 

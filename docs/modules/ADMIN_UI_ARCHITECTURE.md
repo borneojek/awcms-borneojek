@@ -43,9 +43,26 @@ Admin routes use path-based sub-slugs so tab and trash views survive refreshes. 
 
 Edit/detail routes use signed IDs (`{id}.{signature}`) to prevent guessable links. Use `encodeRouteParam` when generating links and `useSecureRouteParam` to decode inside route screens.
 
-### Dashboard Widget Headers
+```javascript
+import { encodeRouteParam } from '@/lib/routeSecurity';
 
-Dashboard widgets can provide `title`, `icon`, `badge`, or a `header` object. The dashboard frame renders a consistent header bar and applies padding automatically (see `docs/modules/EXTENSIONS.md`).
+const handleEdit = async (role) => {
+  const routeId = await encodeRouteParam({ value: role.id, scope: 'roles.edit' });
+  if (!routeId) return;
+  navigate(`/cmspanel/roles/edit/${routeId}`);
+};
+```
+
+```javascript
+import useSecureRouteParam from '@/hooks/useSecureRouteParam';
+import { useParams } from 'react-router-dom';
+
+const RoleEditor = () => {
+  const { id: routeParam } = useParams();
+  const { value: roleId } = useSecureRouteParam(routeParam, 'roles.edit');
+  // roleId is decoded UUID or null
+};
+```
 
 | Area | Base Route | Sub-Slug Patterns | Notes |
 | --- | --- | --- | --- |
@@ -138,6 +155,7 @@ function CustomManager() {
 ## Dashboard Widgets (Plugins)
 
 Plugins can inject widgets into the admin dashboard using the `dashboard_widgets` filter. The dashboard renders these via `PluginWidgets`, which supports basic layout hints and optional framing.
+For header conventions and widget frame behavior, see `docs/modules/EXTENSIONS.md`.
 
 - `component`: use a plugin registry key (for example `mailketing:MailketingCreditsWidget`)
 - `position`: `main` (default) or `sidebar`

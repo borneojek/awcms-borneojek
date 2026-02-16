@@ -49,7 +49,7 @@ Agents must be aware of the exact versions in use:
 | React            | 19.2.4   | Functional components only       |
 | Vite             | 7.2.7    | Build tool & dev server          |
 | TailwindCSS      | 4.1.18   | Admin uses CSS-based config      |
-| Supabase JS      | 2.87.1 / 2.93.3 | Admin / Public clients     |
+| Supabase JS      | 2.93.3 / 2.93.3 | Admin / Public clients     |
 | React Router DOM | 7.10.1   | Client-side routing              |
 | Puck             | 0.21.0   | Visual Editor (`@puckeditor/core`) |
 | TipTap           | 3.13.0   | Rich text editor (XSS-safe)      |
@@ -105,12 +105,22 @@ To ensure successful code generation and integration, Agents must adhere to the 
 | Styling           | TailwindCSS 4 utilities (Public uses Vite plugin + `tailwind.config.mjs`) |
 | Backend           | Supabase only (NO Node.js servers)                                        |
 
-1. **Environment Security**:
+5. **Environment Security**:
    - **Ignored Files**: Ensure `.env`, `.env.local`, `.env.production`, and `.env.remote` are always ignored by Git.
    - **Agent Workspace**: The `awcms/.agent/` directory contains local MCP configurations and potential sensitive data. It MUST be ignored by adding `awcms/.agent/` to `.gitignore`.
    - **Template Updates**: `.env.example` must contain ALL keys found in any `.env` file, but populated ONLY with dummy secrets.
    - **Key Naming**: Use `VITE_SUPABASE_PUBLISHABLE_KEY` (public) and `SUPABASE_SECRET_KEY` (private/service role). Avoid `ANON` or `SERVICE_ROLE` terminology.
    - **Vite Env Prefix**: Only `VITE_`-prefixed variables are exposed to client code; use `loadEnv` in `vite.config` when config values need env access.
+
+6. **Routing & URL Security**:
+   - **Sub-Slug Routing**: Use sub-slugs for tabbed/trash/approval views so refreshes work (add `*` to routes and use `useSplatSegments`).
+   - **Signed IDs**: Edit/detail routes must use signed IDs (`{uuid}.{signature}`) via `encodeRouteParam` and `useSecureRouteParam`.
+   - **Extension Routes**: Routes with identifiers must declare `secureParams` + `secureScope` in `admin_routes` and read values via `useRouteSecurityParams`.
+   - **No Guessable URLs**: Avoid raw UUIDs in query strings or direct routes except for legacy redirect support.
+
+7. **Dashboard UI Conventions**:
+   - **Widget Headers**: Use `title`, `icon`, `badge`, or a `header` object for plugin widgets so the dashboard renders consistent headers.
+   - **Widget Frames**: Prefer the default widget frame; avoid wrapping plugin widgets in custom cards unless `frame` is disabled.
 
 ### Context7 (Primary Reference)
 
@@ -208,6 +218,9 @@ class MyComponent extends Component<Props> { } // NO class components!
 | `usePushNotifications` | `src/hooks/usePushNotifications.js` | Mobile push notifications      |
 | `useRegions`           | `src/hooks/useRegions.js`           | 10-level region hierarchy      |
 | `useSearch`            | `src/hooks/useSearch.js`            | Debounced search logic         |
+| `useSplatSegments`     | `src/hooks/useSplatSegments.js`     | Sub-slug routing segments      |
+| `useSecureRouteParam`  | `src/hooks/useSecureRouteParam.js`  | Signed route param decoding    |
+| `useRouteSecurityParams` | `src/hooks/useRouteSecurityParams.js` | Secure params for plugin routes |
 | `useSensorData`        | `src/hooks/useSensorData.js`        | IoT sensor real-time data      |
 | `useTemplates`         | `src/hooks/useTemplates.js`         | Template management            |
 | `useTemplateStrings`   | `src/hooks/useTemplateStrings.js`   | i18n template strings          |
@@ -234,6 +247,10 @@ class MyComponent extends Component<Props> { } // NO class components!
 | `src/lib/tierFeatures.js`            | Subscription tier feature gating        |
 | `src/lib/regionUtils.js`             | Region hierarchy utilities              |
 | `src/lib/externalExtensionLoader.js` | External extension dynamic loading      |
+| `src/lib/routeSecurity.js`           | Signed route param helpers              |
+| `src/components/dashboard/widgets/DashboardWidgetHeader.jsx` | Shared dashboard widget header |
+| `src/components/routing/SecureRouteGate.jsx` | Secured plugin route wrapper |
+| `src/contexts/RouteSecurityContext.jsx` | Secure route param context |
 
 ---
 
@@ -301,6 +318,75 @@ toast({ title: "Saved", description: "Changes saved successfully" });
 toast({ variant: "destructive", title: "Error", description: error.message });
 ```
 
+### Dashboard Widget Headers
+
+Use the shared dashboard header style for widgets to keep cards consistent:
+
+```javascript
+import DashboardWidgetHeader from '@/components/dashboard/widgets/DashboardWidgetHeader';
+import { BarChart3 } from 'lucide-react';
+
+function ExampleWidget() {
+  return (
+    <Card className="dashboard-surface dashboard-surface-hover">
+      <DashboardWidgetHeader title="Analytics" icon={BarChart3} badge="Live" />
+      <CardContent className="pt-4">...</CardContent>
+    </Card>
+  );
+}
+```
+
+### Route Security (Plugin Routes)
+
+For extension routes that accept identifiers, declare `secureParams` and `secureScope` and read values with `useRouteSecurityParams`:
+
+```javascript
+addFilter('admin_routes', 'analytics_routes', (routes) => [
+  ...routes,
+  {
+    path: 'analytics/reports/:id',
+    element: AnalyticsReport,
+    permission: 'ext.analytics.reports',
+    secureParams: ['id'],
+    secureScope: 'ext.analytics.reports'
+  }
+]);
+```
+
+```javascript
+import useRouteSecurityParams from '@/hooks/useRouteSecurityParams';
+
+const AnalyticsReport = () => {
+  const { id } = useRouteSecurityParams();
+  // id is decoded UUID
+};
+```
+
+### Route Security (Core Routes)
+
+Use signed IDs for core edit/detail screens so URLs are not guessable:
+
+```javascript
+import { encodeRouteParam } from '@/lib/routeSecurity';
+
+const handleEdit = async (role) => {
+  const routeId = await encodeRouteParam({ value: role.id, scope: 'roles.edit' });
+  if (!routeId) return;
+  navigate(`/cmspanel/roles/edit/${routeId}`);
+};
+```
+
+```javascript
+import useSecureRouteParam from '@/hooks/useSecureRouteParam';
+import { useParams } from 'react-router-dom';
+
+const RoleEditor = () => {
+  const { id: routeParam } = useParams();
+  const { value: roleId } = useSecureRouteParam(routeParam, 'roles.edit');
+  // roleId is decoded UUID or null
+};
+```
+
 ### TailwindCSS 4.1 Styling (Admin + Public)
 
 ```javascript
@@ -354,7 +440,7 @@ While powerful, Agents operating in this environment have specific boundaries:
 
 4. **No Binary Files**: Agents cannot generate images or binary assets. Use placeholder descriptions or reference existing assets.
 
-5. **Database Changes**: Always use Supabase migrations or SQL. Never hardcode database credentials.
+5. **Database Changes**: Always use timestamped Supabase migrations (`<timestamp>_name.sql`); ignore `current_*.sql` snapshots. Never hardcode database credentials.
 
 ---
 
