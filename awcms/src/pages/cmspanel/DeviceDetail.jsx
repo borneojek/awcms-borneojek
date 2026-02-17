@@ -159,7 +159,7 @@ function DeviceDetail() {
                         <RefreshCw className="mr-2 h-4 w-4" />
                         {t('devices.detail_page.refresh')}
                     </Button>
-                    <Button variant="outline" onClick={() => navigate(`/admin/devices/${deviceId}/settings`)}>
+                    <Button variant="outline" onClick={() => navigate(`/cmspanel/devices/${deviceId}/settings`)}>
                         <Settings className="mr-2 h-4 w-4" />
                         {t('devices.detail_page.settings')}
                     </Button>

@@ -199,14 +199,14 @@ const MainRouter = () => {
           <Route path="pages/edit/:id" element={<PageEditorRoute />} />
           <Route path="visual-pages/*" element={<VisualPagesManager />} />
 
-          <Route path="categories" element={<CategoriesManager />} />
+          <Route path="categories/*" element={<CategoriesManager />} />
           <Route path="tags/*" element={<TagsManager />} />
           <Route path="media/*" element={<FilesManager />} />
           <Route path="files/*" element={<FilesManager />} />
 
           <Route path="users/*" element={<UsersManager />} />
           <Route path="users/new" element={<UserEditor />} />
-          <Route path="users/edit/:id" element={<UserEditor />} />
+          <Route path="users/edit/:id/*" element={<UserEditor />} />
           <Route path="profile" element={<UserProfile />} />
 
           <Route path="roles" element={<RolesManager />} />
@@ -216,36 +216,36 @@ const MainRouter = () => {
           <Route path="policies" element={<PolicyManager />} />
 
           <Route path="menus" element={<MenusManager />} />
-          <Route path="products" element={<ProductsManager />} />
-          <Route path="product-types" element={<ProductTypesManager />} />
-          <Route path="orders" element={<OrdersManager />} />
+          <Route path="products/*" element={<ProductsManager />} />
+          <Route path="product-types/*" element={<ProductTypesManager />} />
+          <Route path="orders/*" element={<OrdersManager />} />
 
-          <Route path="promotions" element={<PromotionsManager />} />
-          <Route path="portfolio" element={<PortfolioManager />} />
-          <Route path="services" element={<ServicesManager />} />
-          <Route path="team" element={<TeamManager />} />
-          <Route path="partners" element={<PartnersManager />} />
-          <Route path="funfacts" element={<FunFactsManager />} />
-          <Route path="testimonies" element={<TestimonyManager />} />
+          <Route path="promotions/*" element={<PromotionsManager />} />
+          <Route path="portfolio/*" element={<PortfolioManager />} />
+          <Route path="services/*" element={<ServicesManager />} />
+          <Route path="team/*" element={<TeamManager />} />
+          <Route path="partners/*" element={<PartnersManager />} />
+          <Route path="funfacts/*" element={<FunFactsManager />} />
+          <Route path="testimonies/*" element={<TestimonyManager />} />
 
-          <Route path="gallery/photos" element={<PhotoGalleryManager />} />
-          <Route path="gallery/videos" element={<VideoGalleryManager />} />
-          <Route path="photo-gallery" element={<PhotoGalleryManager />} />
-          <Route path="video-gallery" element={<VideoGalleryManager />} />
+          <Route path="gallery/photos/*" element={<PhotoGalleryManager />} />
+          <Route path="gallery/videos/*" element={<VideoGalleryManager />} />
+          <Route path="photo-gallery/*" element={<PhotoGalleryManager />} />
+          <Route path="video-gallery/*" element={<VideoGalleryManager />} />
 
-          <Route path="announcements" element={<AnnouncementsManager />} />
+          <Route path="announcements/*" element={<AnnouncementsManager />} />
 
-          <Route path="contacts" element={<ContactsManager />} />
-          <Route path="messages" element={<ContactMessagesManager />} />
-          <Route path="inbox" element={<ContactMessagesManager />} />
-          <Route path="contact-messages" element={<ContactMessagesManager />} />
+          <Route path="contacts/*" element={<ContactsManager />} />
+          <Route path="messages/*" element={<ContactMessagesManager />} />
+          <Route path="inbox/*" element={<ContactMessagesManager />} />
+          <Route path="contact-messages/*" element={<ContactMessagesManager />} />
 
           <Route path="themes" element={<ThemesManager />} />
           <Route path="templates/*" element={<TemplatesManager />} />
           <Route path="templates/edit/:id" element={<TemplateEditor />} />
           <Route path="templates/parts/edit/:id" element={<TemplatePartEditor />} />
           <Route path="widgets" element={<WidgetsManager />} />
-          <Route path="themes/edit/:id" element={<ThemeEditor />} />
+          <Route path="themes/edit/:id/*" element={<ThemeEditor />} />
 
           <Route path="seo" element={<SeoManager />} />
           <Route path="seo-manager" element={<SeoManager />} />
@@ -258,7 +258,7 @@ const MainRouter = () => {
           <Route path="extensions/settings/:id" element={<ExtensionSettings />} />
           <Route path="extensions/logs" element={<ExtensionLogs />} />
 
-          <Route path="settings/general" element={<SettingsManager />} />
+          <Route path="settings/general/*" element={<SettingsManager />} />
           <Route path="settings/branding" element={<TenantSettings />} />
           <Route path="logs" element={<AuditLogsManager />} />
           <Route path="audit-logs" element={<AuditLogsManager />} />

@@ -15,6 +15,7 @@ import { usePermissions } from '@/contexts/PermissionContext';
 import { shadcnHslToHex, hexToShadcnHsl, applyTheme } from '@/lib/themeUtils';
 import { encodeRouteParam } from '@/lib/routeSecurity';
 import useSecureRouteParam from '@/hooks/useSecureRouteParam';
+import useSplatSegments from '@/hooks/useSplatSegments';
 
 // Standard Web Fonts & Google Fonts Options
 const FONT_OPTIONS = [
@@ -78,6 +79,7 @@ const ThemeEditor = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
     const { t } = useTranslation();
+    const segments = useSplatSegments();
     const { value: themeId, loading: routeLoading, isLegacy } = useSecureRouteParam(routeParam, 'themes.edit');
 
     // Permission Check
@@ -86,7 +88,10 @@ const ThemeEditor = () => {
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [activeTab, setActiveTab] = useState('colors');
+    const allowedTabs = ['colors', 'typography', 'layout'];
+    const hasTabSegment = segments.length > 0 && allowedTabs.includes(segments[0]);
+    const activeTab = hasTabSegment ? segments[0] : 'colors';
+    const baseEditPath = routeParam ? `/cmspanel/themes/edit/${routeParam}` : null;
     const [previewMode, setPreviewMode] = useState('desktop');
     const [colorMode, setColorMode] = useState('light'); // 'light' | 'dark'
 
@@ -153,6 +158,14 @@ const ThemeEditor = () => {
         };
         redirectLegacy();
     }, [routeParam, routeLoading, themeId, isLegacy, navigate]);
+
+    useEffect(() => {
+        if (!baseEditPath) return;
+        if (segments.length === 0) return;
+        if (!hasTabSegment) {
+            navigate(baseEditPath, { replace: true });
+        }
+    }, [baseEditPath, segments, hasTabSegment, navigate]);
 
     // When config changes, update live preview immediately
     useEffect(() => {
@@ -328,7 +341,18 @@ const ThemeEditor = () => {
                             </div>
                         </div>
 
-                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                        <Tabs
+                            value={activeTab}
+                            onValueChange={(value) => {
+                                if (!baseEditPath) return;
+                                if (value === 'colors') {
+                                    navigate(baseEditPath);
+                                } else {
+                                    navigate(`${baseEditPath}/${value}`);
+                                }
+                            }}
+                            className="w-full"
+                        >
                             <TabsList className="w-full grid grid-cols-3">
                                 <TabsTrigger value="colors" className="text-xs">
                                     <PaletteIcon className="w-3.5 h-3.5 mr-1.5" /> {t('theme_editor.tabs.colors')}

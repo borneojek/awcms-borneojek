@@ -10,7 +10,7 @@ import { Plus, Trash2, RefreshCw, RotateCcw, ShieldAlert, User, Home, ChevronRig
 import MinCharSearchInput from '@/components/common/MinCharSearchInput';
 import { useSearch } from '@/hooks/useSearch';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTenant } from '@/contexts/TenantContext';
 import {
     AlertDialog,
@@ -39,7 +39,10 @@ const GenericContentManager = ({
     defaultSortColumn = 'created_at',
     EditorComponent, // Optional custom editor component
     customToolbarActions, // ({ openEditor }) => ReactNode
-    omitCreatedBy = false
+    omitCreatedBy = false,
+    enableSoftDelete = true,
+    enableTrashRoute = true,
+    trashRouteSegment = 'trash'
 }) => {
     const { t } = useTranslation();
     const { toast } = useToast();
@@ -51,7 +54,9 @@ const GenericContentManager = ({
     const [loading, setLoading] = useState(false);
     const [showEditor, setShowEditor] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
-    const [showTrash, setShowTrash] = useState(false);
+    const [showTrashState, setShowTrashState] = useState(false);
+    const location = useLocation();
+    const navigate = useNavigate();
 
     // Integrated useSearch hook
     const {
@@ -91,7 +96,13 @@ const GenericContentManager = ({
         ? hasPermission(restorePermission)
         : hasPermission(`tenant.${permissionPrefix}.restore`);
     const canPermDelete = hasPermission(`tenant.${permissionPrefix}.delete_permanent`);
-    const softDeleteEnabled = true;
+    const softDeleteEnabled = enableSoftDelete;
+    const normalizedPath = location.pathname.replace(/\/+$|\/$/g, '');
+    const isTrashRoute = enableTrashRoute && softDeleteEnabled && normalizedPath.endsWith(`/${trashRouteSegment}`);
+    const basePath = (enableTrashRoute && softDeleteEnabled && isTrashRoute)
+        ? normalizedPath.replace(new RegExp(`/${trashRouteSegment}$`), '')
+        : normalizedPath;
+    const showTrash = (enableTrashRoute && softDeleteEnabled) ? isTrashRoute : showTrashState;
 
     const fetchItems = async () => {
         if (!canView) return;
@@ -163,6 +174,11 @@ const GenericContentManager = ({
         fetchItems();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentPage, itemsPerPage, debouncedQuery, canView, showTrash, tableName, currentTenant?.id]);
+
+    useEffect(() => {
+        if (currentPage !== 1) setCurrentPage(1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showTrash]);
 
     const handleEdit = (item) => {
         if (!checkAccess('update', permissionPrefix, item)) {
@@ -299,6 +315,19 @@ const GenericContentManager = ({
         toast({ title: 'Refreshed', description: `Latest ${resourceName.toLowerCase()}s loaded.` });
     };
 
+    const handleTrashToggle = () => {
+        if (enableTrashRoute && softDeleteEnabled) {
+            if (showTrash) {
+                navigate(basePath || normalizedPath);
+            } else {
+                navigate(`${basePath}/${trashRouteSegment}`);
+            }
+            return;
+        }
+
+        setShowTrashState(!showTrashState);
+    };
+
     return (
         <div className="space-y-6">
             {showEditor ? (
@@ -342,7 +371,7 @@ const GenericContentManager = ({
                                             ? 'bg-muted text-muted-foreground cursor-pointer hover:bg-muted/80'
                                             : 'bg-primary text-primary-foreground shadow-sm'
                                             }`}
-                                        onClick={showTrash ? () => setShowTrash(false) : undefined}
+                                        onClick={showTrash ? handleTrashToggle : undefined}
                                     >
                                         <span>{resourceName}s</span>
                                     </div>
@@ -374,7 +403,7 @@ const GenericContentManager = ({
                             {softDeleteEnabled && (
                                 <Button
                                     variant={showTrash ? "destructive" : "outline"}
-                                    onClick={() => { setShowTrash(!showTrash); setCurrentPage(1); }}
+                                    onClick={handleTrashToggle}
                                     className={showTrash ? "bg-destructive hover:bg-destructive/90" : ""}
                                 >
                                     {showTrash ? <RotateCcw className="w-4 h-4 mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}

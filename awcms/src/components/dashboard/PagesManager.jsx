@@ -17,8 +17,11 @@ function PagesManager({ onlyVisual = false }) {
   const navigate = useNavigate();
   const segments = useSplatSegments();
   const tabValues = ['pages', 'categories', 'tags'];
+  const isTrashView = segments[0] === 'trash';
   const hasTabSegment = tabValues.includes(segments[0]);
   const activeTab = hasTabSegment ? segments[0] : 'pages';
+  const hasExtraSegment = segments.length > 1;
+  const hasValidTrashSuffix = segments[1] === 'trash';
   const [visualBuilderPage, setVisualBuilderPage] = useState(null);
 
   // Tab definitions
@@ -29,16 +32,28 @@ function PagesManager({ onlyVisual = false }) {
   ], [onlyVisual, t]);
 
   useEffect(() => {
-    if (!onlyVisual && segments.length > 0 && !hasTabSegment) {
+    if (!onlyVisual && segments.length > 0 && !hasTabSegment && !isTrashView) {
       navigate('/cmspanel/pages', { replace: true });
+      return;
     }
-  }, [onlyVisual, segments, hasTabSegment, navigate]);
+
+    if (!onlyVisual && hasTabSegment && hasExtraSegment && !hasValidTrashSuffix) {
+      const basePath = activeTab === 'pages' ? '/cmspanel/pages' : `/cmspanel/pages/${activeTab}`;
+      navigate(basePath, { replace: true });
+      return;
+    }
+
+    if (!onlyVisual && isTrashView && segments.length > 1) {
+      navigate('/cmspanel/pages/trash', { replace: true });
+    }
+  }, [onlyVisual, segments, hasTabSegment, hasExtraSegment, hasValidTrashSuffix, isTrashView, activeTab, navigate]);
 
   // Dynamic breadcrumb based on active tab
   const breadcrumbs = useMemo(() => [
-    { label: onlyVisual ? t('pages.breadcrumbs.visual_pages') : t('pages.breadcrumbs.pages'), href: activeTab !== 'pages' ? '/cmspanel/pages' : undefined, icon: Layers },
+    { label: onlyVisual ? t('pages.breadcrumbs.visual_pages') : t('pages.breadcrumbs.pages'), href: activeTab !== 'pages' || isTrashView ? '/cmspanel/pages' : undefined, icon: Layers },
+    ...(isTrashView ? [{ label: t('common.trash') }] : []),
     ...(activeTab !== 'pages' && !onlyVisual ? [{ label: t('pages.breadcrumbs.categories') }] : []),
-  ], [onlyVisual, activeTab, t]);
+  ], [onlyVisual, activeTab, isTrashView, t]);
 
   // Page columns with editor type indicator
   const pageColumns = useMemo(() => [

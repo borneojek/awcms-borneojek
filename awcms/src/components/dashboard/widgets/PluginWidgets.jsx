@@ -90,8 +90,8 @@ const PluginWidgets = ({ position = 'main', layout = 'stack', className = '' }) 
                 ? frameVariant === 'flush'
                     ? ''
                     : headerEnabled
-                        ? 'px-4 pb-4'
-                        : 'p-4'
+                        ? 'px-6 pb-6 pt-4'
+                        : 'p-6'
                 : '';
 
             const content = widget.element

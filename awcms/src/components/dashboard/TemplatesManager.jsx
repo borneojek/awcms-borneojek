@@ -19,6 +19,7 @@ const TemplatesManager = () => {
     const tabValues = ['pages', 'parts', 'assignments', 'languages'];
     const hasTabSegment = tabValues.includes(segments[0]);
     const activeTab = hasTabSegment ? segments[0] : 'pages';
+    const hasExtraSegment = segments.length > 1;
 
     // Tab definitions
     const tabs = [
@@ -31,8 +32,14 @@ const TemplatesManager = () => {
     useEffect(() => {
         if (segments.length > 0 && !hasTabSegment) {
             navigate('/cmspanel/templates', { replace: true });
+            return;
         }
-    }, [segments, hasTabSegment, navigate]);
+
+        if (hasTabSegment && hasExtraSegment) {
+            const basePath = activeTab === 'pages' ? '/cmspanel/templates' : `/cmspanel/templates/${activeTab}`;
+            navigate(basePath, { replace: true });
+        }
+    }, [segments, hasTabSegment, hasExtraSegment, activeTab, navigate]);
 
     // Breadcrumb
     const breadcrumbs = [

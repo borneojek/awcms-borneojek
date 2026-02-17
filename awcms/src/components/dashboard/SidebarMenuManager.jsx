@@ -47,6 +47,7 @@ function SidebarMenuManager() {
     const tabValues = ['items', 'groups'];
     const hasTabSegment = tabValues.includes(segments[0]);
     const activeTab = hasTabSegment ? segments[0] : 'items';
+    const hasExtraSegment = segments.length > 1;
 
     const {
         query,
@@ -64,8 +65,14 @@ function SidebarMenuManager() {
     useEffect(() => {
         if (segments.length > 0 && !hasTabSegment) {
             navigate('/cmspanel/admin-navigation', { replace: true });
+            return;
         }
-    }, [segments, hasTabSegment, navigate]);
+
+        if (hasTabSegment && hasExtraSegment) {
+            const basePath = activeTab === 'items' ? '/cmspanel/admin-navigation' : `/cmspanel/admin-navigation/${activeTab}`;
+            navigate(basePath, { replace: true });
+        }
+    }, [segments, hasTabSegment, hasExtraSegment, activeTab, navigate]);
 
     // Groups Management State
     const [groups, setGroups] = useState([]);

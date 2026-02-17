@@ -20,11 +20,13 @@ function BlogsManager() {
   const segments = useSplatSegments();
   const [searchParams] = useSearchParams();
   const tabValues = ['blogs', 'categories', 'tags'];
-  const viewValues = ['queue'];
+  const viewValues = ['queue', 'trash'];
   const hasTabSegment = tabValues.includes(segments[0]);
   const hasViewSegment = viewValues.includes(segments[0]);
   const activeTab = hasTabSegment ? segments[0] : 'blogs';
   const activeView = hasViewSegment ? segments[0] : null;
+  const hasExtraSegment = segments.length > 1;
+  const hasValidTrashSuffix = segments[1] === 'trash';
 
   const legacyEditId = searchParams.get('edit');
   const legacyStatus = searchParams.get('status');
@@ -39,8 +41,20 @@ function BlogsManager() {
   useEffect(() => {
     if (segments.length > 0 && !hasTabSegment && !hasViewSegment) {
       navigate('/cmspanel/blogs', { replace: true });
+      return;
     }
-  }, [segments, hasTabSegment, hasViewSegment, navigate]);
+
+    if (hasTabSegment && hasExtraSegment && !hasValidTrashSuffix) {
+      const basePath = activeTab === 'blogs' ? '/cmspanel/blogs' : `/cmspanel/blogs/${activeTab}`;
+      navigate(basePath, { replace: true });
+      return;
+    }
+
+    if (hasViewSegment && segments.length > 1) {
+      const viewPath = activeView === 'queue' ? '/cmspanel/blogs/queue' : '/cmspanel/blogs/trash';
+      navigate(viewPath, { replace: true });
+    }
+  }, [segments, hasTabSegment, hasViewSegment, hasExtraSegment, hasValidTrashSuffix, activeTab, activeView, navigate]);
 
   useEffect(() => {
     if (segments.length > 0) return;
@@ -71,7 +85,8 @@ function BlogsManager() {
   // Dynamic breadcrumb based on active tab
   const breadcrumbs = [
     { label: t('menu.blogs'), href: activeTab !== 'blogs' || activeView ? '/cmspanel/blogs' : undefined, icon: FileText },
-    ...(activeView ? [{ label: t('common.review_queue', 'Review Queue') }] : []),
+    ...(activeView === 'queue' ? [{ label: t('common.review_queue', 'Review Queue') }] : []),
+    ...(activeView === 'trash' ? [{ label: t('common.trash') }] : []),
     ...(activeTab !== 'blogs' ? [{ label: activeTab === 'categories' ? t('menu.categories') : t('menu.tags') }] : []),
   ];
 

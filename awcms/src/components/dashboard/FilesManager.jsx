@@ -47,6 +47,11 @@ const FilesManager = () => {
   useEffect(() => {
     if (segments.length > 0 && segments[0] !== 'trash') {
       navigate(basePath, { replace: true });
+      return;
+    }
+
+    if (segments[0] === 'trash' && segments.length > 1) {
+      navigate(`${basePath}/trash`, { replace: true });
     }
   }, [segments, basePath, navigate]);
 

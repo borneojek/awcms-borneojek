@@ -47,7 +47,7 @@ Admin styling uses TailwindCSS 4 with CSS-based configuration.
 
 Public styling uses TailwindCSS 4 via `@tailwindcss/vite`.
 
-Tenant-specific public portals may pin different Supabase JS versions (e.g., `awcms-public/smandapbun` uses 2.91.0).
+Tenant-specific public portals may pin different Supabase JS versions (e.g., `awcms-public/smandapbun` uses 2.93.3).
 
 ### Backend (Supabase)
 

@@ -56,6 +56,7 @@ function SchoolPagesManager() {
     const tabValues = Object.keys(SETTINGS_KEYS);
     const hasTabSegment = tabValues.includes(segments[0]);
     const activeTab = hasTabSegment ? segments[0] : 'profile';
+    const hasExtraSegment = segments.length > 1;
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [data, setData] = useState({});
@@ -98,8 +99,14 @@ function SchoolPagesManager() {
     useEffect(() => {
         if (segments.length > 0 && !hasTabSegment) {
             navigate('/cmspanel/school-pages', { replace: true });
+            return;
         }
-    }, [segments, hasTabSegment, navigate]);
+
+        if (hasTabSegment && hasExtraSegment) {
+            const basePath = activeTab === 'profile' ? '/cmspanel/school-pages' : `/cmspanel/school-pages/${activeTab}`;
+            navigate(basePath, { replace: true });
+        }
+    }, [segments, hasTabSegment, hasExtraSegment, activeTab, navigate]);
 
     // Save current tab data
     const handleSave = async () => {

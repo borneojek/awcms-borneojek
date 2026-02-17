@@ -58,8 +58,8 @@ export const register = ({ addAction, addFilter, supabase, pluginConfig }) => {
     // Register routes
     addFilter('admin_routes', 'analytics_routes', (routes) => {
         return [...routes,
-        { path: '/admin/analytics', element: AnalyticsDashboard, permission: 'ext.analytics.view' },
-        { path: '/admin/analytics/reports', element: AnalyticsReports, permission: 'ext.analytics.reports' }
+        { path: 'analytics', element: AnalyticsDashboard, permission: 'ext.analytics.view' },
+        { path: 'analytics/reports', element: AnalyticsReports, permission: 'ext.analytics.reports' }
         ];
     });
 

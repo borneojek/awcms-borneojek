@@ -1,7 +1,7 @@
 
 import { useTranslation } from 'react-i18next';
 import { FileText, Layers, ShoppingBag, Users, HardDrive } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function StatCards({ data, loading, className = '' }) {
@@ -11,57 +11,58 @@ export function StatCards({ data, loading, className = '' }) {
       title: t('dashboard.total_blogs'),
       value: data?.blogs,
       icon: FileText,
-      gradient: "from-blue-500 to-blue-600",
-      shadow: "shadow-blue-500/20",
+      accent: "bg-blue-500",
+      iconWrapper: "bg-blue-100/80 text-blue-600 dark:bg-blue-500/20 dark:text-blue-200",
     },
     {
       title: t('dashboard.total_pages'),
       value: data?.pages,
       icon: Layers,
-      gradient: "from-purple-500 to-purple-600",
-      shadow: "shadow-purple-500/20",
+      accent: "bg-purple-500",
+      iconWrapper: "bg-purple-100/80 text-purple-600 dark:bg-purple-500/20 dark:text-purple-200",
     },
     {
       title: t('dashboard.products'),
       value: data?.products,
       icon: ShoppingBag,
-      gradient: "from-orange-500 to-orange-600",
-      shadow: "shadow-orange-500/20",
+      accent: "bg-orange-500",
+      iconWrapper: "bg-orange-100/80 text-orange-600 dark:bg-orange-500/20 dark:text-orange-200",
     },
     {
       title: t('dashboard.active_users'),
       value: data?.users,
       icon: Users,
-      gradient: "from-emerald-500 to-emerald-600",
-      shadow: "shadow-emerald-500/20",
+      accent: "bg-emerald-500",
+      iconWrapper: "bg-emerald-100/80 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-200",
     },
     {
       title: t('dashboard.total_orders'),
       value: data?.orders,
       icon: ShoppingBag,
-      gradient: "from-teal-500 to-teal-600",
-      shadow: "shadow-teal-500/20",
+      accent: "bg-teal-500",
+      iconWrapper: "bg-teal-100/80 text-teal-600 dark:bg-teal-500/20 dark:text-teal-200",
     },
     {
       title: t('dashboard.storage_used'),
       value: data?.storage,
       icon: HardDrive,
-      gradient: "from-slate-600 to-slate-700",
-      shadow: "shadow-slate-500/20",
+      accent: "bg-slate-500",
+      iconWrapper: "bg-slate-200/80 text-slate-600 dark:bg-slate-700/40 dark:text-slate-200",
     }
   ];
 
   if (loading) {
     return (
-      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 ${className}`}>
+        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 ${className}`}>
         {[1, 2, 3, 4, 5, 6].map((i) => (
-          <Card key={i} className="dashboard-surface dashboard-surface-hover overflow-hidden h-32">
-            <CardContent className="p-6 flex flex-col justify-between h-full">
-              <Skeleton className="h-4 w-24 bg-slate-200/60 dark:bg-slate-700/60" />
-              <div className="flex justify-between items-end">
-                <Skeleton className="h-8 w-16 bg-slate-200/60 dark:bg-slate-700/60" />
-                <Skeleton className="h-10 w-10 rounded-xl bg-slate-200/60 dark:bg-slate-700/60" />
-              </div>
+          <Card key={i} className="dashboard-surface dashboard-surface-hover overflow-hidden">
+            <div className="h-1 w-full bg-slate-200/60 dark:bg-slate-700/60" />
+            <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100/80 px-6 pt-4 pb-3 dark:border-slate-700/60">
+              <Skeleton className="h-3 w-24 bg-slate-200/60 dark:bg-slate-700/60" />
+              <Skeleton className="h-9 w-9 rounded-xl bg-slate-200/60 dark:bg-slate-700/60" />
+            </CardHeader>
+            <CardContent className="px-6 pb-5 pt-4">
+              <Skeleton className="h-7 w-16 bg-slate-200/60 dark:bg-slate-700/60" />
             </CardContent>
           </Card>
         ))}
@@ -77,24 +78,21 @@ export function StatCards({ data, loading, className = '' }) {
           return (
             <Card
               key={index}
-              className="dashboard-surface dashboard-surface-hover group relative min-h-[120px] overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+              className="dashboard-surface dashboard-surface-hover overflow-hidden"
             >
-            {/* Subtle Gradient Glow Background */}
-            <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full bg-gradient-to-br ${stat.gradient} opacity-10 blur-2xl group-hover:opacity-20 transition-opacity`}></div>
-
-            <CardContent className="p-5 flex flex-col justify-between h-full relative z-10">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">
+            <div className={`h-1 w-full ${stat.accent}`} />
+            <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100/80 px-6 pt-4 pb-3 dark:border-slate-700/60">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
                 {stat.title}
               </span>
+              <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${stat.iconWrapper}`}>
+                <Icon className="h-4 w-4" />
+              </span>
+            </CardHeader>
 
-              <div className="flex items-end justify-between mt-4">
-                <div className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                  {value}
-                </div>
-
-                <div className={`p-2.5 rounded-xl bg-gradient-to-br ${stat.gradient} text-white shadow-lg ${stat.shadow} transform group-hover:scale-110 transition-transform duration-300`}>
-                  <Icon className="h-5 w-5" />
-                </div>
+            <CardContent className="px-6 pb-5 pt-4">
+              <div className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                {value}
               </div>
             </CardContent>
           </Card>

@@ -209,7 +209,7 @@ function DevicesManager() {
                                 if (!routeId) return;
                                 navigate(`/cmspanel/devices/${routeId}`);
                             }}
-                            onEdit={(d) => navigate(`/admin/devices/${d.id}/settings`)}
+                            onEdit={(d) => navigate(`/cmspanel/devices/${d.id}/settings`)}
                             onDelete={(d) => canManage && setDeleteTarget(d)}
                         />
                     ))}

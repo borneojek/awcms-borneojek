@@ -43,6 +43,10 @@ function UsersManager() {
   const hasTabSegment = tabValues.includes(segments[0]);
   const activeTab = hasTabSegment ? segments[0] : 'users';
   const approvalsSegments = hasTabSegment && segments[0] === 'approvals' ? segments.slice(1) : [];
+  const approvalStatuses = ['pending', 'completed', 'rejected'];
+  const approvalStatus = approvalsSegments[0];
+  const hasValidApprovalStatus = approvalStatuses.includes(approvalStatus);
+  const hasExtraSegments = approvalsSegments.length > 1;
 
   // State declarations
   const [users, setUsers] = useState([]);
@@ -68,8 +72,18 @@ function UsersManager() {
   useEffect(() => {
     if (segments.length > 0 && !hasTabSegment) {
       navigate('/cmspanel/users', { replace: true });
+      return;
     }
-  }, [segments, hasTabSegment, navigate]);
+
+    if (segments[0] === 'users' && segments.length > 1) {
+      navigate('/cmspanel/users', { replace: true });
+      return;
+    }
+
+    if (segments[0] === 'approvals' && (!hasValidApprovalStatus || hasExtraSegments)) {
+      navigate('/cmspanel/users/approvals/pending', { replace: true });
+    }
+  }, [segments, hasTabSegment, hasValidApprovalStatus, hasExtraSegments, navigate]);
 
   // Permission checks
   const canView = hasPermission('tenant.user.read');
@@ -98,7 +112,7 @@ function UsersManager() {
           *, 
           roles:roles!users_role_id_fkey(name, is_platform_admin, is_full_access), 
           tenant:tenants(name),
-          profile:user_profiles(job_title, department)
+          profile:user_profiles!user_profiles_user_id_fkey(job_title, department)
         `, { count: 'exact' })
         .is('deleted_at', null);
 

@@ -11,18 +11,18 @@
     "awcms_version": ">=2.0.0",
     "routes": [
         {
-            "path": "/admin/analytics",
+            "path": "analytics",
             "component": "AnalyticsDashboard"
         },
         {
-            "path": "/admin/analytics/reports",
+            "path": "analytics/reports",
             "component": "AnalyticsReports"
         }
     ],
     "menu": {
         "label": "Analytics",
         "icon": "BarChart3",
-        "path": "/admin/analytics",
+        "path": "analytics",
         "group": "PLATFORM",
         "parent": "platform",
         "order": 5

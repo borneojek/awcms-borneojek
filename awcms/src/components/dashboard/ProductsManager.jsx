@@ -1,14 +1,28 @@
 
-import { useState } from 'react';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import GenericContentManager from '@/components/dashboard/GenericContentManager';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Package, Layers, FolderOpen } from 'lucide-react';
-import { AdminPageLayout, PageHeader } from '@/templates/flowbite-admin';
+import { AdminPageLayout, PageHeader, PageTabs, TabsContent } from '@/templates/flowbite-admin';
+import useSplatSegments from '@/hooks/useSplatSegments';
 
 function ProductsManager() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState('products');
+  const navigate = useNavigate();
+  const segments = useSplatSegments();
+  const tabValues = ['types', 'categories'];
+  const isTrashView = segments.includes('trash');
+  const hasTabSegment = tabValues.includes(segments[0]);
+  const activeTab = hasTabSegment ? segments[0] : 'products';
+  const hasInvalidSegment = segments.length > 0 && !hasTabSegment && !isTrashView;
+  const hasInvalidSubsegment = segments.length > 1 && segments[1] !== 'trash';
+
+  useEffect(() => {
+    if (hasInvalidSegment || hasInvalidSubsegment) {
+      navigate(isTrashView ? '/cmspanel/products/trash' : '/cmspanel/products', { replace: true });
+    }
+  }, [hasInvalidSegment, hasInvalidSubsegment, isTrashView, navigate]);
 
   // Product columns
   const productColumns = [
@@ -156,9 +170,16 @@ function ProductsManager() {
     { key: 'type', label: t('blogs.type'), type: 'hidden', defaultValue: 'product' }
   ];
 
+  const tabs = [
+    { value: 'products', label: t('menu.products'), icon: Package, color: 'blue' },
+    { value: 'types', label: t('menu.product_types'), icon: Layers, color: 'purple' },
+    { value: 'categories', label: t('menu.categories'), icon: FolderOpen, color: 'emerald' },
+  ];
+
   // Breadcrumbs for PageHeader
   const breadcrumbs = [
     { label: t('menu.products'), icon: Package },
+    ...(isTrashView ? [{ label: t('common.trash') }] : []),
     ...(activeTab !== 'products' ? [{ label: activeTab === 'categories' ? t('menu.categories') : t('menu.product_types') }] : []),
   ];
 
@@ -171,71 +192,53 @@ function ProductsManager() {
         breadcrumbs={breadcrumbs}
       />
 
-      {/* Enhanced Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="bg-muted/50 rounded-xl border border-border p-1.5 shadow-sm mb-6 inline-flex">
-          <TabsList className="grid grid-cols-3 gap-1 bg-transparent p-0">
-            <TabsTrigger
-              value="products"
-              className="flex items-center gap-2 px-6 py-2.5 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200 font-medium"
-            >
-              <Package className="w-4 h-4" />
-              {t('menu.products')}
-            </TabsTrigger>
-            <TabsTrigger
-              value="types"
-              className="flex items-center gap-2 px-6 py-2.5 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200 font-medium"
-            >
-              <Layers className="w-4 h-4" />
-              {t('menu.product_types')}
-            </TabsTrigger>
-            <TabsTrigger
-              value="categories"
-              className="flex items-center gap-2 px-6 py-2.5 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200 font-medium"
-            >
-              <FolderOpen className="w-4 h-4" />
-              {t('menu.categories')}
-            </TabsTrigger>
-          </TabsList>
-        </div>
-      </Tabs>
+      <PageTabs
+        value={activeTab}
+        onValueChange={(value) => {
+          if (value === 'products') {
+            navigate('/cmspanel/products');
+          } else {
+            navigate(`/cmspanel/products/${value}`);
+          }
+        }}
+        tabs={tabs}
+      >
+        <TabsContent value="products" className="mt-0">
+          <GenericContentManager
+            tableName="products"
+            resourceName={t('menu.products')}
+            columns={productColumns}
+            formFields={productFormFields}
+            permissionPrefix="products"
+            customSelect="*, category:categories(name), product_type:product_types(name), owner:users!created_by(email, full_name), tenant:tenants(name)"
+            showBreadcrumbs={false}
+          />
+        </TabsContent>
 
-      {/* Tab Content */}
-      {activeTab === 'products' && (
-        <GenericContentManager
-          tableName="products"
-          resourceName={t('menu.products')}
-          columns={productColumns}
-          formFields={productFormFields}
-          permissionPrefix="products"
-          customSelect="*, category:categories(name), product_type:product_types(name), owner:users!created_by(email, full_name), tenant:tenants(name)"
-          showBreadcrumbs={false}
-        />
-      )}
+        <TabsContent value="types" className="mt-0">
+          <GenericContentManager
+            tableName="product_types"
+            resourceName={t('menu.product_types')}
+            columns={typeColumns}
+            formFields={typeFormFields}
+            permissionPrefix="product_types"
+            showBreadcrumbs={false}
+          />
+        </TabsContent>
 
-      {activeTab === 'types' && (
-        <GenericContentManager
-          tableName="product_types"
-          resourceName={t('menu.product_types')}
-          columns={typeColumns}
-          formFields={typeFormFields}
-          permissionPrefix="product_types"
-          showBreadcrumbs={false}
-        />
-      )}
-
-      {activeTab === 'categories' && (
-        <GenericContentManager
-          tableName="categories"
-          resourceName={t('common.category')}
-          columns={categoryColumns}
-          formFields={categoryFormFields}
-          permissionPrefix="categories"
-          customSelect="*, owner:users!created_by(email, full_name), tenant:tenants(name)"
-          defaultFilters={{ type: 'product' }}
-          showBreadcrumbs={false}
-        />
-      )}
+        <TabsContent value="categories" className="mt-0">
+          <GenericContentManager
+            tableName="categories"
+            resourceName={t('common.category')}
+            columns={categoryColumns}
+            formFields={categoryFormFields}
+            permissionPrefix="categories"
+            customSelect="*, owner:users!created_by(email, full_name), tenant:tenants(name)"
+            defaultFilters={{ type: 'product' }}
+            showBreadcrumbs={false}
+          />
+        </TabsContent>
+      </PageTabs>
     </AdminPageLayout>
   );
 }

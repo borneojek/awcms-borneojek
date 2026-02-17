@@ -71,6 +71,11 @@ function TagsManager() {
     useEffect(() => {
         if (segments.length > 0 && segments[0] !== 'trash') {
             navigate('/cmspanel/tags', { replace: true });
+            return;
+        }
+
+        if (segments[0] === 'trash' && segments.length > 1) {
+            navigate('/cmspanel/tags/trash', { replace: true });
         }
     }, [segments, navigate]);
 

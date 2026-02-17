@@ -8,7 +8,7 @@ import { ArrowRight } from 'lucide-react';
 
 const AnalyticsWidget = ({ className = '' }) => {
     return (
-        <div className={cn('rounded-xl border border-white/10 bg-gradient-to-br from-blue-500 to-indigo-600 p-5 text-white shadow-inner', className)}>
+        <div className={cn('rounded-xl border border-white/10 bg-gradient-to-br from-blue-500 to-indigo-600 p-4 text-white shadow-inner', className)}>
             <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-white/70">
                 <span>Quick Snapshot</span>
                 <span>Live</span>
@@ -25,7 +25,7 @@ const AnalyticsWidget = ({ className = '' }) => {
                 </div>
             </div>
 
-            <a href="/admin/analytics" className="mt-4 inline-flex w-full items-center justify-center gap-1 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white/90 transition-colors hover:bg-white/20">
+            <a href="/cmspanel/analytics" className="mt-4 inline-flex w-full items-center justify-center gap-1 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white/90 transition-colors hover:bg-white/20">
                 View Full Analytics <ArrowRight className="h-3 w-3" />
             </a>
         </div>

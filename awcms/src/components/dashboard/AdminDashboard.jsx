@@ -20,8 +20,10 @@ function AdminDashboard() {
     const perms = usePermissions() || {};
     const { isTenantAdmin, isPlatformAdmin, userRole } = perms;
     const { data, loading, error, lastUpdated, refresh } = useDashboardData();
-    const spacingClass = isTenantAdmin ? 'space-y-10' : 'space-y-8';
-    const layoutClass = cn('w-full', spacingClass);
+    const spacingClass = 'space-y-8 lg:space-y-10';
+    const layoutClass = 'w-full';
+    const gridGap = 'gap-6 lg:gap-8';
+    const columnSpacing = 'space-y-6 lg:space-y-8';
 
     const getGreeting = () => {
         const hour = new Date().getHours();
@@ -58,66 +60,67 @@ function AdminDashboard() {
 
     return (
         <AdminPageLayout className={layoutClass}>
-            <PageHeader
-                title={`${getGreeting()}, ${userRole?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'User'}`}
-                description={`Here's your performance overview for ${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}.`}
-                icon={LayoutGrid}
-                actions={headerActions}
-            >
-                <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 bg-white/40 dark:bg-slate-800/40 px-3 py-1.5 rounded-full border border-white/40 dark:border-slate-700/40 w-fit backdrop-blur-sm">
-                    <Calendar className="w-3 h-3" />
-                    <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
-                </div>
-            </PageHeader>
+            <div className={spacingClass}>
+                <PageHeader
+                    title={`${getGreeting()}, ${userRole?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'User'}`}
+                    description={`Here's your performance overview for ${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}.`}
+                    icon={LayoutGrid}
+                    actions={headerActions}
+                >
+                    <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 bg-white/40 dark:bg-slate-800/40 px-3 py-1.5 rounded-full border border-white/40 dark:border-slate-700/40 w-fit backdrop-blur-sm">
+                        <Calendar className="w-3 h-3" />
+                        <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+                    </div>
+                </PageHeader>
 
-            {/* Platform Overview for platform admins */}
-            {isPlatformAdmin && (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-                    <PlatformOverview />
-                </div>
-            )}
+                {/* Platform Overview for platform admins */}
+                {isPlatformAdmin && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+                        <PlatformOverview />
+                    </div>
+                )}
 
-            {/* Main Stats Grid */}
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-                <StatCards
-                    data={data.overview}
-                    loading={loading}
-                    className={isTenantAdmin ? 'gap-8 xl:gap-10' : ''}
+                {/* Main Stats Grid */}
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+                    <StatCards
+                        data={data.overview}
+                        loading={loading}
+                    />
+                </div>
+
+                {/* Plugin Hook: Dashboard Top */}
+                <div className="w-full">
+                    <PluginAction name="dashboard_top" args={[userRole]} />
+                </div>
+
+                <PluginWidgets
+                    position="main"
+                    layout="grid"
+                    className={cn('animate-in fade-in slide-in-from-bottom-4 duration-700 delay-250 grid-cols-1 md:grid-cols-2', gridGap)}
                 />
-            </div>
 
-            {/* Plugin Hook: Dashboard Top */}
-            <div className="w-full">
-                <PluginAction name="dashboard_top" args={[userRole]} />
-            </div>
+                {/* Content & Activity Grid */}
+                <div className={cn('grid grid-cols-1 xl:grid-cols-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300', gridGap)}>
+                    {/* Left Column (2/3 width on XL) */}
+                    <div className={cn('xl:col-span-2 min-w-0', columnSpacing)}>
+                        <div className={cn('grid grid-cols-1 md:grid-cols-2', gridGap)}>
+                            <ContentDistribution data={data.overview} />
+                            <SystemHealth health={data.systemHealth} />
+                        </div>
 
-            <PluginWidgets
-                position="main"
-                layout="grid"
-                className={`animate-in fade-in slide-in-from-bottom-4 duration-700 delay-250 grid-cols-1 md:grid-cols-2 ${isTenantAdmin ? 'gap-10' : 'gap-8'}`}
-            />
-
-            {/* Content & Activity Grid */}
-            <div className={`grid grid-cols-1 xl:grid-cols-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 ${isTenantAdmin ? 'gap-10' : 'gap-8'}`}>
-                {/* Left Column (2/3 width on XL) */}
-                <div className={`xl:col-span-2 min-w-0 ${isTenantAdmin ? 'space-y-10' : 'space-y-8'}`}>
-                    <div className={`grid grid-cols-1 md:grid-cols-2 ${isTenantAdmin ? 'gap-10' : 'gap-8'}`}>
-                        <ContentDistribution data={data.overview} />
-                        <SystemHealth health={data.systemHealth} />
+                        {/* Quick Links / Top Content - Neo-Glass style */}
+                        <div className="min-w-0">
+                            <TopBlogsWidget data={data.topContent} loading={loading} />
+                        </div>
                     </div>
 
-                    {/* Quick Links / Top Content - Neo-Glass style */}
-                    <div className="min-w-0">
-                        <TopBlogsWidget data={data.topContent} loading={loading} />
+                    {/* Right Column (1/3 width on XL) - Activity Feed */}
+                    <div className={cn('min-w-0', columnSpacing)}>
+                        <PluginWidgets position="sidebar" />
+                        <UsageWidget />
+                        <MyApprovals />
+                        <ActivityFeed activities={data.activity} />
                     </div>
-                </div>
-
-                {/* Right Column (1/3 width on XL) - Activity Feed */}
-                <div className={`min-w-0 ${isTenantAdmin ? 'space-y-10' : 'space-y-8'}`}>
-                    <PluginWidgets position="sidebar" />
-                    <UsageWidget />
-                    <MyApprovals />
-                    <ActivityFeed activities={data.activity} />
                 </div>
             </div>
         </AdminPageLayout>

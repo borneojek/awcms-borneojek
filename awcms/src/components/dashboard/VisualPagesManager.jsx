@@ -19,12 +19,19 @@ const VisualPagesManager = () => {
     const tabValues = ['pages', 'layouts'];
     const hasTabSegment = tabValues.includes(segments[0]);
     const activeTab = hasTabSegment ? segments[0] : 'pages';
+    const hasExtraSegment = segments.length > 1;
 
     useEffect(() => {
         if (segments.length > 0 && !hasTabSegment) {
             navigate('/cmspanel/visual-pages', { replace: true });
+            return;
         }
-    }, [segments, hasTabSegment, navigate]);
+
+        if (hasTabSegment && hasExtraSegment) {
+            const basePath = activeTab === 'pages' ? '/cmspanel/visual-pages' : `/cmspanel/visual-pages/${activeTab}`;
+            navigate(basePath, { replace: true });
+        }
+    }, [segments, hasTabSegment, hasExtraSegment, activeTab, navigate]);
 
     if (!hasPermission('tenant.visual_pages.read')) {
         return (
