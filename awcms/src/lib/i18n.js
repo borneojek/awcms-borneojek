@@ -6,6 +6,11 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import id from '@/locales/id.json';
 import en from '@/locales/en.json';
 
+export const SUPPORTED_LOCALES = [
+  { code: 'en', label: 'English', flag: '🇺🇸' },
+  { code: 'id', label: 'Bahasa Indonesia', flag: '🇮🇩' }
+];
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)

@@ -19,6 +19,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { AdminPageLayout, PageHeader } from '@/templates/flowbite-admin';
+import { SUPPORTED_LOCALES } from '@/lib/i18n';
 
 // Available Menu Locations
 const MENU_LOCATIONS = [
@@ -39,6 +40,7 @@ function MenusManager() {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentLocation, setCurrentLocation] = useState('header');
+  const [currentLocale, setCurrentLocale] = useState(SUPPORTED_LOCALES[0].code);
 
   // Editor State
   const [isEditing, setIsEditing] = useState(false);
@@ -66,7 +68,7 @@ function MenusManager() {
       fetchPages();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canView, currentLocation, currentTenant?.id]); // Re-fetch when location or tenant changes
+  }, [canView, currentLocation, currentLocale, currentTenant?.id]); // Re-fetch when location or tenant changes
 
   const fetchPages = async () => {
     try {
@@ -88,6 +90,7 @@ function MenusManager() {
         .select('*, tenant:tenants(name)')
         .is('deleted_at', null)
         .eq('location', currentLocation)
+        .eq('locale', currentLocale)
         .order('order', { ascending: true });
 
       if (currentTenant?.id) {
@@ -212,7 +215,8 @@ function MenusManager() {
         is_active: menu.is_active === true,
         is_public: menu.is_public === true,
         page_id: menu.page_id || '', // Handle page_id
-        location: menu.location || currentLocation
+        location: menu.location || currentLocation,
+        locale: menu.locale || currentLocale
       });
     } else {
       // Default values for new menu
@@ -224,7 +228,8 @@ function MenusManager() {
         is_active: true,
         parent_id: null,
         page_id: '',
-        location: currentLocation
+        location: currentLocation,
+        locale: currentLocale
       });
     }
     setIsEditing(true);
@@ -256,6 +261,7 @@ function MenusManager() {
       parent_id: menuFormData.parent_id || null,
       page_id: menuFormData.page_id || null,
       location: menuFormData.location || currentLocation,
+      locale: currentLocale,
       is_public: menuFormData.is_public,
       is_active: menuFormData.is_active,
       updated_at: new Date().toISOString()
@@ -436,6 +442,28 @@ function MenusManager() {
       />
 
       <div className="space-y-6">
+
+        {/* Locale Selector */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col md:flex-row md:items-center gap-4">
+          <div className="flex items-center gap-2 text-slate-500">
+            <span className="font-medium text-sm">Language:</span>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {SUPPORTED_LOCALES.map(loc => (
+              <button
+                key={loc.code}
+                onClick={() => setCurrentLocale(loc.code)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${currentLocale === loc.code
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+              >
+                <span>{loc.flag}</span>
+                {loc.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Location Selector */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col md:flex-row md:items-center gap-4">

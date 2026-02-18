@@ -18,6 +18,7 @@ export interface SearchOptions {
   types?: ("page" | "blog" | "product")[];
   limit?: number;
   offset?: number;
+  locale?: string;
 }
 
 /**
@@ -29,7 +30,7 @@ export async function searchContent(
   tenantId?: string | null,
   options: SearchOptions = {},
 ): Promise<SearchResult[]> {
-  const { types = ["page", "blog"], limit = 20, offset = 0 } = options;
+  const { types = ["page", "blog"], limit = 20, offset = 0, locale } = options;
 
   if (!query.trim()) return [];
 
@@ -43,6 +44,7 @@ export async function searchContent(
       searchTerm,
       tenantId,
       limit,
+      locale,
     );
     results.push(...pageResults);
   }
@@ -54,6 +56,7 @@ export async function searchContent(
       searchTerm,
       tenantId,
       limit,
+      locale,
     );
     results.push(...blogResults);
   }
@@ -69,10 +72,11 @@ async function searchPages(
   searchTerm: string,
   tenantId?: string | null,
   limit: number = 10,
+  locale?: string,
 ): Promise<SearchResult[]> {
   let query = supabase
     .from("pages")
-    .select("id, title, slug, excerpt")
+    .select("id, title, slug, excerpt, locale")
     .eq("status", "published")
     .eq("is_active", true)
     .is("deleted_at", null)
@@ -83,6 +87,10 @@ async function searchPages(
 
   if (tenantId) {
     query = query.eq("tenant_id", tenantId);
+  }
+
+  if (locale) {
+    query = query.eq("locale", locale);
   }
 
   const { data, error } = await query;
@@ -98,7 +106,7 @@ async function searchPages(
     title: page.title,
     slug: page.slug,
     excerpt: page.excerpt || undefined,
-    url: `/p/${page.slug}`,
+    url: locale && locale !== 'en' ? `/${locale}/p/${page.slug}` : `/p/${page.slug}`,
     score: calculateScore(page.title, searchTerm),
   }));
 }
@@ -108,10 +116,11 @@ async function searchBlogs(
   searchTerm: string,
   tenantId?: string | null,
   limit: number = 10,
+  locale?: string,
 ): Promise<SearchResult[]> {
   let query = supabase
     .from("blogs")
-    .select("id, title, slug, excerpt")
+    .select("id, title, slug, excerpt, locale")
     .eq("status", "published")
     .is("deleted_at", null)
     .or(
@@ -121,6 +130,10 @@ async function searchBlogs(
 
   if (tenantId) {
     query = query.eq("tenant_id", tenantId);
+  }
+
+  if (locale) {
+    query = query.eq("locale", locale);
   }
 
   const { data, error } = await query;
@@ -136,7 +149,7 @@ async function searchBlogs(
     title: blog.title,
     slug: blog.slug,
     excerpt: blog.excerpt || undefined,
-    url: `/blogs/${blog.slug}`,
+    url: locale && locale !== 'en' ? `/${locale}/blogs/${blog.slug}` : `/blogs/${blog.slug}`,
     score: calculateScore(blog.title, searchTerm),
   }));
 }

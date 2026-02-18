@@ -24,16 +24,19 @@ export interface Props {
   metadata?: MetaData;
 }
 
+import { getLocale } from "~/utils/i18n";
+
 const { metadata } = Astro.props;
 const tenantId = getPublicTenantId();
 const supabase = createClientFromEnv(import.meta.env);
+const locale = getLocale(Astro.url);
 
 let headerLinks: HeaderLink[] = fallbackHeaderData.links;
 let footerLinks = fallbackFooterData.links;
 
 if (supabase && tenantId) {
-  const headerItems = await getHeaderMenu(supabase, tenantId);
-  const footerItems = await getFooterMenu(supabase, tenantId);
+  const headerItems = await getHeaderMenu(supabase, tenantId, locale);
+  const footerItems = await getFooterMenu(supabase, tenantId, locale);
 
   if (headerItems.length > 0) {
     headerLinks = mapMenuItemsToHeaderLinks(headerItems);

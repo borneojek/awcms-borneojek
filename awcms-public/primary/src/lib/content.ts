@@ -61,12 +61,17 @@ export async function getPageBySlug(
   supabase: SupabaseClient,
   slug: string,
   tenantId?: string | null,
+  locale?: string,
 ): Promise<PageData | null> {
   let query = supabase
     .from("pages")
     .select("*")
     .eq("slug", slug)
     .eq("status", "published");
+
+  if (locale) {
+    query = query.eq("locale", locale);
+  }
 
   if (tenantId) {
     query = query.eq("tenant_id", tenantId);
@@ -91,6 +96,7 @@ export async function getPageBySlug(
 export async function getAllPages(
   supabase: SupabaseClient,
   tenantId?: string | null,
+  locale?: string,
   limit = 100,
 ): Promise<PageData[]> {
   let query = supabase
@@ -100,6 +106,10 @@ export async function getAllPages(
     .eq("page_type", "regular")
     .order("published_at", { ascending: false })
     .limit(limit);
+
+  if (locale) {
+    query = query.eq("locale", locale);
+  }
 
   if (tenantId) {
     query = query.eq("tenant_id", tenantId);
@@ -122,12 +132,17 @@ export async function getPageByType(
   supabase: SupabaseClient,
   pageType: string,
   tenantId?: string | null,
+  locale?: string,
 ): Promise<PageData | null> {
   let query = supabase
     .from("pages")
     .select("*")
     .eq("page_type", pageType)
     .eq("status", "published");
+
+  if (locale) {
+    query = query.eq("locale", locale);
+  }
 
   if (tenantId) {
     query = query.eq("tenant_id", tenantId);
@@ -153,6 +168,7 @@ export async function getBlogBySlug(
   supabase: SupabaseClient,
   slug: string,
   tenantId?: string | null,
+  locale?: string,
 ): Promise<BlogData | null> {
   let query = supabase
     .from("blogs")
@@ -164,6 +180,10 @@ export async function getBlogBySlug(
     )
     .eq("slug", slug)
     .eq("status", "published");
+
+  if (locale) {
+    query = query.eq("locale", locale);
+  }
 
   if (tenantId) {
     query = query.eq("tenant_id", tenantId);
@@ -192,6 +212,10 @@ export async function getBlogBySlug(
 
   if (tenantId) {
     fallbackQuery = fallbackQuery.eq("tenant_id", tenantId);
+  }
+
+  if (locale) {
+    fallbackQuery = fallbackQuery.eq("locale", locale);
   }
 
   const { data: fallbackData, error: fallbackError } = await fallbackQuery
@@ -230,9 +254,9 @@ export async function getBlogBySlug(
 export async function getBlogs(
   supabase: SupabaseClient,
   tenantId?: string | null,
-  options: { limit?: number; offset?: number; categorySlug?: string } = {},
+  options: { limit?: number; offset?: number; categorySlug?: string; locale?: string } = {},
 ): Promise<{ blogs: BlogData[]; total: number }> {
-  const { limit = 10, offset = 0, categorySlug } = options;
+  const { limit = 10, offset = 0, categorySlug, locale } = options;
 
   let query = supabase
     .from("blogs")
@@ -254,6 +278,10 @@ export async function getBlogs(
   // Filter by category if provided
   if (categorySlug) {
     query = query.eq("category.slug", categorySlug);
+  }
+
+  if (locale) {
+    query = query.eq("locale", locale);
   }
 
   const { data, error, count } = await query;
@@ -310,6 +338,10 @@ export async function getBlogs(
 
   if (categoryId) {
     fallbackQuery = fallbackQuery.eq("category_id", categoryId);
+  }
+
+  if (locale) {
+    fallbackQuery = fallbackQuery.eq("locale", locale);
   }
 
   const {

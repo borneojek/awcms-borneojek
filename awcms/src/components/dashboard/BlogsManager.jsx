@@ -9,6 +9,13 @@ import { FileText, FolderOpen, Tag, Layout, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import useSplatSegments from '@/hooks/useSplatSegments';
 import { encodeRouteParam } from '@/lib/routeSecurity';
+import { Languages } from 'lucide-react'; // Import Languages icon
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 /**
  * BlogsManager - Manages blogs, categories, and tags.
@@ -28,15 +35,22 @@ function BlogsManager() {
   const hasExtraSegment = segments.length > 1;
   const hasValidTrashSuffix = segments[1] === 'trash';
 
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const languages = [
+    { code: 'en', label: 'English', flag: '🇺🇸' },
+    { code: 'id', label: 'Indonesia', flag: '🇮🇩' }
+  ];
+
   const legacyEditId = searchParams.get('edit');
   const legacyStatus = searchParams.get('status');
 
   const blogFilters = useMemo(() => {
+    const filters = { locale: selectedLanguage };
     if (activeView === 'queue') {
-      return { workflow_state: 'reviewed' };
+      filters.workflow_state = 'reviewed';
     }
-    return {};
-  }, [activeView]);
+    return filters;
+  }, [activeView, selectedLanguage]);
 
   useEffect(() => {
     if (segments.length > 0 && !hasTabSegment && !hasViewSegment) {
@@ -94,6 +108,15 @@ function BlogsManager() {
   const blogColumns = [
     { key: 'title', label: t('common.title'), className: 'font-medium' },
     {
+      key: 'locale',
+      label: 'Lang',
+      render: (value) => (
+        <span className="uppercase text-xs font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+          {value || 'en'}
+        </span>
+      )
+    },
+    {
       key: 'workflow_state',
       label: t('blogs.workflow'),
       render: (value) => {
@@ -141,13 +164,31 @@ function BlogsManager() {
   );
 
   const customToolbarActions = ({ openEditor }) => (
-    <Button
-      onClick={() => openEditor({ editor_type: 'visual', title: '', status: 'draft' })}
-      className="bg-indigo-600 hover:bg-indigo-700 text-white"
-    >
-      <Sparkles className="w-4 h-4 mr-2" />
-      Create Visual
-    </Button>
+    <div className="flex gap-2">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="ml-auto">
+            <Languages className="mr-2 h-4 w-4" />
+            {languages.find(l => l.code === selectedLanguage)?.label || 'Language'}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {languages.map((lang) => (
+            <DropdownMenuItem key={lang.code} onClick={() => setSelectedLanguage(lang.code)}>
+              <span className="mr-2">{lang.flag}</span>
+              {lang.label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <Button
+        onClick={() => openEditor({ editor_type: 'visual', title: '', status: 'draft', locale: selectedLanguage })}
+        className="bg-indigo-600 hover:bg-indigo-700 text-white"
+      >
+        <Sparkles className="w-4 h-4 mr-2" />
+        Create Visual
+      </Button>
+    </div>
   );
 
   const blogFormFields = [
@@ -165,7 +206,16 @@ function BlogsManager() {
     { key: 'content', label: t('blogs.form.content'), type: 'richtext', description: t('blogs.form.content_desc') || "Main blog content with WYSIWYG editor" },
     { key: 'featured_image', label: t('blogs.form.featured_image'), type: 'image', description: t('blogs.form.image_desc') || "Upload or select from Media Library" },
     { key: 'tags', label: t('common.tags'), type: 'tags' },
-    { key: 'is_public', label: t('blogs.form.is_public'), type: 'boolean' }
+    { key: 'tags', label: t('common.tags'), type: 'tags' },
+    { key: 'is_public', label: t('blogs.form.is_public'), type: 'boolean' },
+    {
+      key: 'locale',
+      label: 'Language',
+      type: 'select',
+      options: languages.map(l => ({ value: l.code, label: l.label })),
+      defaultValue: selectedLanguage,
+      hidden: true // Hide from form, set implicitly or via top toolbar in editor
+    }
   ];
 
   // Category columns and fields

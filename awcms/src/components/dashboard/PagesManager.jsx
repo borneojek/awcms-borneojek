@@ -23,6 +23,13 @@ function PagesManager({ onlyVisual = false }) {
   const hasExtraSegment = segments.length > 1;
   const hasValidTrashSuffix = segments[1] === 'trash';
   const [visualBuilderPage, setVisualBuilderPage] = useState(null);
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
+
+  // Language options
+  const languages = [
+    { value: 'en', label: 'English' },
+    { value: 'id', label: 'Bahasa Indonesia' }
+  ];
 
   // Tab definitions
   const tabs = useMemo(() => onlyVisual ? [] : [
@@ -59,6 +66,15 @@ function PagesManager({ onlyVisual = false }) {
   const pageColumns = useMemo(() => [
     { key: 'title', label: t('pages.columns.title'), className: 'font-medium' },
     { key: 'slug', label: t('pages.columns.path') },
+    {
+      key: 'locale',
+      label: t('common.language') || 'Language',
+      render: (value) => (
+        <span className="uppercase text-xs font-bold text-muted-foreground border px-1 rounded">
+          {value || 'en'}
+        </span>
+      )
+    },
     {
       key: 'page_type',
       label: t('pages.columns.type'),
@@ -127,6 +143,14 @@ function PagesManager({ onlyVisual = false }) {
       description: t('pages.form.page_type_desc')
     },
     { key: 'slug', label: t('pages.form.slug'), required: true },
+    {
+      key: 'locale',
+      label: t('common.language'),
+      type: 'select',
+      options: languages,
+      defaultValue: selectedLanguage,
+      description: 'Language of this page'
+    },
     {
       key: 'status', label: t('pages.form.status'), type: 'select', options: [
         { value: 'published', label: t('pages.form.status_published') },
@@ -234,8 +258,23 @@ function PagesManager({ onlyVisual = false }) {
           formFields={pageFormFields}
           permissionPrefix="visual_pages"
           customRowActions={customRowActions}
-          defaultFilters={{ editor_type: 'visual' }}
+          defaultFilters={{ editor_type: 'visual', locale: selectedLanguage }}
           showBreadcrumbs={false}
+          customToolbarActions={() => (
+            <div className="flex items-center gap-2 mr-2">
+              <select
+                className="h-9 w-32 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                value={selectedLanguage}
+                onChange={(e) => setSelectedLanguage(e.target.value)}
+              >
+                {languages.map((lang) => (
+                  <option key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         />
       ) : (
         <PageTabs
@@ -252,10 +291,25 @@ function PagesManager({ onlyVisual = false }) {
               columns={pageColumns}
               formFields={pageFormFields}
               permissionPrefix="pages"
-              defaultFilters={{ page_type: 'regular' }}
+              defaultFilters={{ page_type: 'regular', locale: selectedLanguage }}
               customSelect="*, category:categories!pages_category_id_fkey(id, name), owner:users!created_by(email, full_name), tenant:tenants(name)"
               customRowActions={customRowActions}
               showBreadcrumbs={false}
+              customToolbarActions={() => (
+                <div className="flex items-center gap-2 mr-2">
+                  <select
+                    className="h-9 w-32 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    value={selectedLanguage}
+                    onChange={(e) => setSelectedLanguage(e.target.value)}
+                  >
+                    {languages.map((lang) => (
+                      <option key={lang.value} value={lang.value}>
+                        {lang.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             />
           </TabsContent>
 

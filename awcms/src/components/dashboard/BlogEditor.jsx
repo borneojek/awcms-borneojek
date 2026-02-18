@@ -41,6 +41,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Lock } from 'lucide-react';
 
 function BlogEditor({ item, onClose, onSuccess }) {
     const { toast } = useToast();
@@ -66,6 +67,7 @@ function BlogEditor({ item, onClose, onSuccess }) {
     const [formData, setFormData] = useState({
         title: item?.title || '',
         slug: item?.slug || '',
+        locale: item?.locale || 'en',
         content: item?.content || '',
         excerpt: item?.excerpt || '',
         featured_image: item?.featured_image || '',
@@ -175,6 +177,7 @@ function BlogEditor({ item, onClose, onSuccess }) {
                 tenant_id: currentTenant.id,
                 title: formData.title,
                 slug: formData.slug || generateSlug(formData.title),
+                locale: formData.locale,
                 content: formData.content,
                 excerpt: formData.excerpt,
                 featured_image: formData.featured_image,

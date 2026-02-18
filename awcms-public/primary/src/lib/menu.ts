@@ -45,6 +45,7 @@ export async function getMenuByLocation(
   supabase: SupabaseClient,
   location: string,
   tenantId?: string | null,
+  locale?: string,
 ): Promise<MenuItem[] | null> {
   let query = supabase
     .from("menus")
@@ -56,6 +57,10 @@ export async function getMenuByLocation(
 
   if (tenantId) {
     query = query.eq("tenant_id", tenantId);
+  }
+
+  if (locale) {
+    query = query.eq("locale", locale);
   }
 
   const { data, error } = await query;
@@ -124,8 +129,9 @@ export async function getAllMenus(
 export async function getHeaderMenu(
   supabase: SupabaseClient,
   tenantId?: string | null,
+  locale?: string,
 ): Promise<MenuItem[]> {
-  const menu = await getMenuByLocation(supabase, "header", tenantId);
+  const menu = await getMenuByLocation(supabase, "header", tenantId, locale);
   return menu || [];
 }
 
@@ -135,8 +141,9 @@ export async function getHeaderMenu(
 export async function getFooterMenu(
   supabase: SupabaseClient,
   tenantId?: string | null,
+  locale?: string,
 ): Promise<MenuItem[]> {
-  const menu = await getMenuByLocation(supabase, "footer", tenantId);
+  const menu = await getMenuByLocation(supabase, "footer", tenantId, locale);
   return menu || [];
 }
 

@@ -31,7 +31,7 @@ import { useTenant } from '@/contexts/TenantContext'; // Added TenantContext
 import { encodeRouteParam } from '@/lib/routeSecurity';
 import useSecureRouteParam from '@/hooks/useSecureRouteParam';
 
-const VisualPageBuilder = ({ page: initialPage, mode: initialMode, onClose, onSuccess: _onSuccess}) => {
+const VisualPageBuilder = ({ page: initialPage, mode: initialMode, onClose, onSuccess: _onSuccess }) => {
     // Permission Hook
     const { hasPermission, checkAccess, isPlatformAdmin } = usePermissions();
     const { currentTenant } = useTenant(); // Get current tenant
@@ -128,6 +128,7 @@ const VisualPageBuilder = ({ page: initialPage, mode: initialMode, onClose, onSu
         slug: initialPage?.slug || '',
         meta_description: initialPage?.meta_description || '',
         category_id: initialPage?.category_id || null, // Added category_id
+        locale: initialPage?.locale || 'en', // Added locale
         status: initialPage?.status || 'draft',
         published_at: initialPage?.published_at ? new Date(initialPage.published_at).toISOString().slice(0, 16) : ''
     });
@@ -198,6 +199,7 @@ const VisualPageBuilder = ({ page: initialPage, mode: initialMode, onClose, onSu
                         meta_description: tpl.description,
                         category_id: tpl.category_id || null,
                         status: tpl.is_active ? 'published' : 'draft',
+                        locale: 'en', // Templates usually specific locale or neutral?
                         published_at: ''
                     });
 
@@ -218,6 +220,7 @@ const VisualPageBuilder = ({ page: initialPage, mode: initialMode, onClose, onSu
                         meta_description: part.type,
                         category_id: part.category_id || null,
                         status: part.is_active ? 'published' : 'draft',
+                        locale: 'en',
                         published_at: ''
                     });
 
@@ -237,6 +240,7 @@ const VisualPageBuilder = ({ page: initialPage, mode: initialMode, onClose, onSu
                         meta_description: art.meta_description,
                         category_id: art.category_id || null,
                         status: art.status,
+                        locale: art.locale || 'en',
                         published_at: art.published_at ? new Date(art.published_at).toISOString().slice(0, 16) : ''
                     });
 
@@ -252,7 +256,7 @@ const VisualPageBuilder = ({ page: initialPage, mode: initialMode, onClose, onSu
                         slug: pg.slug,
                         meta_description: pg.meta_description,
                         status: pg.status,
-
+                        locale: pg.locale || 'en',
                     });
                 }
 
@@ -417,6 +421,7 @@ const VisualPageBuilder = ({ page: initialPage, mode: initialMode, onClose, onSu
                     category_id: pageMetadata.category_id,
                     status: pageMetadata.status,
                     published_at: pageMetadata.published_at || null,
+                    locale: pageMetadata.locale,
                     editor_type: 'visual',
                     tenant_id: currentTenant?.id
                 };
@@ -460,7 +465,9 @@ const VisualPageBuilder = ({ page: initialPage, mode: initialMode, onClose, onSu
                         slug: pageMetadata.slug,
                         meta_description: pageMetadata.meta_description,
                         category_id: pageMetadata.category_id,
+                        category_id: pageMetadata.category_id,
                         status: pageMetadata.status,
+                        locale: pageMetadata.locale,
                         published_at: pageMetadata.published_at || null
                     })
                     .eq('id', page.id);
@@ -670,6 +677,9 @@ const VisualPageBuilder = ({ page: initialPage, mode: initialMode, onClose, onSu
                                 : 'bg-amber-50 text-amber-600 border-amber-100'
                                 }`}>
                                 {pageMetadata.status}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-slate-50 text-slate-600 border-slate-100">
+                                {pageMetadata.locale}
                             </span>
                         </div>
                         <span className="text-xs text-slate-400 font-medium tracking-wide font-mono">/{pageMetadata.slug}</span>

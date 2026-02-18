@@ -69,7 +69,10 @@ const locale = getLocale(Astro.url);
         "flex justify-between",
       ]}
     >
-      <a class="flex items-center" href={getHomePermalink()}>
+      <a
+        class="flex items-center"
+        href={locale === "id" ? "/id" : getHomePermalink()}
+      >
         <Logo />
       </a>
       <div class="flex items-center md:hidden">

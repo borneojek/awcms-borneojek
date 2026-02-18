@@ -13,16 +13,16 @@ ALTER TABLE public.pages DROP CONSTRAINT IF EXISTS pages_slug_tenant_id_key;
 ALTER TABLE public.pages
 ADD CONSTRAINT pages_slug_tenant_locale_key UNIQUE (slug, tenant_id, locale);
 
--- Posts Table
-ALTER TABLE public.posts 
+-- Blogs Table
+ALTER TABLE public.blogs 
 ADD COLUMN IF NOT EXISTS locale text NOT NULL DEFAULT 'en';
 
 -- Drop existing constraints/indexes
-ALTER TABLE public.posts DROP CONSTRAINT IF EXISTS posts_slug_tenant_id_key;
+ALTER TABLE public.blogs DROP CONSTRAINT IF EXISTS blogs_slug_tenant_id_key;
 
 -- Add new unique constraint
-ALTER TABLE public.posts
-ADD CONSTRAINT posts_slug_tenant_locale_key UNIQUE (slug, tenant_id, locale);
+ALTER TABLE public.blogs
+ADD CONSTRAINT blogs_slug_tenant_locale_key UNIQUE (slug, tenant_id, locale);
 
 -- Update RLS Policies (Optional but good practice to ensure they cover locale if needed)
 -- Assuming existing policies filter by tenant_id, they will automatically include all locales.
