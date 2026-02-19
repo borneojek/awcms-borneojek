@@ -28,7 +28,9 @@
   },
   "overrides": {
     "lodash": "^4.17.23",
-    "wrangler": "^4.61.1"
+    "wrangler": "^4.61.1",
+    "ajv": "^8.18.0",
+    "tar": "^7.5.7"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.6",
