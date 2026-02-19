@@ -1,15 +1,22 @@
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-require('dotenv').config({ path: '.env.local' });
-const { createClient } = require('@supabase/supabase-js');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh4Y2xuaHxrYnh1eG95YmJ0ZnYiLCJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNzM5MzMyNDQ2LCJleHAiOjIwNTQ5MDg0NDZ9.SERVICE_ROLE_KEY_PLACEHOLDER';
+dotenv.config({ path: path.resolve(__dirname, '../../.env.local') });
 
-// Override with the hardcoded one if needed, or just use the one from env if it works. 
-// But since previous script used hardcoded, I will use same approach for consistency if env fails.
-// Actually, let's try to use the one from the migration script.
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SECRET_KEY;
 
-const supabase = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_KEY || supabaseServiceKey);
+if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('Error: SUPABASE_URL/VITE_SUPABASE_URL and SUPABASE_SERVICE_KEY/VITE_SUPABASE_SECRET_KEY must be set in .env.local');
+    process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function verify() {
     const { data: pages, error } = await supabase
