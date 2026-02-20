@@ -9,7 +9,8 @@ export const StepsBlock = ({
     tagline,
     items = [],
     image,
-    isReversed
+    isReversed,
+    callToAction
 }) => {
     return (
         <section className="py-16 px-4 md:px-6 bg-white dark:bg-slate-950">

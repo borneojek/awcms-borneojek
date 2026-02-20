@@ -14,21 +14,26 @@ export const PROJECT_ROOT = path.resolve(__dirname, "../../../");
 // 1. awcms-mcp/.env
 // 2. awcms/.env
 export function loadConfig() {
-  const localEnvPath = path.resolve(PROJECT_ROOT, "awcms-mcp/.env");
-  const repoEnvPath = path.resolve(PROJECT_ROOT, "awcms/.env");
+  const pathsToTry = [
+    "awcms/.env",
+    "awcms/.env.local",
+    "awcms-mcp/.env",
+    "awcms-mcp/.env.local"
+  ];
 
   let envVars = { ...process.env };
 
-  if (fs.existsSync(localEnvPath)) {
-    console.error(`[Config] Loading from local: ${localEnvPath}`);
-    const parsed = dotenv.parse(fs.readFileSync(localEnvPath));
-    envVars = { ...envVars, ...parsed };
-  } else if (fs.existsSync(repoEnvPath)) {
-    console.error(`[Config] Loading from repository: ${repoEnvPath}`);
-    const parsed = dotenv.parse(fs.readFileSync(repoEnvPath));
-    envVars = { ...envVars, ...parsed };
-  } else {
-    console.error("[Config] Warning: No .env file found.");
+  for (const relativePath of pathsToTry) {
+    const fullPath = path.resolve(PROJECT_ROOT, relativePath);
+    if (fs.existsSync(fullPath)) {
+      console.error(`[Config] Loading environment from: ${fullPath}`);
+      const parsed = dotenv.parse(fs.readFileSync(fullPath));
+      envVars = { ...envVars, ...parsed };
+    }
+  }
+
+  if (Object.keys(envVars).length === Object.keys(process.env).length) {
+    console.error("[Config] Warning: No .env files found.");
   }
 
   return envVars;

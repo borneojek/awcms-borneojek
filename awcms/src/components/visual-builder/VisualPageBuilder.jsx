@@ -465,7 +465,6 @@ const VisualPageBuilder = ({ page: initialPage, mode: initialMode, onClose, onSu
                         slug: pageMetadata.slug,
                         meta_description: pageMetadata.meta_description,
                         category_id: pageMetadata.category_id,
-                        category_id: pageMetadata.category_id,
                         status: pageMetadata.status,
                         locale: pageMetadata.locale,
                         published_at: pageMetadata.published_at || null

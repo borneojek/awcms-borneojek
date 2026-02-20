@@ -1,6 +1,7 @@
 
 import { supabase } from '@/lib/customSupabaseClient';
 import * as LucideIcons from 'lucide-react';
+import { Settings } from 'lucide-react';
 
 export const ServicesListBlock = ({
     columns = 3,
