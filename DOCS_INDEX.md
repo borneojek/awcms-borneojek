@@ -91,7 +91,7 @@ All documentation follows this authority structure:
 | IoT Firmware | [docs/dev/esp32.md](docs/dev/esp32.md) | ESP32 platform |
 | CI/CD | [docs/dev/ci-cd.md](docs/dev/ci-cd.md) | GitHub Actions |
 | Testing | [docs/dev/testing.md](docs/dev/testing.md) | Vitest and smoke checks |
-| AI Gateway | [openclaw/openclaw.json](openclaw/openclaw.json) | OpenClaw multi-tenant config |
+| AI Gateway | [docs/architecture/openclaw-gateway.md](docs/architecture/openclaw-gateway.md) | OpenClaw multi-tenant config & architecture |
 
 ### Deployment
 
