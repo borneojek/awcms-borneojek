@@ -54,34 +54,91 @@ Define how tenant isolation is resolved and enforced across AWCMS.
 - Hierarchy functions (`is_tenant_descendant`, `tenant_can_access_resource`) enforce shared vs isolated resources.
 - Public aggregates (e.g., `analytics_daily`) are readable only when scoped to the tenant id.
 
-## Implementation Patterns
+## Implementation Details
 
-### Admin Tenant Context
+### Tenant Onboarding & Provisioning Process
 
-```javascript
-import { useTenant } from '@/contexts/TenantContext';
+Creating a new tenant requires precise coordination between the database definition, initial content, and staff roles. AWCMS orchestrates this provisioning securely via the backend Edge Function invoking a specialized RPC method: `create_tenant_with_defaults()`.
 
-const { currentTenant } = useTenant();
-```
-
-### Public Tenant Context
+**Step 1: Admin Creates Tenant**  
+The platform admin issues a POST request to `awcms/supabase/functions/manage-tenant/index.ts` containing the tenant payload:
 
 ```ts
-const supabase = createClientFromEnv(import.meta.env, { 'x-tenant-id': tenantId });
+const { data, error } = await supabase.functions.invoke('manage-tenant', {
+  body: {
+    action: 'create',
+    tenant_details: { name: 'Dinkes Jatim', slug: 'dinkes', tier: 'pro' }
+  }
+});
 ```
 
-### Tenant-Scoped Queries
+**Step 2: Database Provisioning via `create_tenant_with_defaults()`**  
+The Edge Function securely calls the Postgres RPC function below (running with `SECURITY DEFINER` privileges), which guarantees consistent initialization and isolation:
 
-```javascript
-const { data } = await supabase
-  .from('pages')
-  .select('*')
-  .eq('tenant_id', tenantId)
-  .is('deleted_at', null);
+```sql
+CREATE OR REPLACE FUNCTION "public"."create_tenant_with_defaults"("p_name" text, "p_slug" text, "p_domain" text DEFAULT NULL, "p_tier" text DEFAULT 'free', "p_parent_tenant_id" uuid DEFAULT NULL, "p_role_inheritance_mode" text DEFAULT 'auto') RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
+DECLARE
+    v_tenant_id uuid;
+BEGIN
+    -- 1. Insert Base Tenant
+    INSERT INTO public.tenants (
+      name, slug, domain, subscription_tier, status, parent_tenant_id, role_inheritance_mode
+    ) VALUES (p_name, p_slug, p_domain, p_tier, 'active', p_parent_tenant_id, p_role_inheritance_mode)
+    RETURNING id INTO v_tenant_id;
+
+    -- 2. Seed Core Tenant Roles
+    INSERT INTO public.roles (name, description, tenant_id, is_system, scope, is_tenant_admin)
+    VALUES ('admin', 'Tenant Administrator', v_tenant_id, true, 'tenant', true);
+    
+    INSERT INTO public.roles (name, description, tenant_id, is_system, scope)
+    VALUES ('editor', 'Content Editor', v_tenant_id, true, 'tenant');
+
+    INSERT INTO public.roles (name, description, tenant_id, is_system, scope)
+    VALUES ('author', 'Content Author', v_tenant_id, true, 'tenant');
+
+    -- 3. Seed Inheritance, Resource Sharing, and Permissions
+    PERFORM public.seed_staff_roles(v_tenant_id);
+    PERFORM public.seed_tenant_resource_rules(v_tenant_id);
+    PERFORM public.apply_tenant_role_inheritance(v_tenant_id);
+
+    -- 4. Seed Default CMS Content
+    INSERT INTO public.pages (tenant_id, title, slug, content, status, is_active, page_type, created_by)
+    VALUES (
+        v_tenant_id, 'Home', 'home', '{"root":{"props":{"title":"Home"},"children":[]}}', 'published', true, 'homepage', (SELECT auth.uid())
+    );
+
+    -- 5. Set Default Menus
+    INSERT INTO public.menus (tenant_id, name, label, url, group_label, is_active, is_public, "order")
+    VALUES (v_tenant_id, 'home', 'Home', '/', 'header', true, true, 1);
+
+    RETURN jsonb_build_object('tenant_id', v_tenant_id, 'message', 'Tenant created with default data.');
+EXCEPTION WHEN OTHERS THEN
+    RAISE;
+END;
+$$;
 ```
 
-### Hierarchy & Sharing Defaults
+**Step 3: User Assignment**  
+Finally, the newly created tenant requires an admin user. Through the admin panel UI or Edge Functions, a user is associated with the `admin` role ID created in Step 2.
 
+---
+
+### Admin Portal Context
+
+- Uses subdomain resolution or path prefixes (e.g. `awcms.test/dinkes`).
+- The tenant ID is intercepted globally via React Context. All subsequent Supabase calls in `customSupabaseClient.js` attach `headers: { "x-tenant-id": activeTenantId }`.
+
+### Public Portal Context
+
+- Renders statically or via Server-Side Rendering (SSR).
+- Loads context via `PUBLIC_TENANT_ID`.
+- Passes the resolved identifier dynamically into Supabase client instantiation `createClientFromEnv()`.
+
+### Data Layer Security Notes
+
+- Edge Functions are mandatory for cross-tenant data operations (Super Administrators managing global tenants).
+- Direct client SQL queries are automatically blocked or clipped to the scope of `current_tenant_id()`.
 - **Shared by default**: `settings`, `branding`, `modules` (descendants). Tenant admins and full-access roles have read/write access across levels based on `tenant_resource_rules`.
 - **Isolated by default**: `content` (blogs, pages), `media` (storage objects), `users`, and `orders`. These resources are strictly scoped to a single `tenant_id`.
 - **Rules Storage**: Configured in `tenant_resource_registry` and enforced via `tenant_resource_rules`.

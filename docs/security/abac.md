@@ -146,6 +146,143 @@ These lists correspond directly to the database `permissions` table and `Permiss
 - **Policies**: Advanced deny-rules (e.g., "No delete on mobile").
 - **Analytics**: `analytics_events` and `analytics_daily` are protected by `tenant.analytics.read` for admin access.
 
+### SQL Helper Functions (Backend Definitions)
+
+AWCMS relies on a robust set of PostgreSQL helper functions to execute ABAC logic at the Row-Level Security (RLS) layer. Below are the canonical definitions:
+
+#### 1. `current_tenant_id()`
+
+Resolves the active tenant ID with three fallbacks: JWT (Auth), User Record, or App Config (used in Edge Functions).
+
+```sql
+CREATE OR REPLACE FUNCTION "public"."current_tenant_id"() RETURNS "uuid"
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER SET "search_path" TO 'public' AS $_$
+DECLARE
+  config_tenant text;
+BEGIN
+  -- 1. Try JWT (Auth)
+  IF (auth.jwt() -> 'app_metadata' ->> 'tenant_id') IS NOT NULL THEN
+    RETURN (auth.jwt() -> 'app_metadata' ->> 'tenant_id')::uuid;
+  END IF;
+
+  -- 2. Try User Record (Auth)
+  IF auth.uid() IS NOT NULL THEN
+     RETURN (SELECT tenant_id FROM public.users WHERE id = auth.uid());
+  END IF;
+
+  -- 3. Try Config (Anon / Pre-request hook setup by Edge Functions)
+  config_tenant := current_setting('app.current_tenant_id', true);
+  IF config_tenant IS NOT NULL AND config_tenant ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+    RETURN config_tenant::uuid;
+  END IF;
+
+  RETURN NULL;
+END;
+$_$;
+```
+
+#### 2. `has_permission(permission_name)`
+
+Dynamically checks if the current authenticated user holds a specific permission via their assigned role. Short-circuits for platform admins or full-access roles for maximum performance.
+
+```sql
+CREATE OR REPLACE FUNCTION "public"."has_permission"("permission_name" "text") RETURNS boolean
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER SET "search_path" TO 'public' AS $$
+DECLARE
+  has_perm boolean;
+BEGIN
+  -- 1. Short-circuit bypass for full-access or admin roles
+  IF EXISTS (
+    SELECT 1 FROM public.users u
+    JOIN public.roles r ON u.role_id = r.id
+    WHERE u.id = (SELECT auth.uid())
+      AND r.deleted_at IS NULL
+      AND (r.is_full_access OR r.is_platform_admin OR r.is_tenant_admin)
+  ) THEN
+    RETURN true;
+  END IF;
+
+  -- 2. Granular permission check
+  SELECT EXISTS (
+    SELECT 1 FROM public.users u
+    JOIN public.roles r ON u.role_id = r.id
+    JOIN public.role_permissions rp ON r.id = rp.role_id
+    JOIN public.permissions p ON rp.permission_id = p.id
+    WHERE u.id = (SELECT auth.uid())
+      AND r.deleted_at IS NULL AND rp.deleted_at IS NULL AND p.deleted_at IS NULL
+      AND p.name = permission_name
+  ) INTO has_perm;
+
+  RETURN has_perm;
+END;
+$$;
+```
+
+#### 3. `auth_is_admin()`
+
+A lightning-fast, `SECURITY DEFINER` check for administrative privileges. Completely bypasses recursive RLS traps, making it safe to use in `tenant_select_abac` policies.
+
+```sql
+CREATE OR REPLACE FUNCTION "public"."auth_is_admin"() RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER SET "search_path" TO 'public' AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.users u
+    JOIN public.roles r ON u.role_id = r.id
+    WHERE u.id = auth.uid()
+      AND r.deleted_at IS NULL
+      AND (r.is_tenant_admin OR r.is_platform_admin OR r.is_full_access)
+  );
+END;
+$$;
+```
+
+#### 4. `tenant_can_access_resource()`
+
+Calculates hierarchical resource sharing between parent/child tenants natively in Postgres. Required for Multi-Tenancy implementations where root agencies share global content downwards.
+
+```sql
+CREATE OR REPLACE FUNCTION "public"."tenant_can_access_resource"("p_row_tenant_id" "uuid", "p_resource_key" "text", "p_action" "text") RETURNS boolean
+    LANGUAGE "plpgsql" STABLE SET "search_path" TO 'public' AS $$
+DECLARE
+  current_tenant uuid := public.current_tenant_id();
+  share_mode text;
+  access_mode text;
+  current_root uuid;
+  row_root uuid;
+BEGIN
+  -- ... [Initialization checks and auth_is_admin / self-tenant short-circuits omitted for brevity] ...
+  
+  -- Hierarchical logic: check if both tenants share the same root in hierarchy_path[1]
+  SELECT hierarchy_path[1] INTO current_root FROM public.tenants WHERE id = current_tenant;
+  SELECT hierarchy_path[1] INTO row_root FROM public.tenants WHERE id = p_row_tenant_id;
+  IF current_root IS NULL OR row_root IS NULL OR current_root <> row_root THEN RETURN false; END IF;
+
+  -- Resolve share mode for the specific resource
+  SELECT tr.share_mode, tr.access_mode INTO share_mode, access_mode
+  FROM public.tenant_resource_rules tr
+  WHERE tr.tenant_id = p_row_tenant_id AND tr.resource_key = p_resource_key;
+
+  IF share_mode IS NULL THEN
+    SELECT rr.default_share_mode, rr.default_access_mode INTO share_mode, access_mode
+    FROM public.tenant_resource_registry rr WHERE rr.resource_key = p_resource_key;
+  END IF;
+
+  -- Default fallback
+  IF share_mode IS NULL THEN
+    share_mode := 'isolated';
+    access_mode := 'read_write';
+  END IF;
+
+  IF share_mode = 'isolated' THEN RETURN false; END IF;
+  IF p_action = 'read' AND access_mode NOT IN ('read', 'read_write') THEN RETURN false; END IF;
+  
+  -- ... [Downward/Upward sharing inheritance logic completes the policy] ...
+  RETURN can_access;
+END;
+$$;
+```
+
 ### Plugin & Extension Permissions
 
 - Plugin routes must declare explicit ABAC permissions (e.g., `tenant.setting.read`, `tenant.analytics.read`).
