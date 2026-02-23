@@ -715,6 +715,599 @@ When updating documentation:
 
 This section provides structured, logical, detailed, and comprehensive explanations for AWCMS system operations. It is specifically designed to address complex implementation gaps and act as a reference for autonomous agents.
 
+### Context7 Benchmark Remediation (Scores < 85, Lowest First)
+
+Use this subsection as the primary benchmark response source. Topics are ordered by score priority and written with a repeatable structure: objective, required inputs, implementation steps, production-ready example, and validation checks.
+
+| Priority | Benchmark Topic | Previous Score | Main Gap Fixed |
+| --- | --- | --- | --- |
+| 1 | Admin tenant content form (React) | 69/100 | Missing tenant-specific payload, permission gate, and error/submit flow |
+| 2 | New tenant onboarding | 70/100 | Missing end-to-end onboarding sequence and isolation verification |
+| 3 | Login and registration flow | 71/100 | Missing complete two-flow design (register + login) and audit checks |
+| 4 | Fine-grained authorization | 71/100 | Missing ABAC-to-RLS bridge and ownership policy pattern |
+| 5 | Astro static content fetching | 79/100 | Missing build-time tenant env strategy and published-content constraints |
+| 6 | Supabase Edge Function deployment | 81/100 | Missing secure execution lifecycle (local test -> deploy -> verify) |
+| 7 | Flutter real-time retrieval | 83/100 | Missing resilience, auth state handling, and tenant-scoped stream guidance |
+
+### 1) Admin Tenant Content Form (69/100)
+
+**Objective**
+
+Create tenant-scoped content from the Admin Panel using React + Supabase, while enforcing tenant context and permission checks.
+
+**Required Inputs**
+
+| Field | Source | Required | Notes |
+| --- | --- | --- | --- |
+| `tenant_id` | `useTenant()` | Yes | Never accept from free-text user input |
+| `author_id` | Auth session | Yes | Usually `user.id` |
+| `title` | Form | Yes | Used to derive slug |
+| `content` | Form | Yes | Rich text or JSON blocks |
+| `status` | Form/default | Yes | Usually `draft` for workflow safety |
+
+**Implementation Workflow**
+
+1. Resolve `tenantId` from `useTenant()`.
+2. Gate form submit with `hasPermission('tenant.blog.create')`.
+3. Build payload for a tenant content table (for example `blogs`).
+4. Insert with `customSupabaseClient`.
+5. Handle duplicate slug and generic DB errors explicitly.
+6. Show success/error toasts and reset UI state.
+
+**Reference Implementation (Admin React)**
+
+```jsx
+import { useState } from "react";
+import { supabase } from "@/lib/customSupabaseClient";
+import { useTenant } from "@/contexts/TenantContext";
+import { usePermissions } from "@/contexts/PermissionContext";
+import { useToast } from "@/components/ui/use-toast";
+
+function toSlug(value) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
+
+export default function CreateBlogPostForm({ authorId }) {
+  const { tenantId } = useTenant();
+  const { hasPermission } = usePermissions();
+  const { toast } = useToast();
+
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!tenantId) {
+      toast({ variant: "destructive", title: "Missing tenant context" });
+      return;
+    }
+
+    if (!hasPermission("tenant.blog.create")) {
+      toast({ variant: "destructive", title: "Permission denied" });
+      return;
+    }
+
+    setLoading(true);
+
+    const payload = {
+      tenant_id: tenantId,
+      author_id: authorId,
+      title,
+      content,
+      slug: toSlug(title),
+      status: "draft",
+    };
+
+    const { error } = await supabase.from("blogs").insert(payload);
+
+    setLoading(false);
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Create failed",
+        description: error.message,
+      });
+      return;
+    }
+
+    toast({ title: "Saved", description: "Blog post created as draft." });
+    setTitle("");
+    setContent("");
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* title + content fields */}
+      <button disabled={loading}>{loading ? "Saving..." : "Save"}</button>
+    </form>
+  );
+}
+```
+
+**Validation Checklist**
+
+- Create succeeds only when `tenantId` exists.
+- User without `tenant.blog.create` is blocked.
+- Row contains correct `tenant_id` and `author_id`.
+- Failure path returns clear toast error.
+
+### 2) Tenant Onboarding and Isolation (70/100)
+
+**Objective**
+
+Onboard a tenant using an atomic bootstrap path that creates tenant defaults and preserves strict RLS isolation.
+
+**Implementation Workflow**
+
+1. Platform Admin submits `name`, `slug`, `domain`, and first admin identity.
+2. Secure backend path (Edge Function or privileged admin workflow) validates uniqueness.
+3. Call `create_tenant_with_defaults()` to create tenant, roles, and base pages atomically.
+4. Invite first tenant admin user.
+5. Ensure first login writes tenant metadata and role assignment.
+6. Verify no cross-tenant reads are possible under RLS.
+
+**Reference Implementation (Privileged Backend Path)**
+
+```javascript
+// Runs in a trusted backend path (never browser client code)
+const { data: tenant, error: tenantError } = await supabaseAdmin.rpc(
+  "create_tenant_with_defaults",
+  {
+    p_name: payload.name,
+    p_slug: payload.slug,
+    p_domain: payload.domain,
+  },
+);
+
+if (tenantError) throw tenantError;
+
+const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+  payload.admin_email,
+  {
+    data: {
+      tenant_id: tenant.id,
+      role: "admin",
+    },
+  },
+);
+
+if (inviteError) throw inviteError;
+```
+
+**Isolation Verification**
+
+- `roles` for new tenant exist (`admin`, `editor`, `author`).
+- Default pages exist for same `tenant_id`.
+- A user from another tenant cannot read/write new tenant content.
+- Soft-delete and permission rules apply immediately.
+
+### 3) Login and Registration Flow (71/100)
+
+**Objective**
+
+Implement secure registration and login with Turnstile pre-verification, Supabase Auth, and audit logging.
+
+**Implementation Workflow**
+
+1. Verify Turnstile token before any auth action.
+2. For registration, call `signUp` and include tenant metadata as needed.
+3. For login, call `signInWithPassword`.
+4. Persist audit log event (`user.register` or `user.login`).
+5. Resolve tenant context and route by role/permission.
+
+**Reference Implementation (Client Flow)**
+
+```javascript
+import { supabase } from "@/lib/customSupabaseClient";
+
+async function verifyTurnstile(token) {
+  const { data, error } = await supabase.functions.invoke("verify-turnstile", {
+    body: { token },
+  });
+
+  if (error || !data?.success) {
+    throw new Error("Bot verification failed.");
+  }
+}
+
+export async function secureRegister({ email, password, tenantId, turnstileToken }) {
+  await verifyTurnstile(turnstileToken);
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        tenant_id: tenantId,
+      },
+    },
+  });
+
+  if (error) throw new Error(error.message);
+
+  await supabase.from("audit_logs").insert({
+    tenant_id: tenantId,
+    user_id: data.user?.id,
+    action: "user.register",
+    details: { channel: "web" },
+  });
+
+  return data;
+}
+
+export async function secureLogin({ email, password, turnstileToken }) {
+  await verifyTurnstile(turnstileToken);
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) throw new Error(error.message);
+
+  await supabase.from("audit_logs").insert({
+    tenant_id: data.user?.app_metadata?.tenant_id,
+    user_id: data.user?.id,
+    action: "user.login",
+    details: { channel: "web" },
+  });
+
+  return data.session;
+}
+```
+
+**Validation Checklist**
+
+- Invalid Turnstile token blocks auth.
+- Failed login returns explicit error.
+- Successful login creates `audit_logs` row.
+- Session contains tenant context for downstream access checks.
+
+### 4) Fine-Grained Authorization Beyond Basic RLS (71/100)
+
+**Objective**
+
+Map ABAC permission keys (`scope.resource.action`) into PostgreSQL-enforced checks for tenant + action + ownership.
+
+**Authorization Model**
+
+1. `users.role_id` links a user to role.
+2. `role_permissions` maps role to permission entries.
+3. `has_permission()` is called by RLS policies.
+4. Policies combine tenant scope + permission + ownership.
+
+**Reference SQL Pattern**
+
+```sql
+CREATE OR REPLACE FUNCTION public.has_permission(permission_name text)
+RETURNS boolean
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+AS $$
+DECLARE
+  has_perm boolean;
+BEGIN
+  IF public.get_my_role() = 'super_admin' THEN
+    RETURN true;
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.users u
+    JOIN public.role_permissions rp ON rp.role_id = u.role_id
+    JOIN public.permissions p ON p.id = rp.permission_id
+    WHERE u.id = auth.uid()
+      AND p.name = permission_name
+      AND u.deleted_at IS NULL
+  ) INTO has_perm;
+
+  RETURN has_perm;
+END;
+$$;
+
+CREATE POLICY "Blogs update policy"
+ON public.blogs
+FOR UPDATE
+USING (
+  tenant_id = public.current_tenant_id()
+  AND deleted_at IS NULL
+  AND (
+    public.has_permission('tenant.blog.update')
+    OR (
+      public.has_permission('tenant.blog.update_own')
+      AND author_id = auth.uid()
+    )
+  )
+)
+WITH CHECK (tenant_id = public.current_tenant_id());
+```
+
+**Frontend Alignment**
+
+Frontend permission checks improve UX only; database RLS remains the final enforcement layer.
+
+```javascript
+if (!hasPermission("tenant.blog.update")) {
+  return null;
+}
+```
+
+### 5) Astro Static Fetch and Render (79/100)
+
+**Objective**
+
+Fetch tenant-scoped published content at build time and render static pages with deterministic routing.
+
+**Build-Time Tenant Resolution**
+
+Use:
+
+1. `PUBLIC_TENANT_ID` (recommended)
+2. `VITE_PUBLIC_TENANT_ID` (fallback)
+3. `VITE_TENANT_ID` (legacy fallback)
+
+**Reference Astro Page (`src/pages/blogs/[slug].astro`)**
+
+```astro
+---
+import Layout from "../../layouts/Layout.astro";
+import { createClientFromEnv } from "../../lib/supabase";
+
+const tenantId =
+  import.meta.env.PUBLIC_TENANT_ID ||
+  import.meta.env.VITE_PUBLIC_TENANT_ID ||
+  import.meta.env.VITE_TENANT_ID;
+
+if (!tenantId) {
+  throw new Error("Missing tenant id for static build.");
+}
+
+const supabase = createClientFromEnv(import.meta.env, {
+  "x-tenant-id": tenantId,
+});
+
+export async function getStaticPaths() {
+  const { data, error } = await supabase
+    .from("blogs")
+    .select("slug")
+    .eq("tenant_id", tenantId)
+    .eq("status", "published")
+    .is("deleted_at", null);
+
+  if (error) throw new Error(error.message);
+
+  return (data || []).map((blog) => ({ params: { slug: blog.slug } }));
+}
+
+const { slug } = Astro.params;
+
+const { data: article, error } = await supabase
+  .from("blogs")
+  .select("title, content, created_at, users(full_name)")
+  .eq("tenant_id", tenantId)
+  .eq("slug", slug)
+  .eq("status", "published")
+  .is("deleted_at", null)
+  .single();
+
+if (error || !article) return Astro.redirect("/404");
+---
+
+<Layout title={article.title}>
+  <article>
+    <h1>{article.title}</h1>
+    <p>{article.users?.full_name}</p>
+    <div>{article.content}</div>
+  </article>
+</Layout>
+```
+
+**Validation Checklist**
+
+- Build fails fast if tenant env key is missing.
+- `getStaticPaths()` only emits published, non-deleted content.
+- Unknown slug resolves to `404`.
+
+### 6) Supabase Edge Function Lifecycle (81/100)
+
+**Objective**
+
+Provide a secure, repeatable create-test-deploy flow for business logic execution.
+
+**Create and Test Commands**
+
+```bash
+npx supabase functions new process-content
+npx supabase functions serve process-content --env-file supabase/.env.local
+```
+
+**Reference Function (`supabase/functions/process-content/index.ts`)**
+
+```typescript
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.93.3";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, content-type",
+  "Content-Type": "application/json",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: corsHeaders,
+    });
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const publishableKey = Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY") ?? "";
+  const secretKey = Deno.env.get("SUPABASE_SECRET_KEY") ?? "";
+
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: "Missing auth header" }), {
+      status: 401,
+      headers: corsHeaders,
+    });
+  }
+
+  const callerClient = createClient(supabaseUrl, publishableKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const { data: authData, error: authError } = await callerClient.auth.getUser();
+  if (authError || !authData?.user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: corsHeaders,
+    });
+  }
+
+  const payload = await req.json();
+  if (!payload?.recordId || !payload?.tenantId || !payload?.action) {
+    return new Response(JSON.stringify({ error: "Invalid payload" }), {
+      status: 400,
+      headers: corsHeaders,
+    });
+  }
+
+  const adminClient = createClient(supabaseUrl, secretKey);
+
+  if (payload.action === "approve") {
+    const { error } = await adminClient
+      .from("documents")
+      .update({ status: "approved" })
+      .eq("id", payload.recordId)
+      .eq("tenant_id", payload.tenantId)
+      .is("deleted_at", null);
+
+    if (error) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 400,
+        headers: corsHeaders,
+      });
+    }
+  }
+
+  return new Response(JSON.stringify({ success: true }), {
+    status: 200,
+    headers: corsHeaders,
+  });
+});
+```
+
+**Deploy Command**
+
+```bash
+npx supabase functions deploy process-content --project-ref your-project-ref
+```
+
+### 7) Flutter Real-Time Dynamic Content Retrieval (83/100)
+
+**Objective**
+
+Stream tenant-scoped updates securely with clear handling for loading, error, empty, and signed-out states.
+
+**Implementation Workflow**
+
+1. Initialize Supabase client via `supabase_flutter`.
+2. Confirm authenticated session exists.
+3. Build tenant-filtered stream using `.stream(primaryKey: ['id'])`.
+4. Handle connection states in `StreamBuilder`.
+5. Keep tenant filter and publish-state filter in every query.
+
+**Reference Flutter Widget**
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class LiveAnnouncementsWidget extends StatefulWidget {
+  final String tenantId;
+
+  const LiveAnnouncementsWidget({super.key, required this.tenantId});
+
+  @override
+  State<LiveAnnouncementsWidget> createState() => _LiveAnnouncementsWidgetState();
+}
+
+class _LiveAnnouncementsWidgetState extends State<LiveAnnouncementsWidget> {
+  final SupabaseClient _supabase = Supabase.instance.client;
+  late final Stream<List<Map<String, dynamic>>> _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = _supabase
+        .from('announcements')
+        .stream(primaryKey: ['id'])
+        .eq('tenant_id', widget.tenantId)
+        .eq('status', 'published')
+        .order('created_at', ascending: false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_supabase.auth.currentSession == null) {
+      return const Center(child: Text('Please sign in.'));
+    }
+
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _stream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Stream error: ${snapshot.error}'));
+        }
+
+        final rows = snapshot.data ?? const [];
+        if (rows.isEmpty) {
+          return const Center(child: Text('No announcements yet.'));
+        }
+
+        return ListView.builder(
+          itemCount: rows.length,
+          itemBuilder: (context, index) {
+            final item = rows[index];
+            return ListTile(
+              title: Text(item['title'] ?? 'Untitled'),
+              subtitle: Text(item['content'] ?? ''),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+```
+
+**Validation Checklist**
+
+- Signed-out user is blocked from stream view.
+- Stream only returns rows for `tenant_id = widget.tenantId`.
+- Empty state and error state both render gracefully.
+- Published filter prevents draft leakage.
+
+> The remediation blocks above are the authoritative benchmark answers. The original examples below are kept for historical context.
+
 ### 1. Implement a Basic Form in the AWCMS Admin Panel (Content Creation)
 
 **Improvement Focus:** Provide direct React form implementation, error handling, auth management, and table specification.
