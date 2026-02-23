@@ -13,35 +13,51 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
-  const handleSession = useCallback(async (session) => {
-    setSession(session);
-    const currentUser = session?.user ?? null;
-    setUser(currentUser);
+  const handleSession = useCallback((nextSession) => {
+    setSession(nextSession);
+    setUser(nextSession?.user ?? null);
+    setLoading(false);
+  }, []);
 
-    // Check 2FA status if user exists
-    if (currentUser) {
+  useEffect(() => {
+    let active = true;
+
+    const syncTwoFactorStatus = async () => {
+      if (!user) {
+        if (active) setTwoFactorEnabled(false);
+        return;
+      }
+
       try {
         const { data, error } = await supabase
           .from('two_factor_auth')
           .select('enabled')
-          .eq('user_id', currentUser.id)
+          .eq('user_id', user.id)
           .maybeSingle();
 
-        if (!error && data) {
-          setTwoFactorEnabled(data.enabled);
-        } else {
+        if (!active) return;
+
+        if (error) {
+          console.warn('Failed to check 2FA status:', error);
+          setTwoFactorEnabled(false);
+          return;
+        }
+
+        setTwoFactorEnabled(Boolean(data?.enabled));
+      } catch (error) {
+        if (active) {
+          console.error('Failed to check 2FA status:', error);
           setTwoFactorEnabled(false);
         }
-      } catch (e) {
-        console.error("Failed to check 2FA status", e);
-        setTwoFactorEnabled(false);
       }
-    } else {
-      setTwoFactorEnabled(false);
-    }
+    };
 
-    setLoading(false);
-  }, []);
+    syncTwoFactorStatus();
+
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   // Helper to clear local storage aggressively
   const clearLocalAuth = useCallback(() => {
@@ -121,7 +137,7 @@ export const AuthProvider = ({ children }) => {
     let initialResolved = false;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, nextSession) => {
         if (!mounted) return;
 
         if (event === 'SIGNED_OUT') {
@@ -134,25 +150,22 @@ export const AuthProvider = ({ children }) => {
 
         if (!initialResolved || event === 'INITIAL_SESSION') {
           initialResolved = true;
-          await handleSession(session);
+          handleSession(nextSession);
           if (event === 'SIGNED_IN') {
-            logSsoLoginEvent(session);
+            setTimeout(() => {
+              void logSsoLoginEvent(nextSession);
+            }, 0);
           }
           return;
         }
 
+        handleSession(nextSession);
+
         if (event === 'SIGNED_IN') {
-          await handleSession(session);
-          logSsoLoginEvent(session);
-          return;
+          setTimeout(() => {
+            void logSsoLoginEvent(nextSession);
+          }, 0);
         }
-
-        if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'PASSWORD_RECOVERY' || event === 'MFA_CHALLENGE_VERIFIED') {
-          await handleSession(session);
-          return;
-        }
-
-        await handleSession(session);
       },
     );
 
@@ -162,7 +175,7 @@ export const AuthProvider = ({ children }) => {
         if (error) throw error;
         if (mounted) {
           initialResolved = true;
-          await handleSession(session);
+          handleSession(session);
         }
       } catch (error) {
         console.error("Auth initialization error:", error.message);
