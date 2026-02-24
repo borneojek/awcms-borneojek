@@ -91,7 +91,7 @@ All documentation follows this authority structure:
 | IoT Firmware | [docs/dev/esp32.md](docs/dev/esp32.md) | ESP32 platform |
 | CI/CD | [docs/dev/ci-cd.md](docs/dev/ci-cd.md) | GitHub Actions |
 | Testing | [docs/dev/testing.md](docs/dev/testing.md) | Vitest and smoke checks |
-| AI Gateway | [docs/architecture/openclaw-gateway.md](docs/architecture/openclaw-gateway.md) | OpenClaw multi-tenant config & architecture |
+| AI Gateway | [docs/architecture/openclaw-gateway.md](docs/architecture/openclaw-gateway.md) | OpenClaw per-tenant setup, routing, and security runbook |
 | Programmatic Content Types | [docs/architecture/schema-definition.md](docs/architecture/schema-definition.md) | Defining and migrating custom schemas |
 | Edge Functions | [docs/dev/edge-functions.md](docs/dev/edge-functions.md) | Supabase Deno Edge Functions |
 | Versioning Strategy | [docs/dev/versioning.md](docs/dev/versioning.md) | Monorepo versioning & release process |

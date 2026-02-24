@@ -1,70 +1,202 @@
 # OpenClaw AI Gateway
 
-The AWCMS project utilizes **OpenClaw** as a multi-tenant AI gateway to securely manage and route external tool/agent requests. This document outlines the architecture and configuration of our local OpenClaw instance.
+> **Documentation Authority:** [SYSTEM_MODEL.md](../../SYSTEM_MODEL.md) -> [AGENTS.md](../../AGENTS.md) -> [DOCS_INDEX.md](../../DOCS_INDEX.md)
+> **Last Updated:** 2026-02-24
+> **Context7 Source:** `openclaw/openclaw`
 
-## Overview
+## Purpose
 
-OpenClaw is installed and configured as an AI Agent Gateway for the `awcms` workspace. It provides:
+Document how AWCMS uses OpenClaw as a per-tenant AI gateway, including tenant-to-agent mapping, routing, security controls, and operational runbooks.
 
-1. **Multi-Tenant Agent Isolation**: Separate workspaces and profiles for different tenants (e.g., `tenant_a`, `tenant_b`).
-2. **Channel Routing**: Automatically routing incoming messages from platforms like WhatsApp, Telegram, Slack, and Discord to the correct tenant agent.
-3. **Gateway Security**: Strict token authentication, rate limiting, and loopback binding to secure AI access.
+## Context7 Baseline for AWCMS
 
-## Configuration File
+Based on Context7 (`openclaw/openclaw`), AWCMS adopts these OpenClaw patterns:
 
-The primary configuration is defined in `openclaw/openclaw.json` (which is typically symlinked or copied to `~/.openclaw/openclaw.json` on the host).
+1. **Multi-agent routing** using `agents.list` and `bindings`.
+2. **Workspace isolation** per agent to prevent context bleed.
+3. **Token-authenticated gateway** with rate limiting.
+4. **Webhook/API ingress** (`/hooks/agent`, `/v1/chat/completions`) for external automation.
 
-### 1. Gateway Security
+These are implemented in `openclaw/openclaw.json` and mirrored to `~/.openclaw/openclaw.json` in runtime.
 
-The gateway is hardened to prevent unauthorized access:
+## AWCMS Per-Tenant Mapping Model
+
+| AWCMS Concept | OpenClaw Field | Rule |
+| --- | --- | --- |
+| Tenant identity (`tenant_id`, `slug`) | `agents.list[].id` | Use stable per-tenant IDs (example: `tenant_smk_1`) |
+| Tenant working context | `agents.list[].workspace` | One workspace folder per tenant |
+| Tenant AI policy | `agents.list[].tools.profile` + `allow`/`deny` | Restrict capabilities by tenant use case |
+| Tenant communication channel | `bindings[].match` | Bind channel/account identifiers to the same tenant agent |
+| Tenant routing target | `bindings[].agentId` | Must point to the correct tenant agent ID |
+
+Recommended convention:
+
+- `agentId`: `tenant_<tenant_slug>`
+- `workspace`: `~/.openclaw/workspace-tenant-<tenant_slug>`
+
+## Configuration Topology
+
+| File | Scope | Notes |
+| --- | --- | --- |
+| `openclaw/openclaw.json` | Repository template | Version-controlled baseline; do not store secrets |
+| `~/.openclaw/openclaw.json` | Host runtime | Active runtime config used by OpenClaw CLI |
+| `~/.openclaw/workspace-tenant-*` | Tenant runtime state | Per-tenant prompts, memory, and sessions |
+
+Sync template to runtime with strict permissions:
+
+```bash
+mkdir -p ~/.openclaw
+install -m 600 openclaw/openclaw.json ~/.openclaw/openclaw.json
+```
+
+## Current AWCMS Gateway Controls
+
+AWCMS enforces these hardened defaults in `openclaw/openclaw.json`:
 
 ```json
-"gateway": {
-  "bind": "loopback",
-  "auth": {
-    "mode": "token",
-    "rateLimit": {
-      "maxAttempts": 10,
-      "windowMs": 60000,
-      "lockoutMs": 300000,
-      "exemptLoopback": true
-    }
+{
+  "gateway": {
+    "bind": "loopback",
+    "auth": {
+      "mode": "token",
+      "rateLimit": {
+        "maxAttempts": 10,
+        "windowMs": 60000,
+        "lockoutMs": 300000,
+        "exemptLoopback": true
+      }
+    },
+    "trustedProxies": ["127.0.0.1"],
+    "tools": { "deny": ["browser"] }
+  }
+}
+```
+
+- `bind: loopback` keeps the gateway internal by default.
+- `auth.mode: token` enforces authenticated ingress.
+- `rateLimit` throttles brute-force attempts.
+- `tools.deny: ["browser"]` reduces high-risk tool surface.
+
+## Per-Tenant Onboarding Workflow
+
+### 1) Prepare tenant workspace
+
+```bash
+mkdir -p ~/.openclaw/workspace-tenant-<tenant_slug>
+```
+
+### 2) Add tenant agent entry
+
+Add a new object in `agents.list`:
+
+```json
+{
+  "id": "tenant_<tenant_slug>",
+  "workspace": "~/.openclaw/workspace-tenant-<tenant_slug>",
+  "model": {
+    "primary": "anthropic/claude-3-5-sonnet"
   },
-  "trustedProxies": ["127.0.0.1"],
   "tools": {
+    "profile": "messaging",
     "deny": ["browser"]
   }
 }
 ```
 
-- **Bind**: Set to `loopback` (127.0.0.1) so the gateway is strictly internal. Public requests must pass through our reverse proxy.
-- **Auth**: Token-based authentication.
-- **Rate Limiting**: Limits requests to 10 per minute per token. Exceeding this triggers a 5-minute (300,000ms) lockout.
-- **Tool Restrictions**: The `browser` tool is explicitly denied at the gateway level for security.
+### 3) Add channel/account bindings
 
-### 2. Multi-Tenant Agent Isolation
+Bind incoming channel traffic to the same tenant agent:
 
-We define multiple agents within the gateway, each assigned to a specific tenant. This ensures complete isolation of data, context, and capabilities:
+```json
+{
+  "agentId": "tenant_<tenant_slug>",
+  "match": {
+    "channel": "whatsapp",
+    "accountId": "<tenant_whatsapp_account_id>"
+  }
+}
+```
 
-- **Tenant A (`tenant_a`)**:
-  - Primary model: `anthropic/claude-3-5-sonnet`
-  - Workspace: isolated to `~/.openclaw/workspace-tenant-a`
-  - Profile: `coding` tools allowed.
-- **Tenant B (`tenant_b`)**:
-  - Primary model: `anthropic/claude-3-5-sonnet`
-  - Workspace: isolated to `~/.openclaw/workspace-tenant-b`
-  - Profile: `messaging` tools allowed (Slack, Discord).
+Repeat for other channels (Telegram/Slack/Discord) as needed.
 
-### 3. Channel Bindings (Routing)
+### 4) Validate gateway health
 
-OpenClaw automatically routes incoming webhook requests from external platforms to the correct tenant agent based on the channel and account details:
+```bash
+openclaw gateway status
+openclaw health
+openclaw logs --follow
+```
 
-- **WhatsApp** (`accountId: tenant_a_account`) → Routes to `tenant_a`
-- **Telegram** → Routes to `tenant_a`
-- **Slack** → Routes to `tenant_b`
-- **Discord** → Routes to `tenant_b`
+### 5) Smoke-test tenant routing
 
-## Operational Requirements
+```bash
+curl -sS http://127.0.0.1:18789/v1/chat/completions \
+  -H "Authorization: Bearer $OPENCLAW_GATEWAY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "x-openclaw-agent-id: tenant_<tenant_slug>" \
+  -d '{
+    "model": "openclaw",
+    "messages": [{"role":"user","content":"tenant routing check"}]
+  }'
+```
 
-- **Node.js**: OpenClaw requires Node.js **>= 22.12.0**. AWCMS standardizes on environment `v22.22.0`.
-- **Permissions**: The config file `~/.openclaw/openclaw.json` must have `chmod 600` permissions to protect embedded secrets or token structures.
+If successful, logs should show the request served by the target tenant agent/workspace.
+
+## Calling OpenClaw from AWCMS Flows
+
+For event-driven automation (notifications, summaries, workflow signals), AWCMS should call OpenClaw with an explicit tenant agent ID.
+
+Context7-aligned webhook pattern:
+
+```bash
+curl -X POST http://127.0.0.1:18789/hooks/agent \
+  -H "Authorization: Bearer $OPENCLAW_HOOKS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agentId": "tenant_<tenant_slug>",
+    "message": "Summarize today\'s moderation queue",
+    "wakeMode": "now",
+    "deliver": true,
+    "channel": "whatsapp",
+    "to": "+62xxxxxxxxxx",
+    "timeoutSeconds": 120
+  }'
+```
+
+AWCMS integration rules:
+
+- Resolve tenant context from AWCMS (`tenant_id`/`slug`) before calling OpenClaw.
+- Never route without explicit `agentId` for tenant-scoped events.
+- Keep service-role or database secrets out of OpenClaw config/workspaces.
+- Respect ABAC/RLS boundaries; OpenClaw is an orchestration layer, not a bypass layer.
+
+## Operational Runbook
+
+| Task | Action | Verification |
+| --- | --- | --- |
+| Onboard tenant | Create workspace, add `agent`, add `bindings` | Routing smoke test returns from tenant agent |
+| Suspend tenant AI | Remove/disable tenant bindings | Requests no longer reach tenant agent |
+| Rotate gateway token | Update token in runtime environment and restart gateway | Old token returns `401` |
+| Change tenant model/tools | Update `agents.list[]` model or `tools` policy | `openclaw health` + functional prompt test |
+| Audit routing correctness | Review `openclaw logs --follow` during test traffic | Channel/account IDs map to expected agent IDs |
+
+## Security Guardrails
+
+- Keep gateway bound to loopback unless a controlled reverse-proxy path is required.
+- Keep `~/.openclaw/openclaw.json` permissions at `600`.
+- Never commit tokens, channel API keys, or webhook secrets.
+- Keep per-tenant workspaces separate; do not reuse one workspace for multiple tenants.
+- Apply least privilege in `tools.profile` and per-agent `allow`/`deny` lists.
+
+## Troubleshooting
+
+- **Wrong tenant receives messages**: verify `bindings` specificity (`channel` + `accountId`) and `agentId` spelling.
+- **Unauthorized (`401`)**: token mismatch or missing `Authorization` header.
+- **Tool blocked unexpectedly**: check gateway/global `tools.deny` and tenant tool policy.
+- **No response from hooks**: confirm gateway process is healthy and hook endpoint/token are enabled.
+
+## Verified Against
+
+- Context7 library: `openclaw/openclaw` (gateway auth, multi-agent routing, webhook/API patterns)
+- Project configuration: `openclaw/openclaw.json`
+- System constraints: `SYSTEM_MODEL.md` section 1.4
