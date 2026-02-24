@@ -78,6 +78,7 @@ All documentation follows this authority structure:
 | User Management | [docs/modules/USER_MANAGEMENT.md](docs/modules/USER_MANAGEMENT.md) | User lifecycle, profiles, and roles |
 | Theme System | [docs/modules/THEMING.md](docs/modules/THEMING.md) | Theme engine details |
 | Extension System | [docs/modules/EXTENSIONS.md](docs/modules/EXTENSIONS.md) | Plugin and extension architecture |
+| Stitch Import | [docs/modules/STITCH_IMPORT.md](docs/modules/STITCH_IMPORT.md) | Per-tenant Stitch configuration, import modes, and sanitization pipeline |
 
 ### Developer Guides
 
