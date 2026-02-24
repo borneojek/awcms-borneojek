@@ -74,7 +74,8 @@ Describe how the public portal renders tenant content and enforces security cons
 - Registry allow-list prevents unknown components from rendering.
 - All data access must be RLS-scoped and filtered for `deleted_at`.
 - Consent notices are rendered in `awcms-public/primary/src/components/common/ConsentNotice.astro`.
-- HTML content is rendered via `set:html`; ensure stored content is sanitized at write time.
+- HTML content rendered via `set:html` must pass through `awcms-public/primary/src/utils/sanitize.ts`.
+- `PuckRenderer` sanitizes `Html`/`RawHTML` fallback blocks before rendering.
 
 ## Operational Concerns
 

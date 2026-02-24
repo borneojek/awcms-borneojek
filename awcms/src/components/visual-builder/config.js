@@ -5,6 +5,7 @@
 
 import { HeroBlock } from './blocks/HeroBlock';
 import { TextBlock, TextBlockFields } from './blocks/TextBlock';
+import { RawHTMLBlock, RawHTMLBlockFields } from './blocks/RawHTMLBlock';
 import { ImageBlock } from './blocks/ImageBlock';
 import { ButtonBlock, ButtonBlockFields } from './blocks/ButtonBlock';
 import { SpacerBlock, SpacerBlockFields } from './blocks/SpacerBlock';
@@ -183,6 +184,14 @@ export const puckConfig = {
                 textColor: '#000000'
             },
             render: TextBlock
+        },
+        RawHTML: {
+            label: 'Raw HTML (Fallback)',
+            fields: RawHTMLBlockFields,
+            defaultProps: {
+                html: '<p>Imported HTML fallback content.</p>'
+            },
+            render: RawHTMLBlock
         },
         Image: {
             label: 'Image',

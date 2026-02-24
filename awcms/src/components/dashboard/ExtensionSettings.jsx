@@ -4,6 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Save, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -12,11 +14,18 @@ import { usePermissions } from '@/contexts/PermissionContext';
 import { useTenant } from '@/contexts/TenantContext';
 import { encodeRouteParam } from '@/lib/routeSecurity';
 import useSecureRouteParam from '@/hooks/useSecureRouteParam';
+import { useStitchImportConfig } from '@/hooks/useStitchImportConfig';
 
 function ExtensionSettings() {
   const { toast } = useToast();
   const { isPlatformAdmin } = usePermissions();
   const { currentTenant } = useTenant();
+  const {
+    config: stitchConfig,
+    loading: stitchConfigLoading,
+    updateConfig: updateStitchConfig,
+    refresh: refreshStitchConfig,
+  } = useStitchImportConfig();
   const navigate = useNavigate();
   const { id: routeParam } = useParams();
   const { value: extensionId, loading: routeLoading, isLegacy } = useSecureRouteParam(routeParam, 'extensions.settings');
@@ -24,6 +33,13 @@ function ExtensionSettings() {
   const [selectedExtension, setSelectedExtension] = useState(null);
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(false);
+  const [stitchSaving, setStitchSaving] = useState(false);
+  const [stitchDraft, setStitchDraft] = useState({
+    enabled: false,
+    mode: 'html',
+    max_input_kb: 256,
+    allow_raw_html_fallback: true,
+  });
 
   useEffect(() => {
     fetchActiveExtensions();
@@ -44,6 +60,15 @@ function ExtensionSettings() {
     };
     redirectLegacy();
   }, [routeParam, routeLoading, extensionId, isLegacy, navigate]);
+
+  useEffect(() => {
+    setStitchDraft({
+      enabled: !!stitchConfig?.enabled,
+      mode: stitchConfig?.mode || 'html',
+      max_input_kb: Number(stitchConfig?.max_input_kb) || 256,
+      allow_raw_html_fallback: stitchConfig?.allow_raw_html_fallback !== false,
+    });
+  }, [stitchConfig]);
 
   const fetchActiveExtensions = async () => {
     try {
@@ -109,6 +134,64 @@ function ExtensionSettings() {
     }
   };
 
+  const handleSaveStitchSettings = async () => {
+    if (!currentTenant?.id) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing Tenant Context',
+        description: 'Stitch import settings are tenant-specific and require an active tenant.',
+      });
+      return;
+    }
+
+    const parsedMaxInputKb = Number(stitchDraft.max_input_kb);
+    if (!Number.isFinite(parsedMaxInputKb) || parsedMaxInputKb < 16 || parsedMaxInputKb > 4096) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Limit',
+        description: 'Max input size must be between 16KB and 4096KB.',
+      });
+      return;
+    }
+
+    setStitchSaving(true);
+    try {
+      await updateStitchConfig({
+        ...stitchDraft,
+        max_input_kb: Math.round(parsedMaxInputKb),
+      });
+
+      toast({
+        title: 'Stitch Settings Saved',
+        description: 'Tenant Stitch import configuration updated successfully.',
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Save Failed',
+        description: error.message,
+      });
+    } finally {
+      setStitchSaving(false);
+    }
+  };
+
+  const handleReloadStitchSettings = async () => {
+    try {
+      await refreshStitchConfig();
+      toast({
+        title: 'Refreshed',
+        description: 'Latest Stitch import settings loaded.',
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Refresh Failed',
+        description: error.message,
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -160,6 +243,97 @@ function ExtensionSettings() {
             <div className="py-12 text-center text-slate-500">
               Select an extension to view its settings.
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Stitch Import Settings</CardTitle>
+          <CardDescription>Configure tenant-level controls for Stitch import in TipTap and Visual Builder.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {!currentTenant?.id ? (
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              Stitch settings are available only when a tenant context is active.
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between rounded-md border border-slate-200 p-4">
+                <div className="space-y-1">
+                  <Label>Enable Stitch Import</Label>
+                  <p className="text-xs text-slate-500">Show or hide Stitch import entry points for this tenant.</p>
+                </div>
+                <Switch
+                  checked={!!stitchDraft.enabled}
+                  onCheckedChange={(checked) => setStitchDraft((prev) => ({ ...prev, enabled: checked }))}
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Import Mode</Label>
+                  <Select
+                    value={stitchDraft.mode || 'html'}
+                    onValueChange={(modeValue) => setStitchDraft((prev) => ({ ...prev, mode: modeValue }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="html">HTML (Sanitized)</SelectItem>
+                      <SelectItem value="mapped">Mapped Blocks</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="stitch_max_input_kb">Max Input Size (KB)</Label>
+                  <Input
+                    id="stitch_max_input_kb"
+                    type="number"
+                    min={16}
+                    max={4096}
+                    value={stitchDraft.max_input_kb}
+                    onChange={(event) => setStitchDraft((prev) => ({
+                      ...prev,
+                      max_input_kb: event.target.value,
+                    }))}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between rounded-md border border-slate-200 p-4">
+                <div className="space-y-1">
+                  <Label>Allow RawHTML Fallback</Label>
+                  <p className="text-xs text-slate-500">When enabled, unsupported Stitch structures are stored in sanitized RawHTML blocks.</p>
+                </div>
+                <Switch
+                  checked={!!stitchDraft.allow_raw_html_fallback}
+                  onCheckedChange={(checked) => setStitchDraft((prev) => ({ ...prev, allow_raw_html_fallback: checked }))}
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleReloadStitchSettings}
+                  disabled={stitchConfigLoading || stitchSaving}
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${stitchConfigLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleSaveStitchSettings}
+                  disabled={stitchConfigLoading || stitchSaving}
+                >
+                  {stitchSaving ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                  Save Stitch Settings
+                </Button>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

@@ -28,6 +28,7 @@ import PartnersListBlock from "../puck-blocks/PartnersListBlock.astro";
 import TestimonialsListBlock from "../puck-blocks/TestimonialsListBlock.astro";
 import ButtonBlock from "../puck-blocks/ButtonBlock.astro";
 import CardBlock from "../puck-blocks/CardBlock.astro";
+import { getSanitizedRawHtml } from "./puckRendererRawHtml";
 
 export interface Props {
   /** Puck JSON content object */
@@ -319,9 +320,7 @@ const blocks: PuckBlock[] =
         case "Html":
         case "html":
         case "RawHTML": {
-          const html =
-            (props.html as string) || (props.content as string) || "";
-          return <Fragment set:html={html} />;
+          return <Fragment set:html={getSanitizedRawHtml(props)} />;
         }
 
         default: {
