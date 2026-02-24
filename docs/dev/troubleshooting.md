@@ -50,6 +50,8 @@ Provide common fixes for local development and deployment issues.
 
 - Use `supabase migration repair --status reverted <missing_version>`.
 - Re-run `npx supabase db push --local` after repairs.
+- Helper script (safe dry-run by default): `scripts/repair_supabase_migration_history.sh`.
+- Run with `--apply` only after reviewing generated commands.
 
 ### Supabase DB Lint Warning (index_advisor)
 

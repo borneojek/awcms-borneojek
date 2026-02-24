@@ -6,7 +6,8 @@
         "/home/data/dev_react/awcms-dev/awcms-mcp/dist/index.js"
       ],
       "env": {
-        "SUPABASE_ACCESS_TOKEN": "INSERT_OPEN_AI_API_KEY_HERE"
+        "SUPABASE_ACCESS_TOKEN": "{env:SUPABASE_ACCESS_TOKEN}",
+        "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}"
       }
     },
     "context7": {
@@ -16,6 +17,64 @@
         "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}"
       },
       "enabled": true
+    },
+    "cloudflare-api": {
+      "type": "remote",
+      "url": "https://mcp.cloudflare.com/mcp",
+      "enabled": true
+    },
+    "cloudflare-docs": {
+      "type": "remote",
+      "url": "https://docs.mcp.cloudflare.com/mcp",
+      "enabled": true
+    },
+    "cloudflare-bindings": {
+      "type": "remote",
+      "url": "https://bindings.mcp.cloudflare.com/mcp",
+      "enabled": true
+    },
+    "cloudflare-observability": {
+      "type": "remote",
+      "url": "https://observability.mcp.cloudflare.com/mcp",
+      "enabled": true
+    },
+    "cloudflare-builds": {
+      "type": "remote",
+      "url": "https://builds.mcp.cloudflare.com/mcp",
+      "enabled": true
+    },
+    "cloudflare-radar": {
+      "type": "remote",
+      "url": "https://radar.mcp.cloudflare.com/mcp",
+      "enabled": true
+    },
+    "cloudflare-browser": {
+      "type": "remote",
+      "url": "https://browser.mcp.cloudflare.com/mcp",
+      "enabled": true
+    },
+    "github": {
+      "command": "bash",
+      "args": [
+        "/home/data/dev_react/awcms-dev/scripts/start_github_mcp.sh"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "{env:GITHUB_PERSONAL_ACCESS_TOKEN}",
+        "GITHUB_MCP_PERSONAL_ACCESS_TOKEN": "{env:GITHUB_MCP_PERSONAL_ACCESS_TOKEN}",
+        "GH_TOKEN": "{env:GH_TOKEN}",
+        "GITHUB_TOKEN": "{env:GITHUB_TOKEN}"
+      }
+    },
+    "stitch": {
+      "command": "npx",
+      "args": [
+        "@_davideast/stitch-mcp",
+        "proxy"
+      ],
+      "env": {
+        "STITCH_API_KEY": "{env:STITCH_API_KEY}",
+        "STITCH_PROJECT_ID": "{env:STITCH_PROJECT_ID}"
+      }
     }
   }
 }
