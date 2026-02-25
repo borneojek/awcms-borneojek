@@ -16,7 +16,7 @@ const {
 // Map Puck items to FAQs widget props
 // Puck items: { title, content }
 // FAQs items: { title, description }
-const mappedItems = items.map((item) => ({
+const mappedItems = items.map((item: any) => ({
   title: item.title,
   description: item.content,
   icon: "tabler:chevron-right", // Default icon

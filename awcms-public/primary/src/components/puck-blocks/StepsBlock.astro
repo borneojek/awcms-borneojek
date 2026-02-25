@@ -18,7 +18,7 @@ const {
 // Puck items: { title, description, icon }
 // Steps items: { title, description, icon } (Compatible)
 
-const mappedItems = items.map((item) => ({
+const mappedItems = items.map((item: any) => ({
     ...item,
     icon: item.icon || "tabler:check", // Ensure default icon
 }));

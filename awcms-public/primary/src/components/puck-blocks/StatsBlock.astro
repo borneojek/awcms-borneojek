@@ -4,7 +4,7 @@ import Stats from "~/components/widgets/Stats.astro";
 const { items = [], id, isDark, classes, bg } = Astro.props;
 
 // Map Puck items to Stats widget props
-const stats = items.map((item) => ({
+const stats = items.map((item: any) => ({
   amount: item.value,
   title: item.label,
   icon: item.icon || "tabler:users",
