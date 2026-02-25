@@ -49,13 +49,13 @@ jobs:
         run: npm run test -- --run
         env:
           VITE_SUPABASE_URL: "https://mock.supabase.co"
-          VITE_SUPABASE_ANON_KEY: "mock-anon-key"
+          VITE_SUPABASE_PUBLISHABLE_KEY: "mock-publishable-key"
 
       - name: Build
         run: npm run build
         env:
           VITE_SUPABASE_URL: "https://mock.supabase.co"
-          VITE_SUPABASE_ANON_KEY: "mock-anon-key"
+          VITE_SUPABASE_PUBLISHABLE_KEY: "mock-publishable-key"
 
   # ============================================
   # Lint & Build - Public Portal (Astro)
@@ -85,7 +85,7 @@ jobs:
         run: npm run build
         env:
           PUBLIC_SUPABASE_URL: "https://mock.supabase.co"
-          PUBLIC_SUPABASE_ANON_KEY: "mock-anon-key"
+          PUBLIC_SUPABASE_PUBLISHABLE_KEY: "mock-publishable-key"
 
   # ============================================
   # Flutter Build - Mobile App

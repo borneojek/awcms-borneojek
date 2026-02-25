@@ -45,13 +45,13 @@ jobs:
         run: npm run test -- --run
         env:
           VITE_SUPABASE_URL: ${{ secrets['VITE_SUPABASE_URL'] }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets['VITE_SUPABASE_ANON_KEY'] }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets['VITE_SUPABASE_PUBLISHABLE_KEY'] }}
 
       - name: Build
         run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets['VITE_SUPABASE_URL'] }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets['VITE_SUPABASE_ANON_KEY'] }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets['VITE_SUPABASE_PUBLISHABLE_KEY'] }}
 
   # ============================================
   # Lint & Build - Public Portal (Astro)
@@ -81,7 +81,7 @@ jobs:
         run: npm run build
         env:
           PUBLIC_SUPABASE_URL: ${{ secrets['VITE_SUPABASE_URL'] }}
-          PUBLIC_SUPABASE_ANON_KEY: ${{ secrets['VITE_SUPABASE_ANON_KEY'] }}
+          PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets['VITE_SUPABASE_PUBLISHABLE_KEY'] }}
 
   # ============================================
   # Flutter Build - Mobile App
@@ -142,14 +142,14 @@ jobs:
           npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets['VITE_SUPABASE_URL'] }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets['VITE_SUPABASE_ANON_KEY'] }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets['VITE_SUPABASE_PUBLISHABLE_KEY'] }}
 
       - name: Resolve Cloudflare Account
         id: cloudflare-account
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets['CLOUDFLARE_API_TOKEN'] }}
         run: |
-          python - <<'PY'
+          python3 - <<'PY'
           import json
           import os
           import urllib.request
