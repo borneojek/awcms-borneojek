@@ -1,2 +1,0 @@
--- This file was neutralized to resolve local storage schema conflicts.
--- The storage triggers are now managed by the remote Supabase instance and excluded from local migrations via --schema public.

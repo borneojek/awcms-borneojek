@@ -64,6 +64,11 @@ Provide common fixes for local development and deployment issues.
 - After `supabase db reset`, re-apply `supabase/migrations/20260207123000_fix_index_advisor_text_array_init.sql` while connected as `supabase_admin`.
 - Helper script: `awcms/scripts/apply_index_advisor_fix.sh` (requires local Supabase running).
 
+### Supabase Performance Advisor Check (Local)
+
+- For a local FK index check, run: `psql "$SUPABASE_DB_URL" -f supabase/manual/check_advisors.sql`.
+- The result should return `0 rows` for missing FK indexes.
+
 ### Turnstile Errors
 
 - Use the Cloudflare test key for localhost.

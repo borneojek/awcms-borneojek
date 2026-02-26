@@ -1,13 +1,16 @@
+-- Local helper to check FK columns that are missing indexes.
+-- Mirrors the core check used by Supabase Performance Advisor.
+
 -- Step 1: Get all FK columns
 CREATE TEMP TABLE fk_cols AS
-SELECT c.conrelid::regclass::text as tbl, a.attname as col, c.conname as fk, c.conrelid as relid, a.attnum as anum
+SELECT c.conrelid::regclass::text AS tbl, a.attname AS col, c.conname AS fk, c.conrelid AS relid, a.attnum AS anum
 FROM pg_constraint c
 JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY(c.conkey)
 WHERE c.contype = 'f' AND c.connamespace = 'public'::regnamespace;
 
 -- Step 2: Get all indexed columns
 CREATE TEMP TABLE idx_cols AS
-SELECT i.indrelid as relid, a.attnum as anum
+SELECT i.indrelid AS relid, a.attnum AS anum
 FROM pg_index i
 JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey);
 

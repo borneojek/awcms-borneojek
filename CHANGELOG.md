@@ -5,6 +5,18 @@ All notable changes to the **AWCMS** project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- **Ops Docs**: Replaced references to `DOCUMENTATION_UPDATE_SUMMARY.md` with `CHANGELOG.md` in documentation audit plans.
+- **Troubleshooting**: Added local Performance Advisor FK index check runbook using `supabase/manual/check_advisors.sql`.
+- **Setup Runbook**: Added `scripts/verify_supabase_function_consistency.sh` to the operational script matrix.
+
+### Removed
+
+- **Unused Migrations**: Removed obsolete backup-only migration files from `awcms/supabase/migrations_backup/`.
+- **Unused Scripts**: Removed legacy one-off scripts in `awcms/scripts/` that were not part of active runbooks or package scripts.
+- **Unused Docs/Artifacts**: Removed stale summary artifacts (`ASTRO_V5_UPGRADE_SUMMARY.md`, `DOCUMENTATION_UPDATE_SUMMARY.md`, `REFACTORING_COMPLETION_SUMMARY.md`, `awcms/analysis_report.md`) and retired root-level ad-hoc SQL checks in favor of `supabase/manual/check_advisors.sql`.
+
 ## [2.32.0] "OpenClaw Gateway" - 2026-02-23
 
 ### Security

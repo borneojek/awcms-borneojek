@@ -122,7 +122,7 @@ Run a repository-wide audit and revision cycle so docs always match current:
 
 - Resolve cross-doc inconsistencies and duplicated contradictory guidance.
 - Mirror key updates into `awcms.wiki/**` where applicable.
-- Update `DOCUMENTATION_UPDATE_SUMMARY.md` with the change set.
+- Record significant documentation changes in `CHANGELOG.md`.
 
 ## Mandatory Checklists
 
@@ -147,7 +147,7 @@ Run a repository-wide audit and revision cycle so docs always match current:
 
 1. Updated docs across all scoped tiers.
 2. Updated `DOCS_INDEX.md` entries and descriptions.
-3. Updated `DOCUMENTATION_UPDATE_SUMMARY.md` entry for this audit cycle.
+3. Updated `CHANGELOG.md` entry for this audit cycle when changes are significant.
 4. Wiki synchronization (`awcms.wiki/**`) for user-facing governance/operational docs.
 
 ## Validation Commands
