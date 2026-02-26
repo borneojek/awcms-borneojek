@@ -1,6 +1,7 @@
 import React from 'react';
 import { usePermissions } from '@/contexts/PermissionContext';
 import { useTenant } from '@/contexts/TenantContext';
+import { cn } from '@/lib/utils';
 
 const AdminPageLayout = ({
     requiredPermission,
@@ -27,16 +28,19 @@ const AdminPageLayout = ({
 
     if (!permLoading && !hasAccess) {
         return (
-            <div className="p-4 mb-4 text-sm text-destructive rounded-lg bg-destructive/10" role="alert">
-                <span className="font-medium">Access Denied!</span> You do not have permission to view this page.
+            <div
+                className="mb-4 rounded-2xl border border-destructive/25 bg-destructive/8 px-4 py-3 text-sm text-destructive shadow-sm"
+                role="alert"
+            >
+                <span className="font-semibold">Access denied.</span> You do not have permission to view this page.
             </div>
         );
     }
 
     if (isLoading) {
         return (
-            <div className="grid min-h-[400px] place-items-center">
-                <div className="text-center">
+            <div className="grid min-h-[420px] place-items-center rounded-2xl border border-border/60 bg-card/55 p-8 backdrop-blur-sm">
+                <div className="text-center text-muted-foreground">
                     <div role="status">
                         <svg aria-hidden="true" className="inline w-8 h-8 text-muted-foreground animate-spin fill-primary" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor" />
@@ -44,18 +48,24 @@ const AdminPageLayout = ({
                         </svg>
                         <span className="sr-only">Loading...</span>
                     </div>
+                    <p className="mt-3 text-sm font-medium">Loading module data...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className={`relative overflow-hidden dashboard-surface dashboard-surface-hover backdrop-blur-sm p-6 sm:p-8 ${className}`}>
+        <div
+            className={cn(
+                "relative overflow-hidden rounded-2xl border border-border/60 bg-card/70 p-6 shadow-sm backdrop-blur-sm sm:p-8",
+                className
+            )}
+        >
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.12),_transparent_60%)] dark:bg-[radial-gradient(circle_at_top,_rgba(79,70,229,0.18),_transparent_55%)]" />
             <div className="relative z-10">
                 {showTenantBadge && isPlatformAdmin && currentTenant && (
                     <div className="mb-4">
-                        <span className="bg-primary/10 text-primary text-xs font-medium mr-2 px-2.5 py-0.5 rounded">
+                        <span className="mr-2 inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
                             Tenant: {currentTenant.name}
                         </span>
                     </div>

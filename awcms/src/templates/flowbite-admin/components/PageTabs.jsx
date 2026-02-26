@@ -26,29 +26,31 @@ export function PageTabs({ value, onValueChange, tabs, children, className }) {
             <div className={cn("w-full", className)}>
                 {/* Tab List */}
                 {tabs && tabs.length > 0 && (
-                    <div className="flex gap-1 border-b border-slate-200 dark:border-slate-700 mb-6 overflow-x-auto">
-                        {tabs.map((tab) => {
-                            const isActive = value === tab.value;
-                            const Icon = tab.icon;
+                    <div className="mb-6 overflow-x-auto rounded-2xl border border-border/60 bg-card/60 p-1.5 shadow-sm">
+                        <div className="flex min-w-max items-center gap-1">
+                            {tabs.map((tab) => {
+                                const isActive = value === tab.value;
+                                const Icon = tab.icon;
 
-                            return (
-                                <button
-                                    key={tab.value}
-                                    type="button"
-                                    onClick={() => onValueChange(tab.value)}
-                                    className={cn(
-                                        "px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors relative flex items-center gap-2",
-                                        "focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-t-md",
-                                        isActive
-                                            ? "text-primary border-b-2 border-primary -mb-px bg-background"
-                                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                                    )}
-                                >
-                                    {Icon && <Icon className="w-4 h-4" />}
-                                    {tab.label}
-                                </button>
-                            );
-                        })}
+                                return (
+                                    <button
+                                        key={tab.value}
+                                        type="button"
+                                        onClick={() => onValueChange(tab.value)}
+                                        className={cn(
+                                            "relative flex items-center gap-2 whitespace-nowrap rounded-xl border px-4 py-2.5 text-sm font-medium transition-all",
+                                            "focus:outline-none focus:ring-2 focus:ring-primary/20",
+                                            isActive
+                                                ? "border-border/70 bg-background text-foreground shadow-sm"
+                                                : "border-transparent text-muted-foreground hover:border-border/70 hover:bg-accent/60 hover:text-foreground"
+                                        )}
+                                    >
+                                        {Icon && <Icon className="w-4 h-4" />}
+                                        {tab.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                 )}
 
@@ -86,7 +88,7 @@ export function TabsContent({ value, children, className }) {
 export function TabsList({ children, className }) {
     return (
         <div className={cn(
-            "flex gap-1 border-b border-slate-200 dark:border-slate-700 mb-6 overflow-x-auto",
+            "mb-6 flex overflow-x-auto rounded-2xl border border-border/60 bg-card/60 p-1.5 shadow-sm",
             className
         )}>
             {children}
@@ -109,11 +111,11 @@ export function TabsTrigger({ value, children, className }) {
             type="button"
             onClick={() => setActiveTab(value)}
             className={cn(
-                "px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors relative",
-                "focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-t-md",
+                "relative whitespace-nowrap rounded-xl border px-4 py-2.5 text-sm font-medium transition-all",
+                "focus:outline-none focus:ring-2 focus:ring-primary/20",
                 isActive
-                    ? "text-primary border-b-2 border-primary -mb-px bg-background"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50",
+                    ? "border-border/70 bg-background text-foreground shadow-sm"
+                    : "border-transparent text-muted-foreground hover:border-border/70 hover:bg-accent/60 hover:text-foreground",
                 className
             )}
         >

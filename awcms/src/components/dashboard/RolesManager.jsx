@@ -1,29 +1,21 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ContentTable from '@/components/dashboard/ContentTable';
 import { usePermissions } from '@/contexts/PermissionContext';
-import { sanitizeHTML } from '@/utils/sanitize';
 // Standard Permissions: tenant.role.read, tenant.role.create, tenant.role.update, tenant.role.delete
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
 import { Button } from '@/components/ui/button';
-import { Plus, Shield, RefreshCw, Trash2, Crown } from 'lucide-react';
+import { Plus, Shield, RefreshCw, Crown } from 'lucide-react';
 import { AdminPageLayout, PageHeader } from '@/templates/flowbite-admin';
 import { useSearch } from '@/hooks/useSearch';
-import MinCharSearchInput from '@/components/common/MinCharSearchInput';
 import { useTranslation } from 'react-i18next';
 import { encodeRouteParam } from '@/lib/routeSecurity';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
+import RolesDeleteDialog from '@/components/dashboard/roles/RolesDeleteDialog';
+import RolesOverviewCards from '@/components/dashboard/roles/RolesOverviewCards';
+import RolesSearchToolbar from '@/components/dashboard/roles/RolesSearchToolbar';
+import RolesTableSection from '@/components/dashboard/roles/RolesTableSection';
 
 import { useTenant } from '@/contexts/TenantContext';
 
@@ -149,42 +141,59 @@ function RolesManager() {
       role.description?.toLowerCase().includes(lower);
   });
 
+  const totalRoles = roles.length;
+  const visibleRoles = filteredRoles.length;
+  const privilegedRoles = roles.filter((role) => role.is_platform_admin || role.is_full_access).length;
+  const searchActive = Boolean(debouncedQuery);
+
   const columns = [
     {
       key: 'name',
       label: t('roles.columns.name'),
-      className: 'font-bold w-[200px]',
+      className: 'min-w-[220px]',
       render: (name, row) => (
-        <div className="flex items-center gap-2">
-          <Shield className={`w-4 h-4 ${row.is_full_access || row.is_platform_admin ? 'text-primary' : 'text-muted-foreground'}`} />
-          {(row.is_platform_admin || row.is_full_access) && <Crown className="w-4 h-4 text-amber-500 fill-amber-500" />}
-          <span>{name}</span>
-          {(row.is_platform_admin || row.is_full_access) && (
-            <span className="bg-primary/10 text-primary text-[10px] px-1.5 py-0.5 rounded-full uppercase font-bold border border-primary/20">
-              {t('roles.badges.tenant_root')}
-            </span>
-          )}
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-2">
+            <Shield className={cn('h-4 w-4', row.is_full_access || row.is_platform_admin ? 'text-primary' : 'text-muted-foreground')} />
+            <span className="text-sm font-semibold text-foreground">{name}</span>
+            {(row.is_platform_admin || row.is_full_access) && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-500">
+                <Crown className="h-3 w-3 fill-amber-500 text-amber-500" />
+                {t('roles.badges.tenant_root')}
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] text-muted-foreground">ID: {row.id?.slice(0, 8) || '-'}</p>
         </div>
       )
     },
-    { key: 'description', label: t('roles.columns.description'), className: 'text-muted-foreground' },
+    {
+      key: 'description',
+      label: t('roles.columns.description'),
+      className: 'min-w-[220px]',
+      render: (value) => (
+        <span className="text-sm text-muted-foreground">{value || t('common.not_set', 'Not set')}</span>
+      )
+    },
     {
       key: 'permissions_count',
       label: t('roles.columns.permissions'),
-      className: 'text-center w-[120px]',
+      className: 'min-w-[160px]',
       render: (_, row) => {
         const count = row.role_permissions ? row.role_permissions[0]?.count : 0;
         if (row.is_full_access || row.is_platform_admin) {
-          return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">{t('roles.badges.all_access')} ({count || '∞'})</span>;
+          return <span className="inline-flex items-center rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">{t('roles.badges.all_access')} ({count || '∞'})</span>;
         }
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-secondary text-secondary-foreground">{count || 0} {t('roles.columns.permissions')}</span>;
+        return <span className="inline-flex items-center rounded-full border border-border/70 bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">{count || 0} {t('roles.columns.permissions')}</span>;
       }
     },
     {
       key: 'owner',
       label: t('roles.columns.created_by'),
-      className: 'text-muted-foreground text-xs',
-      render: (_, row) => row.owner?.email || '-'
+      className: 'min-w-[170px]',
+      render: (_, row) => (
+        <span className="text-xs text-muted-foreground">{row.owner?.email || '-'}</span>
+      )
     }
   ];
 
@@ -192,26 +201,34 @@ function RolesManager() {
     columns.push({
       key: 'tenant_id',
       label: t('roles.columns.tenant'),
-      className: 'text-xs text-slate-500',
-      render: (tid, row) => row.tenant?.name || (tid ? 'Unknown Tenant' : t('common.global'))
+      className: 'min-w-[150px]',
+      render: (tid, row) => row.tenant?.name ? (
+        <span className="inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+          {row.tenant.name}
+        </span>
+      ) : (
+        <span className="inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+          {tid ? 'Unknown Tenant' : t('common.global')}
+        </span>
+      )
     });
   }
 
   // Header actions for PageHeader
   const headerActions = (
-    <div className="flex gap-2">
+    <div className="flex items-center gap-2">
       <Button
         variant="outline"
-        size="icon"
         onClick={fetchRoles}
         title={t('common.refresh')}
-        className="h-10 w-10 border-slate-200/70 bg-white/70 hover:bg-white shadow-sm"
+        className="h-10 rounded-xl border-border/70 bg-background/80 px-3 text-muted-foreground shadow-sm hover:bg-accent/70 hover:text-foreground"
       >
-        <RefreshCw className="w-4 h-4" />
+        <RefreshCw className={cn('mr-1.5 h-4 w-4', loading && 'animate-spin')} />
+        <span className="hidden sm:inline">{t('common.refresh')}</span>
       </Button>
       {canCreate && (
-        <Button onClick={() => navigate('/cmspanel/roles/new')} className="bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm">
-          <Plus className="w-4 h-4 mr-2" /> {t('roles.create_role')}
+        <Button onClick={() => navigate('/cmspanel/roles/new')} className="h-10 rounded-xl bg-primary px-4 text-primary-foreground shadow-sm hover:opacity-95">
+          <Plus className="mr-2 h-4 w-4" /> {t('roles.create_role')}
         </Button>
       )}
     </div>
@@ -220,78 +237,68 @@ function RolesManager() {
   // Breadcrumbs for PageHeader
   const breadcrumbs = [{ label: t('roles.title'), icon: Shield }];
 
-  if (!canView) return <div className="p-8 text-center text-slate-500">{t('common.access_denied')}</div>;
+  if (!canView) {
+    return (
+      <div className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl border border-border/60 bg-card/70 p-8 text-center text-muted-foreground shadow-sm">
+        {t('common.access_denied')}
+      </div>
+    );
+  }
 
   return (
     <AdminPageLayout requiredPermission="tenant.role.read">
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Trash2 className="w-5 h-5 text-red-500" />
-              {t('roles.delete.title')}
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3">
-                <p dangerouslySetInnerHTML={{ __html: sanitizeHTML(t('roles.delete.confirm', { name: roleToDelete?.name })) }} />
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-800 text-sm">
-                  <p className="font-medium mb-1">⚠️ {t('common.error')}:</p>
-                  <p>{t('roles.delete.warning_users')}</p>
-                </div>
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
-                  <p className="font-medium">🚫 {t('common.error')}:</p>
-                  <p>{t('roles.delete.warning_restore')}</p>
-                </div>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {t('common.move_to_trash')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <RolesDeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        roleToDelete={roleToDelete}
+        onConfirm={handleConfirmDelete}
+        t={t}
+      />
 
-      <>
-        <PageHeader
-          title={t('roles.title')}
-          description={t('roles.subtitle')}
-          icon={Shield}
-          breadcrumbs={breadcrumbs}
-          actions={headerActions}
+      <PageHeader
+        title={t('roles.title')}
+        description={t('roles.subtitle')}
+        icon={Shield}
+        breadcrumbs={breadcrumbs}
+        actions={headerActions}
+      />
+
+      <RolesOverviewCards
+        t={t}
+        totalRoles={totalRoles}
+        visibleRoles={visibleRoles}
+        privilegedRoles={privilegedRoles}
+        searchActive={searchActive}
+        debouncedQuery={debouncedQuery}
+      />
+
+      <div className="dashboard-surface dashboard-surface-hover overflow-hidden">
+        <RolesSearchToolbar
+          t={t}
+          query={query}
+          setQuery={setQuery}
+          clearSearch={clearSearch}
+          loading={loading}
+          searchLoading={searchLoading}
+          isSearchValid={isSearchValid}
+          searchMessage={searchMessage}
+          minLength={minLength}
+          totalRoles={totalRoles}
+          visibleRoles={visibleRoles}
+          searchActive={searchActive}
+          onRefresh={fetchRoles}
         />
 
-        <div className="dashboard-surface dashboard-surface-hover overflow-hidden">
-          <div className="p-4 border-b border-slate-200/60 bg-slate-50/70">
-            <div className="max-w-sm">
-              <MinCharSearchInput
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                onClear={clearSearch}
-                loading={loading || searchLoading}
-                isValid={isSearchValid}
-                message={searchMessage}
-                minLength={minLength}
-                placeholder={t('common.search_resource', { resource: t('roles.title') })}
-              />
-            </div>
-          </div>
-
-          <ContentTable
-            data={filteredRoles}
-            columns={columns}
-            loading={loading}
-            onEdit={canEdit ? (role) => handleEdit(role) : null}
-            onDelete={canDelete ? (role) => openDeleteDialog(role) : null}
-          />
-        </div>
-      </>
+        <RolesTableSection
+          data={filteredRoles}
+          columns={columns}
+          loading={loading}
+          canEdit={canEdit}
+          canDelete={canDelete}
+          onEdit={handleEdit}
+          onDelete={openDeleteDialog}
+        />
+      </div>
     </AdminPageLayout>
   );
 }

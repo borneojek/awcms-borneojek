@@ -1,53 +1,78 @@
-import React, { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import {
-    Search
-} from 'lucide-react';
+import { Search, LayoutGrid, X, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAdminMenu } from '@/hooks/useAdminMenu';
 import { useTranslation } from 'react-i18next';
 import { usePermissions } from '@/contexts/PermissionContext';
 import { useTenant } from '@/contexts/TenantContext';
-import { checkTierAccess } from '@/lib/tierFeatures';
 import { getIconComponent } from '@/lib/adminIcons';
 import { filterMenuItemsForSidebar } from '@/lib/adminMenuUtils';
 
-const SidebarItem = ({ href, icon: Icon, label, active }) => (
+const SidebarItem = ({ href, icon: Icon, label, active, onClick }) => (
     <li>
         <Link
             to={href}
+            onClick={onClick}
             className={cn(
-                "flex items-center p-2 text-base text-foreground rounded-lg hover:bg-accent group",
-                active && "bg-accent"
+                "group relative flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all",
+                active
+                    ? "border-primary/25 bg-primary/10 text-primary shadow-sm"
+                    : "border-transparent text-muted-foreground hover:border-border/70 hover:bg-accent/60 hover:text-foreground"
             )}
         >
-            {Icon && <Icon className="w-6 h-6 text-muted-foreground transition duration-75 group-hover:text-foreground" />}
-            <span className="ml-3 truncate">{label}</span>
+            {active && (
+                <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-primary" />
+            )}
+
+            <span
+                className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors",
+                    active
+                        ? "border-primary/20 bg-primary/15"
+                        : "border-border/50 bg-card/70 group-hover:border-border"
+                )}
+            >
+                {Icon && (
+                    <Icon
+                        className={cn(
+                            "h-4 w-4 transition-colors",
+                            active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                        )}
+                    />
+                )}
+            </span>
+
+            <span className="truncate">{label}</span>
+            <ChevronRight
+                className={cn(
+                    "ml-auto h-4 w-4 shrink-0 transition-opacity",
+                    active ? "opacity-100 text-primary" : "opacity-0 text-muted-foreground group-hover:opacity-100"
+                )}
+            />
         </Link>
     </li>
 );
-
-
 
 const Sidebar = ({ isOpen, onClose }) => {
     const location = useLocation();
     const { t } = useTranslation();
     const { menuItems, loading } = useAdminMenu();
     const { hasPermission, hasAnyPermission, isPlatformAdmin, isFullAccess, userRole } = usePermissions();
-    const { currentTenant } = useTenant(); // Added
-
-    // Path cleanup logic (same as other Sidebar)
+    const { currentTenant } = useTenant();
 
     const [searchQuery, setSearchQuery] = useState('');
 
     const isActive = (path) => {
-        if (!path) return false;
-        // Exact match or sub-path
-        return location.pathname === `/cmspanel/${path}` || location.pathname.startsWith(`/cmspanel/${path}/`);
+        const normalizedPath = (path || '').replace(/^\/+|\/+$/g, '');
+        if (!normalizedPath || normalizedPath === 'home') {
+            return location.pathname === '/cmspanel' || location.pathname === '/cmspanel/';
+        }
+
+        return location.pathname === `/cmspanel/${normalizedPath}` || location.pathname.startsWith(`/cmspanel/${normalizedPath}/`);
     };
 
-    // Filter and Group Logic
-    const groupedMenus = React.useMemo(() => {
+    const groupedMenus = useMemo(() => {
         if (loading) return {};
 
         const authorizedItems = filterMenuItemsForSidebar({
@@ -57,7 +82,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             isPlatformAdmin,
             isFullAccess,
             subscriptionTier: currentTenant?.subscription_tier,
-            userRole, // explicit pass
+            userRole,
             loading
         });
 
@@ -82,7 +107,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         Object.keys(groups).forEach(key => groups[key].items.sort((a, b) => a.order - b.order));
 
         return groups;
-    }, [menuItems, loading, isPlatformAdmin, isFullAccess, hasPermission, hasAnyPermission, searchQuery, t, currentTenant?.subscription_tier]);
+    }, [menuItems, loading, isPlatformAdmin, isFullAccess, hasPermission, hasAnyPermission, searchQuery, t, userRole, currentTenant?.subscription_tier]);
 
     const sortedGroupKeys = Object.keys(groupedMenus).sort((a, b) =>
         groupedMenus[a].order - groupedMenus[b].order
@@ -101,83 +126,121 @@ const Sidebar = ({ isOpen, onClose }) => {
             <aside
                 id="sidebar"
                 className={cn(
-                    "fixed top-0 left-0 z-20 flex flex-col flex-shrink-0 w-64 h-full pt-16 font-normal duration-200 transition-transform",
-                    "bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700",
+                    "fixed top-0 left-0 z-30 h-full w-64 pt-16 transition-transform duration-200",
+                    "border-r border-border/70 bg-card/85 text-foreground shadow-xl shadow-slate-900/5 backdrop-blur-xl dark:shadow-black/25",
                     isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
                 )}
                 aria-label="Sidebar"
             >
-                <div className="relative flex flex-col flex-1 min-h-0 pt-0 bg-white dark:bg-slate-900">
-                    <div className="flex flex-col flex-1 pt-5 pb-28 overflow-y-auto scrollbar scrollbar-w-2 scrollbar-thumb-rounded-[0.1667rem] scrollbar-thumb-slate-200 scrollbar-track-gray-400 dark:scrollbar-thumb-slate-900 dark:scrollbar-track-gray-800">
-                        <div className="flex-1 px-3 space-y-1 bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-700">
-                            {/* Search Input */}
-                            <div className="pb-4">
-                                <label htmlFor="sidebar-search" className="sr-only">Search</label>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                        <Search className="w-5 h-5 text-muted-foreground" />
-                                    </div>
-                                    <input
-                                        type="text"
-                                        name="search"
-                                        id="sidebar-search"
-                                        className="block w-full pl-10 p-2.5 text-sm rounded-lg focus:ring-primary focus:border-primary transition-colors !bg-slate-950/50 !text-slate-200 !border-slate-800 placeholder:text-slate-500"
-                                        placeholder={t('sidebar.search_placeholder', 'Search')}
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                    />
-                                </div>
+                <div className="pointer-events-none absolute inset-x-0 top-16 h-20 bg-[radial-gradient(240px_80px_at_10%_0%,rgba(59,130,246,0.16),transparent_70%)] dark:bg-[radial-gradient(240px_80px_at_10%_0%,rgba(37,99,235,0.26),transparent_70%)]" />
+
+                <div className="relative flex h-full min-h-0 flex-col">
+                    <div className="flex h-16 items-center justify-between border-b border-border/60 px-4">
+                        <Link
+                            to="/cmspanel"
+                            onClick={() => {
+                                if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                                    onClose();
+                                }
+                            }}
+                            className="flex items-center gap-2.5"
+                        >
+                            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 via-blue-500 to-indigo-600 text-white shadow-sm shadow-blue-500/35">
+                                <LayoutGrid className="h-4 w-4" />
+                            </span>
+                            <span>
+                                <span className="block text-sm font-semibold tracking-tight">AWCMS</span>
+                                <span className="block text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Admin</span>
+                            </span>
+                        </Link>
+
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
+                            aria-label="Close sidebar"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
+
+                    <div className="px-3 pt-4">
+                        <label htmlFor="sidebar-search" className="sr-only">Search</label>
+                        <div className="relative">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <Search className="h-4 w-4 text-muted-foreground" />
                             </div>
+                            <input
+                                type="text"
+                                name="search"
+                                id="sidebar-search"
+                                className="block w-full rounded-xl border border-border/70 bg-muted/40 p-2.5 pl-10 text-sm text-foreground placeholder:text-muted-foreground/80 transition-colors focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                placeholder={t('sidebar.search_placeholder', 'Search')}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                    </div>
 
-                            {/* Dynamic Menu Rendering */}
-                            <ul className="pb-2 space-y-2">
-                                {loading && (
-                                    <div className="space-y-4 px-2">
-                                        {[1, 2, 3].map(i => (
-                                            <div key={i} className="h-10 w-full bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
-                                        ))}
-                                    </div>
-                                )}
+                    <div className="custom-scrollbar flex-1 overflow-y-auto px-3 pb-6 pt-4">
+                        <ul className="space-y-2 pb-2">
+                            {loading && (
+                                <div className="space-y-4 px-2">
+                                    {[1, 2, 3].map(i => (
+                                        <div key={i} className="h-10 w-full rounded-xl bg-muted/60 animate-pulse" />
+                                    ))}
+                                </div>
+                            )}
 
-                                {!loading && sortedGroupKeys.map(groupLabel => {
-                                    const group = groupedMenus[groupLabel];
-                                    // Identify if we want to render groups as labeled sections or collapsible
-                                    // For Flowbite theme, typically acts as a list. Warning: Flowbite sidebar design is flat or nested? 
-                                    // The updated design supports groups. Let's just render a divider title if needed, 
-                                    // or just render items.
-                                    // However, the previous hardcoded menu had nested Dropdowns. 
-                                    // Our dynamic structure is flat list with groups. 
-                                    // To match the previous UX ("Content" -> "Blogs"), we might need to map groups to Dropdowns?
-                                    // OR, we just render headers for groups.
-
-                                    // Option A: Render Group Header and Items
-                                    return (
-                                        <div key={groupLabel} className="pt-2">
-                                            {groupLabel !== 'General' && (
-                                                <h3 className="px-2 pb-2 text-xs font-semibold text-gray-500 uppercase dark:text-gray-400">
+                            {!loading && sortedGroupKeys.map(groupLabel => {
+                                const group = groupedMenus[groupLabel];
+                                return (
+                                    <div key={groupLabel} className="pt-2">
+                                        {groupLabel !== 'General' && (
+                                            <div className="mb-2 flex items-center gap-2 px-2">
+                                                <span className="h-px flex-1 bg-border/70" />
+                                                <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/90">
                                                     {groupLabel}
                                                 </h3>
-                                            )}
+                                                <span className="h-px flex-1 bg-border/70" />
+                                            </div>
+                                        )}
+
+                                        <ul className="space-y-1">
                                             {group.items.map(item => {
                                                 const Icon = getIconComponent(item.icon);
-                                                // Assuming flat structure for now as per `useAdminMenu` output
-                                                // If `useAdminMenu` returns a flat list (which it does), we render them.
                                                 return (
                                                     <SidebarItem
                                                         key={item.id}
-                                                        href={`/cmspanel/${item.path}`}
+                                                        href={item.path ? `/cmspanel/${item.path}` : '/cmspanel'}
                                                         icon={Icon}
                                                         label={t(`menu.${item.key}`, item.label)}
                                                         active={isActive(item.path)}
+                                                        onClick={() => {
+                                                            if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                                                                onClose();
+                                                            }
+                                                        }}
                                                     />
                                                 );
                                             })}
-                                        </div>
-                                    )
-                                })}
-                            </ul>
-                        </div>
+                                        </ul>
+                                    </div>
+                                );
+                            })}
+                        </ul>
                     </div>
+
+                    {isPlatformAdmin && currentTenant && (
+                        <div className="border-t border-border/60 px-3 py-3">
+                            <div className="rounded-xl border border-primary/25 bg-primary/10 px-3 py-2 text-xs text-primary">
+                                <p className="font-semibold uppercase tracking-[0.1em]">Active Tenant</p>
+                                <p className="mt-0.5 truncate text-sm font-medium normal-case tracking-normal text-foreground">
+                                    {currentTenant.name || 'Primary Tenant'}
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </aside>
         </>

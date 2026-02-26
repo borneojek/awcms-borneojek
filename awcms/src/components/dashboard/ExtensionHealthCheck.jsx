@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback as _useCallback} from 'react';
+import { useState, useEffect } from 'react';
 import { Activity, CheckCircle, XCircle, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -76,10 +76,10 @@ function ExtensionHealthCheck() {
    return (
       <div className="space-y-6">
          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="md:col-span-2">
+            <Card className="md:col-span-2 border-border/60 bg-card/75">
                <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                     <Activity className="w-5 h-5 text-blue-600" />
+                     <Activity className="h-5 w-5 text-primary" />
                      System Health Diagnosis
                   </CardTitle>
                   <CardDescription>Run self-diagnostics to ensure extension system integrity.</CardDescription>
@@ -87,32 +87,32 @@ function ExtensionHealthCheck() {
                <CardContent>
                   <div className="space-y-6">
                      {checks.map((check, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <div key={idx} className="flex items-center justify-between rounded-xl border border-border/60 bg-card/65 p-3">
                            <div className="flex items-center gap-3">
-                              {check.status === 'pending' && <div className="w-4 h-4 rounded-full bg-slate-300" />}
-                              {check.status === 'running' && <div className="w-4 h-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />}
-                              {check.status === 'ok' && <CheckCircle className="w-5 h-5 text-green-500" />}
-                              {check.status === 'error' && <XCircle className="w-5 h-5 text-red-500" />}
-                              <span className="font-medium text-slate-700">{check.name}</span>
+                              {check.status === 'pending' && <div className="h-4 w-4 rounded-full bg-muted" />}
+                              {check.status === 'running' && <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />}
+                              {check.status === 'ok' && <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
+                              {check.status === 'error' && <XCircle className="h-5 w-5 text-destructive" />}
+                              <span className="font-medium text-foreground">{check.name}</span>
                            </div>
-                           <span className="text-xs uppercase font-bold text-slate-400">{check.status}</span>
+                           <span className="text-xs font-bold uppercase text-muted-foreground">{check.status}</span>
                         </div>
                      ))}
 
-                     <Button onClick={runDiagnosis} disabled={checking} className="w-full">
+                     <Button onClick={runDiagnosis} disabled={checking} className="w-full rounded-xl bg-primary text-primary-foreground hover:opacity-95">
                         {checking ? 'Running Diagnostics...' : 'Re-run Diagnostics'}
                      </Button>
                   </div>
                </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none">
+            <Card className="border-border/60 bg-gradient-to-br from-foreground to-foreground/90 text-primary-foreground">
                <CardContent className="flex flex-col items-center justify-center h-full p-6 text-center">
-                  <ShieldCheck className="w-16 h-16 text-green-400 mb-4" />
+                  <ShieldCheck className="mb-4 h-16 w-16 text-emerald-400" />
                   <div className="text-4xl font-bold mb-2">{healthScore}%</div>
-                  <div className="text-slate-300 mb-6">System Operational</div>
-                  <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
-                     <Progress value={healthScore} className="h-full bg-slate-900 [&>div]:bg-green-500" />
+                  <div className="mb-6 text-primary-foreground/80">System Operational</div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-primary-foreground/20">
+                     <Progress value={healthScore} className="h-full bg-transparent [&>div]:bg-emerald-400" />
                   </div>
                </CardContent>
             </Card>

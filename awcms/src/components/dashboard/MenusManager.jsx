@@ -1,25 +1,21 @@
 
 import { useState, useEffect } from 'react';
-import { Reorder } from 'framer-motion';
-import { GripVertical, Plus, Save, Trash2, Lock, Edit, ChevronRight, ChevronDown, RefreshCw, Menu, LayoutTemplate } from 'lucide-react';
+import { Plus, Save, RefreshCw, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
 import { usePermissions } from '@/contexts/PermissionContext';
 import { useTenant } from '@/contexts/TenantContext';
-import { PUBLIC_MODULES, getModulesByGroup } from '@/lib/publicModuleRegistry';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { PUBLIC_MODULES } from '@/lib/publicModuleRegistry';
 import { AdminPageLayout, PageHeader } from '@/templates/flowbite-admin';
 import { SUPPORTED_LOCALES } from '@/lib/i18n';
+import MenusOverviewCards from '@/components/dashboard/menus/MenusOverviewCards';
+import MenusLocaleSelector from '@/components/dashboard/menus/MenusLocaleSelector';
+import MenusLocationSelector from '@/components/dashboard/menus/MenusLocationSelector';
+import MenusTreePanel from '@/components/dashboard/menus/MenusTreePanel';
+import MenuItemDialog from '@/components/dashboard/menus/MenuItemDialog';
+import MenuPermissionsDialog from '@/components/dashboard/menus/MenuPermissionsDialog';
+import MenuDeleteDialog from '@/components/dashboard/menus/MenuDeleteDialog';
 
 // Available Menu Locations
 const MENU_LOCATIONS = [
@@ -51,6 +47,7 @@ function MenusManager() {
   const [isPermEditorOpen, setIsPermEditorOpen] = useState(false);
   const [selectedMenuPerms, setSelectedMenuPerms] = useState(null);
   const [menuPermissions, setMenuPermissions] = useState({});
+  const [menuToDelete, setMenuToDelete] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [selectedModule, setSelectedModule] = useState('');
 
@@ -208,6 +205,7 @@ function MenusManager() {
 
   const handleEdit = (menu) => {
     setEditingMenu(menu);
+    setSelectedModule('');
     if (menu) {
       // Ensure boolean values are properly set when editing existing menu
       setMenuFormData({
@@ -296,13 +294,19 @@ function MenusManager() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure? This will delete the menu item and hide it from the site.')) return;
+  const requestDelete = (menu) => {
+    setMenuToDelete(menu);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!menuToDelete) {
+      return;
+    }
 
     const { error } = await supabase
       .from('menus')
       .update({ deleted_at: new Date().toISOString() })
-      .eq('id', id);
+      .eq('id', menuToDelete.id);
 
     if (error) {
       toast({ variant: 'destructive', title: 'Error deleting menu' });
@@ -310,6 +314,8 @@ function MenusManager() {
       toast({ title: 'Menu deleted' });
       fetchMenus();
     }
+
+    setMenuToDelete(null);
   };
 
   const openPermissions = async (menu) => {
@@ -413,7 +419,13 @@ function MenusManager() {
     }
   };
 
-  if (!canView) return <div className="p-8 text-center text-slate-500">Access Denied</div>;
+  if (!canView) {
+    return (
+      <div className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl border border-border/60 bg-card/70 p-8 text-center text-muted-foreground shadow-sm">
+        Access Denied
+      </div>
+    );
+  }
 
   return (
     <AdminPageLayout requiredPermission="tenant.menu.read">
@@ -425,15 +437,15 @@ function MenusManager() {
         actions={(
           <div className="flex gap-3 flex-wrap">
             {canCreate && (
-              <Button onClick={syncFromModules} variant="outline" disabled={syncing} className="border-emerald-300 text-emerald-700 hover:bg-emerald-50">
+              <Button onClick={syncFromModules} variant="outline" disabled={syncing} className="h-10 rounded-xl border-border/70 bg-background/80 px-3 text-muted-foreground shadow-sm hover:bg-accent/70 hover:text-foreground">
                 <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} /> Sync Modules
               </Button>
             )}
-            <Button onClick={saveOrder} variant="outline" className="border-slate-300">
+            <Button onClick={saveOrder} variant="outline" className="h-10 rounded-xl border-border/70 bg-background/80 px-3 text-muted-foreground shadow-sm hover:bg-accent/70 hover:text-foreground">
               <Save className="w-4 h-4 mr-2" /> Save Order
             </Button>
             {canCreate && (
-              <Button onClick={() => handleEdit(null)} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={() => handleEdit(null)} className="h-10 rounded-xl bg-primary px-4 text-primary-foreground shadow-sm hover:opacity-95">
                 <Plus className="w-4 h-4 mr-2" /> Add Item
               </Button>
             )}
@@ -442,319 +454,72 @@ function MenusManager() {
       />
 
       <div className="space-y-6">
+        <MenusOverviewCards
+          flatMenus={flatMenus}
+          rolesCount={roles.length}
+          currentLocationLabel={MENU_LOCATIONS.find((location) => location.id === currentLocation)?.label}
+        />
 
-        {/* Locale Selector */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col md:flex-row md:items-center gap-4">
-          <div className="flex items-center gap-2 text-slate-500">
-            <span className="font-medium text-sm">Language:</span>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            {SUPPORTED_LOCALES.map(loc => (
-              <button
-                key={loc.code}
-                onClick={() => setCurrentLocale(loc.code)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${currentLocale === loc.code
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
-                  }`}
-              >
-                <span>{loc.flag}</span>
-                {loc.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <MenusLocaleSelector
+          locales={SUPPORTED_LOCALES}
+          currentLocale={currentLocale}
+          onChangeLocale={setCurrentLocale}
+        />
 
-        {/* Location Selector */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col md:flex-row md:items-center gap-4">
-          <div className="flex items-center gap-2 text-slate-500">
-            <LayoutTemplate className="w-5 h-5" />
-            <span className="font-medium text-sm">Menu Location:</span>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            {MENU_LOCATIONS.map(loc => (
-              <button
-                key={loc.id}
-                onClick={() => setCurrentLocation(loc.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${currentLocation === loc.id
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
-                  }`}
-              >
-                {loc.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex-1 md:text-right text-xs text-slate-400 hidden md:block">
-            Managing: <strong>{MENU_LOCATIONS.find(l => l.id === currentLocation)?.label}</strong>
-          </div>
-        </div>
+        <MenusLocationSelector
+          locations={MENU_LOCATIONS}
+          currentLocation={currentLocation}
+          onChangeLocation={setCurrentLocation}
+        />
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[300px]">
-          {loading ? (
-            <div className="flex items-center justify-center h-40 text-slate-400">Loading menus...</div>
-          ) : menus.length === 0 ? (
-            <div className="text-center py-12 text-slate-500">No menu items found for this location. Create one to get started.</div>
-          ) : (
-            <Reorder.Group axis="y" values={menus} onReorder={handleReorder} className="space-y-3">
-              {menus.map((menu) => (
-                <MenuReorderItem
-                  key={menu.id}
-                  menu={menu}
-                  canEdit={canEdit}
-                  canDelete={canDelete}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onPerms={openPermissions}
-                  onChildReorder={(newChildren) => handleChildReorder(menu.id, newChildren)}
-                  isPlatformAdmin={isPlatformAdmin}
-                />
-              ))}
-            </Reorder.Group>
-          )}
-        </div>
+        <MenusTreePanel
+          loading={loading}
+          menus={menus}
+          canEdit={canEdit}
+          canDelete={canDelete}
+          onEdit={handleEdit}
+          onRequestDelete={requestDelete}
+          onPerms={openPermissions}
+          onReorder={handleReorder}
+          onChildReorder={handleChildReorder}
+          isPlatformAdmin={isPlatformAdmin}
+        />
 
-        {/* Edit Menu Dialog */}
-        <Dialog open={isEditing} onOpenChange={setIsEditing}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>{editingMenu ? 'Edit Menu Item' : 'Create Menu Item'}</DialogTitle>
-              <DialogDescription>
-                Configure the details for this navigation link in <strong>{MENU_LOCATIONS.find(l => l.id === currentLocation)?.label}</strong>.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSaveMenu} className="space-y-4 py-4">
-              {/* Module Picker - only show for new items */}
-              {!editingMenu && (
-                <div className="space-y-2">
-                  <Label>Quick Select (Optional)</Label>
-                  <select
-                    className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600"
-                    value={selectedModule}
-                    onChange={e => handleModuleSelect(e.target.value)}
-                  >
-                    <option value="">-- Select a module or enter custom --</option>
-                    {Object.entries(getModulesByGroup()).map(([group, modules]) => (
-                      <optgroup key={group} label={group}>
-                        {modules.map(mod => (
-                          <option key={mod.key} value={mod.key}>{mod.label} ({mod.url})</option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                </div>
-              )}
+        <MenuItemDialog
+          open={isEditing}
+          onOpenChange={setIsEditing}
+          editingMenu={editingMenu}
+          currentLocation={currentLocation}
+          menuLocations={MENU_LOCATIONS}
+          menuFormData={menuFormData}
+          setMenuFormData={setMenuFormData}
+          selectedModule={selectedModule}
+          onModuleSelect={handleModuleSelect}
+          pages={pages}
+          onPageSelect={handlePageSelect}
+          flatMenus={flatMenus}
+          onSave={handleSaveMenu}
+        />
 
-              <div className="space-y-2">
-                <Label>Link to Page (Optional)</Label>
-                <select
-                  className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600"
-                  value={menuFormData.page_id || ''}
-                  onChange={e => handlePageSelect(e.target.value)}
-                >
-                  <option value="">-- No Page Linked --</option>
-                  {pages.map(p => (
-                    <option key={p.id} value={p.id}>{p.title} ({p.slug})</option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Label</Label>
-                  <Input
-                    value={menuFormData.label}
-                    onChange={e => setMenuFormData({ ...menuFormData, label: e.target.value })}
-                    placeholder="e.g. About Us"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Internal Name</Label>
-                  <Input
-                    value={menuFormData.name}
-                    onChange={e => setMenuFormData({ ...menuFormData, name: e.target.value })}
-                    placeholder="about_us"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>URL Path</Label>
-                <Input
-                  value={menuFormData.url}
-                  onChange={e => setMenuFormData({ ...menuFormData, url: e.target.value })}
-                  placeholder="e.g. /about or https://google.com"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Parent Menu</Label>
-                <select
-                  className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600"
-                  value={menuFormData.parent_id || ''}
-                  onChange={e => setMenuFormData({ ...menuFormData, parent_id: e.target.value || null })}
-                >
-                  <option value="">No Parent (Top Level)</option>
-                  {flatMenus.filter(m => m.id !== editingMenu?.id && !m.parent_id).map(m => (
-                    <option key={m.id} value={m.id}>{m.label}</option>
-                  ))}
-                </select>
-              </div>
+        <MenuPermissionsDialog
+          open={isPermEditorOpen}
+          onOpenChange={setIsPermEditorOpen}
+          selectedMenu={selectedMenuPerms}
+          roles={roles}
+          menuPermissions={menuPermissions}
+          setMenuPermissions={setMenuPermissions}
+          onSave={savePermissions}
+        />
 
-              {/* Location Override (Optional) */}
-              <div className="space-y-2">
-                <Label>Location</Label>
-                <select
-                  className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600"
-                  value={menuFormData.location || currentLocation}
-                  onChange={e => setMenuFormData({ ...menuFormData, location: e.target.value })}
-                >
-                  {MENU_LOCATIONS.map(loc => (
-                    <option key={loc.id} value={loc.id}>{loc.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex gap-6 pt-2">
-                <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={menuFormData.is_active === true}
-                    onChange={e => setMenuFormData({ ...menuFormData, is_active: e.target.checked })}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  Active
-                </label>
-                <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={menuFormData.is_public === true}
-                    onChange={e => setMenuFormData({ ...menuFormData, is_public: e.target.checked })}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  Public Default
-                </label>
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
-                <Button type="submit">Save Changes</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Permissions Dialog */}
-        <Dialog open={isPermEditorOpen} onOpenChange={setIsPermEditorOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Manage Access: {selectedMenuPerms?.label}</DialogTitle>
-              <DialogDescription>
-                Toggle which roles can view this menu item in the public interface.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4 space-y-3 max-h-[300px] overflow-y-auto">
-              {roles.map(role => (
-                <div key={role.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
-                  <span className="font-medium text-slate-700">{role.name}</span>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={menuPermissions[role.id] || false}
-                      onChange={e => setMenuPermissions({
-                        ...menuPermissions,
-                        [role.id]: e.target.checked
-                      })}
-                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-xs font-semibold text-slate-500 uppercase">Allow</span>
-                  </label>
-                </div>
-              ))}
-            </div>
-            <DialogFooter>
-              <Button onClick={savePermissions}>Save Permissions</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <MenuDeleteDialog
+          open={Boolean(menuToDelete)}
+          onOpenChange={(open) => !open && setMenuToDelete(null)}
+          menu={menuToDelete}
+          onConfirm={handleConfirmDelete}
+        />
       </div>
     </AdminPageLayout>
   );
 }
-
-const MenuReorderItem = ({ menu, canEdit, canDelete, onEdit, onDelete, onPerms, onChildReorder, isPlatformAdmin }) => {
-  const hasChildren = menu.children && menu.children.length > 0;
-  const [isOpen, setIsOpen] = useState(true);
-
-  return (
-    <Reorder.Item value={menu} id={menu.id} className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden select-none">
-      <div className="flex items-center p-3 gap-3 hover:bg-slate-50/50 transition-colors">
-        <GripVertical className="w-5 h-5 text-slate-400 cursor-grab active:cursor-grabbing flex-shrink-0" />
-
-        <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 overflow-hidden">
-          {isPlatformAdmin && (
-            <span className="text-[10px] font-medium text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
-              {menu.tenant?.name || '(Unknown)'}
-            </span>
-          )}
-          <div className="font-bold text-slate-800 flex items-center gap-2 truncate">
-            {menu.label}
-            {!menu.is_active && <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded border border-red-200">Inactive</span>}
-          </div>
-          <div className="flex items-center gap-2">
-            {menu.page_id && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-100">Page Linked</span>}
-            <span className="text-xs font-mono text-slate-400 truncate">{menu.url}</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1">
-          {hasChildren && (
-            <Button variant="ghost" size="sm" onClick={() => setIsOpen(!isOpen)} className="h-8 w-8 p-0 mr-1">
-              {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            </Button>
-          )}
-          <Button variant="ghost" size="sm" onClick={() => onPerms(menu)} title="Access Permissions" className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600">
-            <Lock className="w-4 h-4" />
-          </Button>
-          {canEdit && (
-            <Button variant="ghost" size="sm" onClick={() => onEdit(menu)} className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50">
-              <Edit className="w-4 h-4" />
-            </Button>
-          )}
-          {canDelete && (
-            <Button variant="ghost" size="sm" onClick={() => onDelete(menu.id)} className="h-8 w-8 p-0 text-red-600 hover:bg-red-50">
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {hasChildren && isOpen && (
-        <div className="pl-10 pr-3 pb-3 pt-1 bg-slate-50/30 border-t border-slate-100">
-          {/* Recursive Reorder Group for Children */}
-          <Reorder.Group axis="y" values={menu.children} onReorder={onChildReorder} className="space-y-2">
-            {menu.children.map(child => (
-              <Reorder.Item key={child.id} value={child} id={child.id} className="bg-white border border-slate-200 p-2 rounded flex items-center justify-between shadow-sm">
-                <div className="flex items-center gap-3">
-                  <GripVertical className="w-4 h-4 text-slate-300 cursor-grab" />
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium text-slate-700">{child.label}</span>
-                    <div className="flex items-center gap-2">
-                      {child.page_id && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-100">Page</span>}
-                      <span className="text-xs text-slate-400">{child.url}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onPerms(child)}><Lock className="w-3 h-3 text-slate-400" /></Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEdit(child)}><Edit className="w-3 h-3 text-blue-600" /></Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onDelete(child.id)}><Trash2 className="w-3 h-3 text-red-600" /></Button>
-                </div>
-              </Reorder.Item>
-            ))}
-          </Reorder.Group>
-        </div>
-      )}
-    </Reorder.Item>
-  );
-};
 
 export default MenusManager;

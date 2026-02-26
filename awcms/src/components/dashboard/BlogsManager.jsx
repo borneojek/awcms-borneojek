@@ -2,20 +2,17 @@ import { useState } from 'react';
 import { useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import GenericContentManager from '@/components/dashboard/GenericContentManager';
 import BlogEditor from '@/components/dashboard/BlogEditor';
-import { AdminPageLayout, PageHeader, PageTabs, TabsContent } from '@/templates/flowbite-admin';
-import { FileText, FolderOpen, Tag, Layout, Sparkles } from 'lucide-react';
+import { AdminPageLayout, PageHeader } from '@/templates/flowbite-admin';
+import { FileText, FolderOpen, Tag, Layout } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import useSplatSegments from '@/hooks/useSplatSegments';
 import { encodeRouteParam } from '@/lib/routeSecurity';
-import { Languages } from 'lucide-react'; // Import Languages icon
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { cn } from '@/lib/utils';
+import BlogsOverviewCards from '@/components/dashboard/blogs/BlogsOverviewCards';
+import BlogsHeaderActions from '@/components/dashboard/blogs/BlogsHeaderActions';
+import BlogsToolbarActions from '@/components/dashboard/blogs/BlogsToolbarActions';
+import BlogsContentPanels from '@/components/dashboard/blogs/BlogsContentPanels';
 
 /**
  * BlogsManager - Manages blogs, categories, and tags.
@@ -36,10 +33,14 @@ function BlogsManager() {
   const hasValidTrashSuffix = segments[1] === 'trash';
 
   const [selectedLanguage, setSelectedLanguage] = useState('en');
-  const languages = [
+  const languages = useMemo(() => [
     { code: 'en', label: 'English', flag: '🇺🇸' },
     { code: 'id', label: 'Indonesia', flag: '🇮🇩' }
-  ];
+  ], []);
+  const selectedLanguageLabel = useMemo(
+    () => languages.find((language) => language.code === selectedLanguage)?.label || selectedLanguage.toUpperCase(),
+    [languages, selectedLanguage]
+  );
 
   const legacyEditId = searchParams.get('edit');
   const legacyStatus = searchParams.get('status');
@@ -88,8 +89,6 @@ function BlogsManager() {
   }, [segments.length, legacyEditId, legacyStatus, navigate]);
 
   // Tab definitions
-  // Tab definitions
-  // Tab definitions
   const tabs = [
     { value: 'blogs', label: t('menu.blogs'), icon: FileText, color: 'blue' },
     { value: 'categories', label: t('menu.categories'), icon: FolderOpen, color: 'purple' },
@@ -104,14 +103,45 @@ function BlogsManager() {
     ...(activeTab !== 'blogs' ? [{ label: activeTab === 'categories' ? t('menu.categories') : t('menu.tags') }] : []),
   ];
 
+  const activeSectionLabel =
+    activeView === 'queue'
+      ? t('common.review_queue', 'Review Queue')
+      : activeView === 'trash'
+        ? t('common.trash')
+        : activeTab === 'categories'
+          ? t('menu.categories')
+          : activeTab === 'tags'
+            ? t('menu.tags')
+            : t('menu.blogs');
+
+  const headerActions = (
+    <BlogsHeaderActions
+      t={t}
+      activeTab={activeTab}
+      activeView={activeView}
+      selectedLanguageLabel={selectedLanguageLabel}
+      navigate={navigate}
+    />
+  );
+
   // Blog columns and fields
   const blogColumns = [
-    { key: 'title', label: t('common.title'), className: 'font-medium' },
+    {
+      key: 'title',
+      label: t('common.title'),
+      className: 'min-w-[240px]',
+      render: (value, row) => (
+        <div className="space-y-0.5">
+          <p className="truncate text-sm font-semibold text-foreground">{value || '-'}</p>
+          <p className="truncate text-[11px] text-muted-foreground">/{row.slug || '-'}</p>
+        </div>
+      )
+    },
     {
       key: 'locale',
       label: 'Lang',
       render: (value) => (
-        <span className="uppercase text-xs font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+        <span className="inline-flex items-center rounded-full border border-border/70 bg-secondary px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-secondary-foreground">
           {value || 'en'}
         </span>
       )
@@ -121,28 +151,54 @@ function BlogsManager() {
       label: t('blogs.workflow'),
       render: (value) => {
         const colors = {
-          published: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',
-          approved: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
-          reviewed: 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800',
-          draft: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-muted dark:text-muted-foreground dark:border-border'
+          published: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+          approved: 'border-primary/25 bg-primary/10 text-primary',
+          reviewed: 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-500',
+          draft: 'border-border/70 bg-muted text-muted-foreground'
         };
         return (
-          <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${colors[value] || colors.draft} capitalize`}>
+          <span className={cn('inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium capitalize', colors[value] || colors.draft)}>
             {value}
           </span>
         );
       }
     },
-    { key: 'status', label: t('blogs.visibility'), className: 'capitalize' },
+    {
+      key: 'status',
+      label: t('blogs.visibility'),
+      render: (value) => (
+        <span className={cn(
+          'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium capitalize',
+          value === 'published'
+            ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+            : 'border-border/70 bg-secondary text-secondary-foreground'
+        )}>
+          {value || 'draft'}
+        </span>
+      )
+    },
     { key: 'published_at', label: t('common.published'), type: 'date' },
-    { key: 'views', label: t('blogs.views'), type: 'number' },
+    {
+      key: 'views',
+      label: t('blogs.views'),
+      className: 'min-w-[110px]',
+      render: (value) => (
+        <span className="text-sm font-medium text-foreground">{value || 0}</span>
+      )
+    },
     {
       key: 'editor_type',
       label: t('blogs.type'),
       render: (value) => (
-        value === 'visual' ?
-          <span title={t('blogs.visual_builder')} className="inline-flex items-center justify-center w-6 h-6 rounded bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"><Layout className="w-3.5 h-3.5" /></span> :
-          <span title={t('blogs.standard_editor')} className="inline-flex items-center justify-center w-6 h-6 rounded bg-slate-50 text-slate-500 dark:bg-muted dark:text-muted-foreground"><FileText className="w-3.5 h-3.5" /></span>
+        <span className={cn(
+          'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium',
+          value === 'visual'
+            ? 'border-primary/25 bg-primary/10 text-primary'
+            : 'border-border/70 bg-muted text-muted-foreground'
+        )}>
+          {value === 'visual' ? <Layout className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+          {value === 'visual' ? t('blogs.visual_builder') : t('blogs.standard_editor')}
+        </span>
       )
     }
   ];
@@ -150,45 +206,29 @@ function BlogsManager() {
   // Custom Actions
   const customRowActions = (item, { openEditor }) => (
     <Button
-      size="icon"
-      variant="ghost"
-      className="text-indigo-600 hover:bg-indigo-50 h-8 w-8"
-      title="Edit in Visual Builder"
+      size="sm"
+      variant="outline"
+      className="h-8 rounded-lg border-primary/25 bg-primary/10 px-3 text-xs font-semibold text-primary hover:bg-primary/15"
+      title={t('blogs.visual_builder')}
       onClick={(e) => {
         e.stopPropagation();
         openEditor({ ...item, editor_type: 'visual' });
       }}
     >
-      <Layout className="w-4 h-4" />
+      <Layout className="mr-1.5 h-3.5 w-3.5" />
+      {t('blogs.visual_builder')}
     </Button>
   );
 
   const customToolbarActions = ({ openEditor }) => (
-    <div className="flex gap-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="ml-auto">
-            <Languages className="mr-2 h-4 w-4" />
-            {languages.find(l => l.code === selectedLanguage)?.label || 'Language'}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {languages.map((lang) => (
-            <DropdownMenuItem key={lang.code} onClick={() => setSelectedLanguage(lang.code)}>
-              <span className="mr-2">{lang.flag}</span>
-              {lang.label}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <Button
-        onClick={() => openEditor({ editor_type: 'visual', title: '', status: 'draft', locale: selectedLanguage })}
-        className="bg-indigo-600 hover:bg-indigo-700 text-white"
-      >
-        <Sparkles className="w-4 h-4 mr-2" />
-        Create Visual
-      </Button>
-    </div>
+    <BlogsToolbarActions
+      t={t}
+      languages={languages}
+      selectedLanguage={selectedLanguage}
+      selectedLanguageLabel={selectedLanguageLabel}
+      onLanguageChange={setSelectedLanguage}
+      onCreateVisual={() => openEditor({ editor_type: 'visual', title: '', status: 'draft', locale: selectedLanguage })}
+    />
   );
 
   const blogFormFields = [
@@ -205,7 +245,6 @@ function BlogsManager() {
     { key: 'excerpt', label: t('blogs.form.excerpt'), type: 'textarea' },
     { key: 'content', label: t('blogs.form.content'), type: 'richtext', description: t('blogs.form.content_desc') || "Main blog content with WYSIWYG editor" },
     { key: 'featured_image', label: t('blogs.form.featured_image'), type: 'image', description: t('blogs.form.image_desc') || "Upload or select from Media Library" },
-    { key: 'tags', label: t('common.tags'), type: 'tags' },
     { key: 'tags', label: t('common.tags'), type: 'tags' },
     { key: 'is_public', label: t('blogs.form.is_public'), type: 'boolean' },
     {
@@ -259,55 +298,33 @@ function BlogsManager() {
         description={t('blogs.subtitle')}
         icon={FileText}
         breadcrumbs={breadcrumbs}
+        actions={headerActions}
       />
 
-      {/* Tabs Navigation */}
-      <PageTabs
-        value={activeTab}
-        onValueChange={(value) => {
-          navigate(value === 'blogs' ? '/cmspanel/blogs' : `/cmspanel/blogs/${value}`);
-        }}
+      <BlogsOverviewCards
+        t={t}
+        activeSectionLabel={activeSectionLabel}
+        selectedLanguage={selectedLanguage}
+        selectedLanguageLabel={selectedLanguageLabel}
+        activeView={activeView}
+      />
+
+      <BlogsContentPanels
+        activeTab={activeTab}
         tabs={tabs}
-      >
-        <TabsContent value="blogs" className="mt-0">
-          <GenericContentManager
-            tableName="blogs"
-            resourceName={t('blogs.type')}
-            columns={blogColumns}
-            formFields={blogFormFields}
-            permissionPrefix="blog"
-            showBreadcrumbs={false}
-            defaultFilters={blogFilters}
-            EditorComponent={BlogEditor}
-            customRowActions={customRowActions}
-            customToolbarActions={customToolbarActions}
-          />
-        </TabsContent>
-
-        <TabsContent value="categories" className="mt-0">
-          <GenericContentManager
-            tableName="categories"
-            resourceName={t('common.category')}
-            columns={categoryColumns}
-            formFields={categoryFormFields}
-            permissionPrefix="categories"
-            showBreadcrumbs={false}
-            customSelect="*, owner:users!created_by(email, full_name), tenant:tenants(name)"
-            defaultFilters={{ type: 'blog' }}
-          />
-        </TabsContent>
-
-        <TabsContent value="tags" className="mt-0">
-          <GenericContentManager
-            tableName="tags"
-            resourceName="Tag"
-            columns={tagColumns}
-            formFields={tagFormFields}
-            permissionPrefix="tags"
-            showBreadcrumbs={false}
-          />
-        </TabsContent>
-      </PageTabs>
+        navigate={navigate}
+        t={t}
+        blogColumns={blogColumns}
+        blogFormFields={blogFormFields}
+        blogFilters={blogFilters}
+        BlogEditorComponent={BlogEditor}
+        customRowActions={customRowActions}
+        customToolbarActions={customToolbarActions}
+        categoryColumns={categoryColumns}
+        categoryFormFields={categoryFormFields}
+        tagColumns={tagColumns}
+        tagFormFields={tagFormFields}
+      />
     </AdminPageLayout>
   );
 }

@@ -4,7 +4,8 @@ const Footer = () => {
     const year = new Date().getFullYear();
 
     return (
-        <footer className="my-6 rounded-xl border border-border/60 bg-card/90 px-5 py-4 shadow-sm backdrop-blur md:px-6">
+        <footer className="relative my-4 overflow-hidden rounded-2xl border border-border/60 bg-card/80 px-5 py-4 shadow-sm backdrop-blur md:px-6">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
                     <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">

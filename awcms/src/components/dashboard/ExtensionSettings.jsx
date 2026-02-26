@@ -194,7 +194,7 @@ function ExtensionSettings() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="border-border/60 bg-card/75">
         <CardHeader>
           <CardTitle>Extension Configuration</CardTitle>
           <CardDescription>Manage individual settings for active extensions.</CardDescription>
@@ -217,13 +217,13 @@ function ExtensionSettings() {
 
           {selectedExtension ? (
             <div className="border-t pt-4 space-y-4">
-              <div className="bg-slate-50 p-4 rounded-md border border-slate-100 font-mono text-sm">
+              <div className="rounded-xl border border-border/60 bg-card/65 p-4 font-mono text-sm">
                 <div className="flex justify-between items-center mb-2">
                   <Label>Raw Configuration (JSON)</Label>
-                  <span className="text-xs text-slate-500">Editable</span>
+                  <span className="text-xs text-muted-foreground">Editable</span>
                 </div>
                 <textarea
-                  className="w-full h-64 p-2 bg-white border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="h-64 w-full rounded-lg border border-border/70 bg-background p-2 text-foreground outline-none focus:ring-2 focus:ring-primary/30"
                   value={JSON.stringify(settings, null, 2)}
                   onChange={(e) => {
                     try {
@@ -234,20 +234,20 @@ function ExtensionSettings() {
                   }}
                 />
               </div>
-              <Button onClick={handleSave} disabled={loading}>
+              <Button onClick={handleSave} disabled={loading} className="rounded-xl bg-primary text-primary-foreground hover:opacity-95">
                 {loading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                 Save Configuration
               </Button>
             </div>
           ) : (
-            <div className="py-12 text-center text-slate-500">
+            <div className="py-12 text-center text-muted-foreground">
               Select an extension to view its settings.
             </div>
           )}
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-border/60 bg-card/75">
         <CardHeader>
           <CardTitle>Stitch Import Settings</CardTitle>
           <CardDescription>Configure tenant-level controls for Stitch import in TipTap and Visual Builder.</CardDescription>
@@ -259,10 +259,10 @@ function ExtensionSettings() {
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between rounded-md border border-slate-200 p-4">
+              <div className="flex items-center justify-between rounded-xl border border-border/60 bg-card/60 p-4">
                 <div className="space-y-1">
                   <Label>Enable Stitch Import</Label>
-                  <p className="text-xs text-slate-500">Show or hide Stitch import entry points for this tenant.</p>
+                  <p className="text-xs text-muted-foreground">Show or hide Stitch import entry points for this tenant.</p>
                 </div>
                 <Switch
                   checked={!!stitchDraft.enabled}
@@ -277,7 +277,7 @@ function ExtensionSettings() {
                     value={stitchDraft.mode || 'html'}
                     onValueChange={(modeValue) => setStitchDraft((prev) => ({ ...prev, mode: modeValue }))}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="rounded-xl border-border/70 bg-background">
                       <SelectValue placeholder="Select mode" />
                     </SelectTrigger>
                     <SelectContent>
@@ -294,6 +294,7 @@ function ExtensionSettings() {
                     type="number"
                     min={16}
                     max={4096}
+                    className="rounded-xl border-border/70 bg-background"
                     value={stitchDraft.max_input_kb}
                     onChange={(event) => setStitchDraft((prev) => ({
                       ...prev,
@@ -303,10 +304,10 @@ function ExtensionSettings() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between rounded-md border border-slate-200 p-4">
+              <div className="flex items-center justify-between rounded-xl border border-border/60 bg-card/60 p-4">
                 <div className="space-y-1">
                   <Label>Allow RawHTML Fallback</Label>
-                  <p className="text-xs text-slate-500">When enabled, unsupported Stitch structures are stored in sanitized RawHTML blocks.</p>
+                  <p className="text-xs text-muted-foreground">When enabled, unsupported Stitch structures are stored in sanitized RawHTML blocks.</p>
                 </div>
                 <Switch
                   checked={!!stitchDraft.allow_raw_html_fallback}
@@ -320,6 +321,7 @@ function ExtensionSettings() {
                   variant="outline"
                   onClick={handleReloadStitchSettings}
                   disabled={stitchConfigLoading || stitchSaving}
+                  className="rounded-xl border-border/70 bg-background/80 text-muted-foreground hover:bg-accent/70 hover:text-foreground"
                 >
                   <RefreshCw className={`w-4 h-4 mr-2 ${stitchConfigLoading ? 'animate-spin' : ''}`} />
                   Refresh
@@ -328,6 +330,7 @@ function ExtensionSettings() {
                   type="button"
                   onClick={handleSaveStitchSettings}
                   disabled={stitchConfigLoading || stitchSaving}
+                  className="rounded-xl bg-primary text-primary-foreground hover:opacity-95"
                 >
                   {stitchSaving ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                   Save Stitch Settings

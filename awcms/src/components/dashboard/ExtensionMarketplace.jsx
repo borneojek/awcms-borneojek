@@ -1,12 +1,13 @@
 
 import { useState } from 'react';
-import { Download, Star, ShieldCheck } from 'lucide-react';
+import { Download, Star, ShieldCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { useTenant } from '@/contexts/TenantContext';
+import { cn } from '@/lib/utils';
 
 // Mock Data for Marketplace
 const MARKETPLACE_EXTENSIONS = [
@@ -117,9 +118,9 @@ function ExtensionMarketplace({ onInstall }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-primary/5 border border-primary/20 rounded-xl p-8 py-10 shadow-sm mb-8 relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-12 opacity-5">
-          <div className="w-64 h-64 rounded-full bg-primary blur-3xl"></div>
+      <div className="relative mb-8 overflow-hidden rounded-2xl border border-primary/20 bg-primary/5 p-8 py-10 shadow-sm">
+        <div className="absolute right-0 top-0 p-12 opacity-10">
+          <div className="h-64 w-64 rounded-full bg-primary/30 blur-3xl"></div>
         </div>
         <h2 className="text-3xl font-bold mb-2 text-foreground">Extension Marketplace</h2>
         <p className="text-muted-foreground max-w-2xl text-lg">
@@ -130,27 +131,27 @@ function ExtensionMarketplace({ onInstall }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {MARKETPLACE_EXTENSIONS.map((ext) => (
-          <div key={ext.id} className="bg-card rounded-xl border border-border shadow-sm hover:shadow-md transition-shadow flex flex-col group">
+          <div key={ext.id} className="group flex flex-col rounded-2xl border border-border/60 bg-card/75 shadow-sm transition-shadow hover:shadow-md">
             <div className="p-6 flex-1">
               <div className="flex justify-between items-start mb-4">
-                <div className="w-12 h-12 bg-muted border border-border rounded-xl flex items-center justify-center text-2xl shadow-sm text-foreground">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border/70 bg-background/80 text-2xl text-foreground shadow-sm">
                   {ext.icon}
                 </div>
                 {ext.verified && (
-                  <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 flex gap-1">
-                    <ShieldCheck className="w-3 h-3" /> Verified
+                  <Badge variant="secondary" className="flex gap-1 border-primary/20 bg-primary/10 text-primary">
+                    <ShieldCheck className="h-3 w-3" /> Verified
                   </Badge>
                 )}
               </div>
 
-              <h3 className="text-lg font-bold text-foreground mb-2 group-hover:text-primary transition-colors">{ext.name}</h3>
+              <h3 className="mb-2 text-lg font-bold text-foreground transition-colors group-hover:text-primary">{ext.name}</h3>
               <p className="text-muted-foreground text-sm mb-4 leading-relaxed">
                 {ext.description}
               </p>
 
               <div className="flex items-center gap-4 text-xs text-muted-foreground font-medium">
                 <div className="flex items-center gap-1 text-amber-500">
-                  <Star className="w-3 h-3 fill-current" />
+                  <Star className="h-3 w-3 fill-current" />
                   <span>{ext.rating}</span>
                 </div>
                 <span>{ext.downloads} installs</span>
@@ -158,17 +159,25 @@ function ExtensionMarketplace({ onInstall }) {
               </div>
             </div>
 
-            <div className="p-4 bg-muted/30 border-t border-border rounded-b-xl">
+            <div className="rounded-b-2xl border-t border-border/60 bg-card/60 p-4">
               <Button
-                className="w-full"
+                className={cn(
+                  'w-full rounded-xl',
+                  installing === ext.id
+                    ? 'bg-primary/80 text-primary-foreground'
+                    : 'bg-primary text-primary-foreground hover:opacity-95'
+                )}
                 onClick={() => handleInstall(ext)}
                 disabled={!!installing}
               >
                 {installing === ext.id ? (
-                  'Installing...'
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Installing...
+                  </>
                 ) : (
                   <>
-                    <Download className="w-4 h-4 mr-2" />
+                    <Download className="mr-2 h-4 w-4" />
                     Install Extension
                   </>
                 )}

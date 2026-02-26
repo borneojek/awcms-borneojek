@@ -16,10 +16,10 @@ function ExtensionLogs() {
   const [logs] = useState(MOCK_LOGS);
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-3 border-b">
+    <Card className="h-full border-border/60 bg-card/75">
+      <CardHeader className="border-b border-border/60 pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Terminal className="w-5 h-5" />
+          <Terminal className="h-5 w-5 text-primary" />
           System Logs
         </CardTitle>
       </CardHeader>
@@ -28,24 +28,24 @@ function ExtensionLogs() {
           <div className="space-y-2 font-mono text-sm">
             {logs.map(log => (
               <div key={log.id} className="flex gap-3 items-start">
-                <span className="text-slate-400 whitespace-nowrap text-xs mt-0.5">
+                <span className="mt-0.5 whitespace-nowrap text-xs text-muted-foreground">
                   {new Date(log.timestamp).toLocaleTimeString()}
                 </span>
                 <div className="flex-1 break-all">
                   <span className={`
-                        mr-2 uppercase text-[10px] font-bold px-1.5 py-0.5 rounded
-                        ${log.level === 'info' ? 'bg-blue-100 text-blue-700' : ''}
-                        ${log.level === 'success' ? 'bg-green-100 text-green-700' : ''}
-                        ${log.level === 'warning' ? 'bg-yellow-100 text-yellow-700' : ''}
-                        ${log.level === 'error' ? 'bg-red-100 text-red-700' : ''}
+                         mr-2 uppercase text-[10px] font-bold px-1.5 py-0.5 rounded
+                        ${log.level === 'info' ? 'border border-primary/20 bg-primary/10 text-primary' : ''}
+                        ${log.level === 'success' ? 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : ''}
+                        ${log.level === 'warning' ? 'border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-500' : ''}
+                        ${log.level === 'error' ? 'border border-destructive/20 bg-destructive/10 text-destructive' : ''}
                      `}>
                     {log.level}
                   </span>
-                  <span className="text-slate-700">{log.message}</span>
+                  <span className="text-foreground">{log.message}</span>
                 </div>
               </div>
             ))}
-            <div className="text-xs text-slate-400 pt-2 border-t border-dashed border-slate-200 mt-4">
+            <div className="mt-4 border-t border-dashed border-border/70 pt-2 text-xs text-muted-foreground">
               End of recent logs
             </div>
           </div>

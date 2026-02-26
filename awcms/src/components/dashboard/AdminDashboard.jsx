@@ -24,6 +24,8 @@ function AdminDashboard() {
     const layoutClass = 'w-full';
     const gridGap = 'gap-6 lg:gap-8';
     const columnSpacing = 'space-y-6 lg:space-y-8';
+    const roleLabel = userRole?.replace('_', ' ').replace(/\b\w/g, (char) => char.toUpperCase()) || 'User';
+    const lastUpdatedLabel = lastUpdated instanceof Date ? lastUpdated.toLocaleTimeString() : '-';
 
     const getGreeting = () => {
         const hour = new Date().getHours();
@@ -37,7 +39,10 @@ function AdminDashboard() {
         <Button
             onClick={refresh}
             variant="outline"
-            className={loading ? 'opacity-70' : 'bg-white/70 dark:bg-slate-900/60 backdrop-blur-sm border-slate-200/70 dark:border-slate-700/60 hover:bg-white dark:hover:bg-slate-800 hover:border-indigo-300/80 dark:hover:border-indigo-500/60 transition-all shadow-sm'}
+            className={cn(
+                'h-10 rounded-xl border-border/70 bg-background/80 px-4 text-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-accent/70 hover:text-foreground',
+                loading && 'opacity-70'
+            )}
         >
             <RefreshCw className="mr-2 h-4 w-4" />
             Refresh Data
@@ -47,10 +52,10 @@ function AdminDashboard() {
     if (error) {
         return (
             <AdminPageLayout>
-                <div className="p-8 text-center bg-red-50/50 backdrop-blur-md text-red-600 rounded-2xl border border-red-100 shadow-sm max-w-2xl mx-auto mt-20">
-                    <p className="text-lg font-semibold mb-2">Something went wrong</p>
-                    <p className="opacity-80 mb-6">{error}</p>
-                    <Button onClick={refresh} variant="outline" className="border-red-200 hover:bg-red-50 text-red-600">
+                <div className="mx-auto mt-20 max-w-2xl rounded-2xl border border-destructive/25 bg-destructive/5 p-8 text-center shadow-sm backdrop-blur-sm">
+                    <p className="mb-2 text-lg font-semibold text-destructive">Something went wrong</p>
+                    <p className="mb-6 text-sm text-muted-foreground">{error}</p>
+                    <Button onClick={refresh} variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10">
                         Try Again
                     </Button>
                 </div>
@@ -62,14 +67,22 @@ function AdminDashboard() {
         <AdminPageLayout className={layoutClass}>
             <div className={spacingClass}>
                 <PageHeader
-                    title={`${getGreeting()}, ${userRole?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'User'}`}
+                    title={`${getGreeting()}, ${roleLabel}`}
                     description={`Here's your performance overview for ${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}.`}
                     icon={LayoutGrid}
                     actions={headerActions}
                 >
-                    <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 bg-white/40 dark:bg-slate-800/40 px-3 py-1.5 rounded-full border border-white/40 dark:border-slate-700/40 w-fit backdrop-blur-sm">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
+                            {isPlatformAdmin ? 'Platform Scope' : 'Tenant Scope'}
+                        </span>
+                        <span className="inline-flex items-center rounded-full border border-border/70 bg-background/70 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                            {loading ? 'Refreshing' : 'Live Data'}
+                        </span>
+                    </div>
+                    <div className="mt-2 flex w-fit items-center gap-2 rounded-full border border-border/70 bg-background/60 px-3 py-1.5 text-sm text-muted-foreground backdrop-blur-sm">
                         <Calendar className="w-3 h-3" />
-                        <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+                        <span>Last updated: {lastUpdatedLabel}</span>
                     </div>
                 </PageHeader>
 

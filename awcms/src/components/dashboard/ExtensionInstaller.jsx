@@ -114,7 +114,7 @@ function ExtensionInstaller({ onInstallComplete }) {
   return (
     <div className="space-y-6">
       <div
-        className={`border-2 border-dashed rounded-xl p-10 text-center transition-colors ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}
+        className={`rounded-2xl border-2 border-dashed p-10 text-center transition-colors ${dragActive ? 'border-primary/50 bg-primary/10' : 'border-border/70 bg-card/60 hover:border-primary/40 hover:bg-card/80'}`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
@@ -122,35 +122,35 @@ function ExtensionInstaller({ onInstallComplete }) {
       >
         <input type="file" id="ext-file" className="hidden" accept=".json" onChange={handleFileChange} />
         <label htmlFor="ext-file" className="cursor-pointer flex flex-col items-center">
-          <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
-            <Upload className="w-8 h-8" />
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary">
+            <Upload className="h-8 w-8" />
           </div>
-          <h3 className="text-lg font-bold text-slate-700">Upload Extension Config</h3>
-          <p className="text-slate-500 mb-4">Drag & drop a .json file here, or click to select</p>
-          <Button variant="outline" onClick={() => document.getElementById('ext-file').click()}>Select File</Button>
+          <h3 className="text-lg font-bold text-foreground">Upload Extension Config</h3>
+          <p className="mb-4 text-muted-foreground">Drag & drop a .json file here, or click to select</p>
+          <Button variant="outline" className="rounded-xl border-border/70" onClick={() => document.getElementById('ext-file').click()}>Select File</Button>
         </label>
       </div>
 
       {preview && (
-        <Card className="border-blue-200 bg-blue-50/30">
+        <Card className="border-primary/20 bg-primary/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileJson className="w-5 h-5 text-blue-600" />
+              <FileJson className="h-5 w-5 text-primary" />
               {preview.name || 'Unknown Name'}
             </CardTitle>
             <CardDescription>Version {preview.version} • by {preview.author}</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-slate-600 mb-4">{preview.description}</p>
+            <p className="mb-4 text-sm text-muted-foreground">{preview.description}</p>
             <div className="space-y-2">
               <div className="flex gap-2 text-xs font-mono">
-                <span className="bg-white px-2 py-1 rounded border">Routes: {preview.routes?.length || 0}</span>
-                <span className="bg-white px-2 py-1 rounded border">Menus: {preview.menus?.length || 0}</span>
-                <span className="bg-white px-2 py-1 rounded border">Permissions: {preview.permissions?.length || 0}</span>
+                <span className="rounded-full border border-border/70 bg-background px-2 py-1">Routes: {preview.routes?.length || 0}</span>
+                <span className="rounded-full border border-border/70 bg-background px-2 py-1">Menus: {preview.menus?.length || 0}</span>
+                <span className="rounded-full border border-border/70 bg-background px-2 py-1">Permissions: {preview.permissions?.length || 0}</span>
               </div>
             </div>
             <div className="mt-6 flex justify-end">
-              <Button onClick={handleInstall} disabled={installing} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={handleInstall} disabled={installing} className="rounded-xl bg-primary text-primary-foreground hover:opacity-95">
                 {installing ? 'Installing...' : 'Confirm Installation'}
               </Button>
             </div>

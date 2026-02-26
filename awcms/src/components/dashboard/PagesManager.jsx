@@ -1,12 +1,15 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import GenericContentManager from '@/components/dashboard/GenericContentManager';
 import VisualPageBuilder from '@/components/visual-builder/VisualPageBuilder';
-import { AdminPageLayout, PageHeader, PageTabs, TabsContent } from '@/templates/flowbite-admin';
+import { AdminPageLayout, PageHeader } from '@/templates/flowbite-admin';
 import { FileText, FolderOpen, Layers, Paintbrush, Tags } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import useSplatSegments from '@/hooks/useSplatSegments';
+import { cn } from '@/lib/utils';
+import PagesOverviewCards from '@/components/dashboard/pages/PagesOverviewCards';
+import PageLanguageToolbar from '@/components/dashboard/pages/PageLanguageToolbar';
+import PagesContentPanels from '@/components/dashboard/pages/PagesContentPanels';
 
 /**
  * PagesManager - Manages pages with Visual Builder support.
@@ -30,6 +33,11 @@ function PagesManager({ onlyVisual = false }) {
     { value: 'en', label: 'English' },
     { value: 'id', label: 'Bahasa Indonesia' }
   ], []);
+
+  const selectedLanguageLabel = useMemo(
+    () => languages.find((language) => language.value === selectedLanguage)?.label || selectedLanguage.toUpperCase(),
+    [languages, selectedLanguage]
+  );
 
   // Tab definitions
   const tabs = useMemo(() => onlyVisual ? [] : [
@@ -59,18 +67,34 @@ function PagesManager({ onlyVisual = false }) {
   const breadcrumbs = useMemo(() => [
     { label: onlyVisual ? t('pages.breadcrumbs.visual_pages') : t('pages.breadcrumbs.pages'), href: activeTab !== 'pages' || isTrashView ? '/cmspanel/pages' : undefined, icon: Layers },
     ...(isTrashView ? [{ label: t('common.trash') }] : []),
-    ...(activeTab !== 'pages' && !onlyVisual ? [{ label: t('pages.breadcrumbs.categories') }] : []),
+    ...(activeTab === 'categories' && !onlyVisual ? [{ label: t('pages.breadcrumbs.categories') }] : []),
+    ...(activeTab === 'tags' && !onlyVisual ? [{ label: t('pages.tabs.tags') || 'Tags' }] : []),
   ], [onlyVisual, activeTab, isTrashView, t]);
 
   // Page columns with editor type indicator
   const pageColumns = useMemo(() => [
-    { key: 'title', label: t('pages.columns.title'), className: 'font-medium' },
-    { key: 'slug', label: t('pages.columns.path') },
+    {
+      key: 'title',
+      label: t('pages.columns.title'),
+      className: 'min-w-[220px]',
+      render: (value, row) => (
+        <div className="space-y-0.5">
+          <p className="truncate text-sm font-semibold text-foreground">{value || '-'}</p>
+          <p className="text-[11px] text-muted-foreground">/{row.slug || '-'}</p>
+        </div>
+      )
+    },
+    {
+      key: 'slug',
+      label: t('pages.columns.path'),
+      className: 'min-w-[170px]',
+      render: (value) => <span className="text-xs text-muted-foreground">/{value || '-'}</span>
+    },
     {
       key: 'locale',
       label: t('common.language') || 'Language',
       render: (value) => (
-        <span className="uppercase text-xs font-bold text-muted-foreground border px-1 rounded">
+        <span className="inline-flex items-center rounded-full border border-border/70 bg-secondary px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-secondary-foreground">
           {value || 'en'}
         </span>
       )
@@ -80,13 +104,13 @@ function PagesManager({ onlyVisual = false }) {
       label: t('pages.columns.type'),
       render: (value) => {
         const colors = {
-          homepage: 'bg-primary/10 text-primary border-primary/20',
-          header: 'bg-muted text-muted-foreground border-border',
-          footer: 'bg-muted text-muted-foreground border-border',
-          single_page: 'bg-secondary text-secondary-foreground',
-          single_post: 'bg-secondary text-secondary-foreground',
-          '404': 'bg-destructive/10 text-destructive border-destructive/20',
-          regular: 'bg-card text-card-foreground border-border border'
+          homepage: 'border-primary/20 bg-primary/10 text-primary',
+          header: 'border-border bg-muted text-muted-foreground',
+          footer: 'border-border bg-muted text-muted-foreground',
+          single_page: 'border-border bg-secondary text-secondary-foreground',
+          single_post: 'border-border bg-secondary text-secondary-foreground',
+          '404': 'border-destructive/20 bg-destructive/10 text-destructive',
+          regular: 'border-border/70 bg-background/70 text-foreground'
         };
         const labels = {
           homepage: t('pages.badges.homepage'),
@@ -98,7 +122,7 @@ function PagesManager({ onlyVisual = false }) {
           regular: t('pages.badges.regular')
         };
         return (
-          <span className={`px-2 py-0.5 text-xs rounded-full font-medium border ${colors[value] || colors.regular}`}>
+          <span className={cn('inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium', colors[value] || colors.regular)}>
             {labels[value] || value || t('pages.badges.regular')}
           </span>
         );
@@ -108,24 +132,42 @@ function PagesManager({ onlyVisual = false }) {
       key: 'category',
       label: t('pages.columns.category'),
       render: (value, row) => (
-        <span className="text-sm text-muted-foreground">
-          {row.category?.name || '-'}
-        </span>
+        row.category?.name ? (
+          <span className="inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+            {row.category.name}
+          </span>
+        ) : <span className="text-xs text-muted-foreground">-</span>
       )
     },
     {
       key: 'editor_type',
       label: t('pages.columns.editor'),
       render: (value) => (
-        <span className={`px-2 py-0.5 text-xs rounded-full border ${value === 'visual'
-          ? 'bg-accent/10 text-accent-foreground border-accent/20'
-          : 'bg-muted text-muted-foreground border-border'
-          }`}>
-          {value === 'visual' ? `🎨 ${t('pages.badges.visual')}` : `📝 ${t('pages.badges.richtext')}`}
+        <span className={cn(
+          'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium',
+          value === 'visual'
+            ? 'border-primary/25 bg-primary/10 text-primary'
+            : 'border-border/70 bg-muted text-muted-foreground'
+        )}>
+          {value === 'visual' ? <Paintbrush className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+          {value === 'visual' ? t('pages.badges.visual') : t('pages.badges.richtext')}
         </span>
       )
     },
-    { key: 'status', label: t('pages.columns.status') },
+    {
+      key: 'status',
+      label: t('pages.columns.status'),
+      render: (value) => (
+        <span className={cn(
+          'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize',
+          value === 'published'
+            ? 'border border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+            : 'border border-border/70 bg-secondary text-secondary-foreground'
+        )}>
+          {value || 'draft'}
+        </span>
+      )
+    },
     { key: 'published_at', label: t('pages.columns.published'), type: 'date' },
     { key: 'updated_at', label: t('pages.columns.updated'), type: 'date' }
   ], [t]);
@@ -159,8 +201,8 @@ function PagesManager({ onlyVisual = false }) {
     },
     {
       key: 'editor_type', label: t('pages.form.editor_type'), type: 'select', options: [
-        { value: 'richtext', label: `📝 ${t('pages.form.editor_richtext')}` },
-        { value: 'visual', label: `🎨 ${t('pages.form.editor_visual')}` }
+        { value: 'richtext', label: t('pages.form.editor_richtext') },
+        { value: 'visual', label: t('pages.form.editor_visual') }
       ],
       defaultValue: onlyVisual ? 'visual' : 'richtext',
       description: t('pages.form.editor_desc'),
@@ -196,16 +238,26 @@ function PagesManager({ onlyVisual = false }) {
             setVisualBuilderPage(page);
           }}
           variant="outline"
-          className="h-7 px-2 text-xs border-accent text-accent-foreground hover:bg-accent/10"
+          className="h-8 rounded-lg border-primary/25 bg-primary/10 px-3 text-xs font-semibold text-primary hover:bg-primary/15"
           title={t('pages.action_edit_visual')}
         >
-          <Paintbrush className="w-3 h-3 mr-1.5" />
+          <Paintbrush className="mr-1.5 h-3.5 w-3.5" />
           {t('pages.action_edit_visual')}
         </Button>
       );
     }
     return null;
   }, [t]);
+
+  const renderLanguageToolbar = useCallback(() => (
+    <PageLanguageToolbar
+      t={t}
+      languages={languages}
+      selectedLanguage={selectedLanguage}
+      selectedLanguageLabel={selectedLanguageLabel}
+      onLanguageChange={setSelectedLanguage}
+    />
+  ), [languages, selectedLanguage, selectedLanguageLabel, t]);
 
   // Category columns and fields
   const categoryColumns = useMemo(() => [
@@ -226,6 +278,17 @@ function PagesManager({ onlyVisual = false }) {
         { value: 'product', label: t('pages.category.form.type_product') }
       ], defaultValue: 'page'
     }
+  ], [t]);
+
+  const tagColumns = useMemo(() => [
+    { key: 'name', label: t('pages.tags.name') || 'Name', className: 'font-medium' },
+    { key: 'slug', label: t('pages.tags.slug') || 'Slug' },
+    { key: 'created_at', label: t('pages.tags.created') || 'Created', type: 'date' }
+  ], [t]);
+
+  const tagFormFields = useMemo(() => [
+    { key: 'name', label: t('pages.tags.form.name') || 'Name', required: true },
+    { key: 'slug', label: t('pages.tags.form.slug') || 'Slug' }
   ], [t]);
 
   // If Visual Builder is open, show it full screen
@@ -249,103 +312,31 @@ function PagesManager({ onlyVisual = false }) {
         breadcrumbs={breadcrumbs}
       />
 
-      {/* Tabs Navigation (hidden for onlyVisual mode) */}
-      {onlyVisual ? (
-        <GenericContentManager
-          tableName="pages"
-          resourceName={t('pages.visual_title')} // Or generic "Visual Page" if strictly needed in singular, but title works
-          columns={pageColumns}
-          formFields={pageFormFields}
-          permissionPrefix="visual_pages"
-          customRowActions={customRowActions}
-          defaultFilters={{ editor_type: 'visual', locale: selectedLanguage }}
-          showBreadcrumbs={false}
-          customToolbarActions={() => (
-            <div className="flex items-center gap-2 mr-2">
-              <select
-                className="h-9 w-32 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                value={selectedLanguage}
-                onChange={(e) => setSelectedLanguage(e.target.value)}
-              >
-                {languages.map((lang) => (
-                  <option key={lang.value} value={lang.value}>
-                    {lang.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        />
-      ) : (
-        <PageTabs
-          value={activeTab}
-          onValueChange={(value) => {
-            navigate(value === 'pages' ? '/cmspanel/pages' : `/cmspanel/pages/${value}`);
-          }}
-          tabs={tabs}
-        >
-          <TabsContent value="pages" className="mt-0">
-            <GenericContentManager
-              tableName="pages"
-              resourceName={t('pages.badges.regular')}
-              columns={pageColumns}
-              formFields={pageFormFields}
-              permissionPrefix="pages"
-              defaultFilters={{ page_type: 'regular', locale: selectedLanguage }}
-              customSelect="*, category:categories!pages_category_id_fkey(id, name), owner:users!created_by(email, full_name), tenant:tenants(name)"
-              customRowActions={customRowActions}
-              showBreadcrumbs={false}
-              customToolbarActions={() => (
-                <div className="flex items-center gap-2 mr-2">
-                  <select
-                    className="h-9 w-32 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    value={selectedLanguage}
-                    onChange={(e) => setSelectedLanguage(e.target.value)}
-                  >
-                    {languages.map((lang) => (
-                      <option key={lang.value} value={lang.value}>
-                        {lang.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            />
-          </TabsContent>
+      <PagesOverviewCards
+        t={t}
+        onlyVisual={onlyVisual}
+        activeTab={activeTab}
+        isTrashView={isTrashView}
+        selectedLanguage={selectedLanguage}
+        selectedLanguageLabel={selectedLanguageLabel}
+      />
 
-          <TabsContent value="categories" className="mt-0">
-            <GenericContentManager
-              tableName="categories"
-              resourceName={t('pages.category.form.type_page')} // Or Category singular
-              columns={categoryColumns}
-              formFields={categoryFormFields}
-              permissionPrefix="categories"
-              customSelect="*, owner:users!created_by(email, full_name), tenant:tenants(name)"
-              defaultFilters={{ type: 'page' }}
-              showBreadcrumbs={false}
-            />
-          </TabsContent>
-
-          <TabsContent value="tags" className="mt-0">
-            <GenericContentManager
-              tableName="tags"
-              resourceName={t('pages.tags.singular') || 'Tag'}
-              columns={[
-                { key: 'name', label: t('pages.tags.name') || 'Name', className: 'font-medium' },
-                { key: 'slug', label: t('pages.tags.slug') || 'Slug' },
-                { key: 'created_at', label: t('pages.tags.created') || 'Created', type: 'date' }
-              ]}
-              formFields={[
-                { key: 'name', label: t('pages.tags.form.name') || 'Name', required: true },
-                { key: 'slug', label: t('pages.tags.form.slug') || 'Slug' }
-              ]}
-              permissionPrefix="tags"
-              customSelect="*, owner:users!created_by(email, full_name), tenant:tenants(name)"
-              showBreadcrumbs={false}
-            />
-          </TabsContent>
-        </PageTabs>
-      )}
+      <PagesContentPanels
+        onlyVisual={onlyVisual}
+        activeTab={activeTab}
+        tabs={tabs}
+        navigate={navigate}
+        t={t}
+        pageColumns={pageColumns}
+        pageFormFields={pageFormFields}
+        selectedLanguage={selectedLanguage}
+        customRowActions={customRowActions}
+        renderLanguageToolbar={renderLanguageToolbar}
+        categoryColumns={categoryColumns}
+        categoryFormFields={categoryFormFields}
+        tagColumns={tagColumns}
+        tagFormFields={tagFormFields}
+      />
     </AdminPageLayout>
   );
 }

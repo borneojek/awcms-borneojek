@@ -170,17 +170,17 @@ function ExtensionABACIntegration({ extensionId }) {
    if (loading) return <div>{t('common.loading')}</div>;
 
    return (
-      <Card>
+      <Card className="border-border/60 bg-card/75">
          <CardHeader>
             <CardTitle className="flex items-center gap-2">
-               <Shield className="w-5 h-5 text-purple-600" />
+               <Shield className="h-5 w-5 text-primary" />
                {t('extensions.abac')}
             </CardTitle>
             <CardDescription>Map extension permissions to system roles.</CardDescription>
          </CardHeader>
          <CardContent>
             {extensionPermissions.length === 0 ? (
-               <div className="text-center py-8 text-slate-500">
+               <div className="py-8 text-center text-muted-foreground">
                   This extension does not define any custom permissions.
                </div>
             ) : (
@@ -188,9 +188,9 @@ function ExtensionABACIntegration({ extensionId }) {
                   <table className="w-full border-collapse text-sm">
                      <thead>
                         <tr>
-                           <th className="text-left p-3 border-b font-medium text-slate-500">Permission</th>
+                           <th className="border-b border-border/60 p-3 text-left font-medium text-muted-foreground">Permission</th>
                            {roles.map(role => (
-                              <th key={role.id} className="text-center p-3 border-b font-medium text-slate-800 bg-slate-50">
+                              <th key={role.id} className="border-b border-border/60 bg-card/60 p-3 text-center font-medium text-foreground">
                                  {role.name}
                               </th>
                            ))}
@@ -198,18 +198,18 @@ function ExtensionABACIntegration({ extensionId }) {
                      </thead>
                      <tbody>
                         {extensionPermissions.map(permName => (
-                           <tr key={permName} className="border-b last:border-0 hover:bg-slate-50/50">
-                              <td className="p-3 font-mono text-xs text-slate-600">{permName}</td>
+                           <tr key={permName} className="border-b border-border/60 last:border-0 hover:bg-muted/30">
+                              <td className="p-3 font-mono text-xs text-muted-foreground">{permName}</td>
                               {roles.map(role => {
                                  const isChecked = activeMatrix[role.id]?.has(permName);
                                  return (
                                     <td key={`${role.id}-${permName}`} className="p-3 text-center">
                                        <button
                                           onClick={() => togglePermission(role.id, permName)}
-                                          className={`w-6 h-6 rounded border flex items-center justify-center transition-colors ${isChecked
-                                             ? 'bg-blue-600 border-blue-600 text-white'
-                                             : 'bg-white border-slate-200 text-transparent hover:border-slate-300'
-                                             }`}
+                                          className={`flex h-6 w-6 items-center justify-center rounded border transition-colors ${isChecked
+                                             ? 'border-primary bg-primary text-primary-foreground'
+                                             : 'border-border/70 bg-background text-transparent hover:border-primary/40'
+                                              }`}
                                        >
                                           <Check className="w-4 h-4" />
                                        </button>
@@ -221,7 +221,7 @@ function ExtensionABACIntegration({ extensionId }) {
                      </tbody>
                   </table>
                   <div className="mt-4 flex justify-end">
-                     <Button onClick={handleSave} disabled={loading}>
+                     <Button onClick={handleSave} disabled={loading} className="rounded-xl bg-primary text-primary-foreground hover:opacity-95">
                         <Save className="w-4 h-4 mr-2" />
                         {t('common.save')}
                      </Button>

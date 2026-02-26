@@ -1,806 +1,433 @@
-
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Lock, Shield, Save, Key, AlertCircle, CheckCircle2, Crown, Camera, FileText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { User } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { usePermissions } from '@/contexts/PermissionContext';
 import TwoFactorSettings from '@/components/dashboard/TwoFactorSettings';
-import { ImageUpload } from '@/components/ui/ImageUpload';
+import { AdminPageLayout, PageHeader } from '@/templates/flowbite-admin';
+import ProfileSummaryCards from '@/components/dashboard/user-profile/ProfileSummaryCards';
+import PersonalInformationCard from '@/components/dashboard/user-profile/PersonalInformationCard';
+import ProfileDetailsCard from '@/components/dashboard/user-profile/ProfileDetailsCard';
+import AdminNotesCard from '@/components/dashboard/user-profile/AdminNotesCard';
+import PasswordCard from '@/components/dashboard/user-profile/PasswordCard';
+import AccessControlCard from '@/components/dashboard/user-profile/AccessControlCard';
 
 function UserProfile() {
-  const { user } = useAuth();
-  const { userRole, permissions, isPlatformAdmin, isFullAccess, hasPermission, tenantId } = usePermissions();
-  const { toast } = useToast();
-
-  const [loading, setLoading] = useState(false);
-  const [passLoading, setPassLoading] = useState(false);
-
-  const [profileData, setProfileData] = useState({
-    full_name: '',
-    email: '',
-    avatar_url: ''
-  });
-
-  const [profileDetails, setProfileDetails] = useState({
-    description: '',
-    job_title: '',
-    department: '',
-    phone: '',
-    alternate_email: '',
-    location: '',
-    timezone: '',
-    website_url: '',
-    linkedin_url: '',
-    twitter_url: '',
-    github_url: ''
-  });
-
-  const [adminData, setAdminData] = useState({
-    admin_notes: '',
-    admin_flags: ''
-  });
-
-  const [passwordData, setPasswordData] = useState({
-    password: '',
-    confirmPassword: ''
-  });
-
-  const [detailsLoading, setDetailsLoading] = useState(false);
-  const [adminLoading, setAdminLoading] = useState(false);
-
-  const canManageAdminFields = hasPermission('tenant.user.update') || isPlatformAdmin || isFullAccess;
-
-  // Initialize data
-  useEffect(() => {
-    if (user) {
-      const fetchProfile = async () => {
-        try {
-          const [userResponse, detailsResponse] = await Promise.all([
-            supabase
-              .from('users')
-              .select(`
-                full_name, 
-                email, 
-                avatar_url,
-                roles:roles!users_role_id_fkey (
-                  name,
-                  description,
-                  is_platform_admin,
-                  is_full_access
-                )
-              `)
-              .eq('id', user.id)
-              .maybeSingle(),
-            supabase
-              .from('user_profiles')
-              .select(`
-                description,
-                job_title,
-                department,
-                phone,
-                alternate_email,
-                location,
-                timezone,
-                website_url,
-                linkedin_url,
-                twitter_url,
-                github_url
-              `)
-              .eq('user_id', user.id)
-              .is('deleted_at', null)
-              .maybeSingle()
-          ]);
-
-          if (userResponse.error) {
-            console.error('Error fetching profile:', userResponse.error);
-          }
-
-          if (detailsResponse.error) {
-            console.error('Error fetching profile details:', detailsResponse.error);
-          }
-
-          const data = userResponse.data;
-          const details = detailsResponse.data;
-
-          setProfileData({
-            full_name: data?.full_name || user.user_metadata?.full_name || '',
-            email: user.email || '',
-            avatar_url: data?.avatar_url || user.user_metadata?.avatar_url || '',
-            role_name: data?.roles?.name || '',
-            role_description: data?.roles?.description || '',
-            role_is_platform_admin: Boolean(data?.roles?.is_platform_admin),
-            role_is_full_access: Boolean(data?.roles?.is_full_access)
-          });
-
-          setProfileDetails({
-            description: details?.description || '',
-            job_title: details?.job_title || '',
-            department: details?.department || '',
-            phone: details?.phone || '',
-            alternate_email: details?.alternate_email || '',
-            location: details?.location || '',
-            timezone: details?.timezone || '',
-            website_url: details?.website_url || '',
-            linkedin_url: details?.linkedin_url || '',
-            twitter_url: details?.twitter_url || '',
-            github_url: details?.github_url || ''
-          });
-
-          if (canManageAdminFields) {
-            const { data: adminFields, error: adminError } = await supabase
-              .rpc('get_user_profile_admin_fields', { p_user_id: user.id });
-
-            if (adminError) {
-              console.error('Error fetching admin profile fields:', adminError);
-            }
-
-            const adminRow = Array.isArray(adminFields) ? adminFields[0] : adminFields;
-            setAdminData({
-              admin_notes: adminRow?.admin_notes || '',
-              admin_flags: adminRow?.admin_flags || ''
-            });
-          }
-        } catch (err) {
-          console.error('Unexpected error in fetchProfile:', err);
-        }
-      };
-      fetchProfile();
-    }
-  }, [user, canManageAdminFields]);
-
-  const handleProfileUpdate = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      // 1. Update public.users table
-      const { error: dbError } = await supabase
-        .from('users')
-        .update({
-          full_name: profileData.full_name,
-          avatar_url: profileData.avatar_url,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-
-      if (dbError) throw dbError;
-
-      // 2. Update Auth Metadata
-      const { error: authError } = await supabase.auth.updateUser({
-        data: {
-          full_name: profileData.full_name,
-          avatar_url: profileData.avatar_url
-        }
-      });
-
-      if (authError) throw authError;
-
-      // 3. Handle Email Change if changed
-      if (profileData.email !== user.email) {
-        const { error: emailError } = await supabase.auth.updateUser({
-          email: profileData.email
-        });
-        if (emailError) throw emailError;
-
-        toast({
-          title: "Check your email",
-          description: "Confirmation link sent to your new email address."
-        });
-      }
-
-      toast({
-        title: "Profile Updated",
-        description: "Your profile information has been saved successfully."
-      });
-    } catch (error) {
-      console.error('Update error:', error);
-      toast({
-        variant: "destructive",
-        title: "Update Failed",
-        description: error.message || "Failed to update profile."
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePasswordChange = async (e) => {
-    e.preventDefault();
-    if (passwordData.password !== passwordData.confirmPassword) {
-      toast({
-        variant: "destructive",
-        title: "Passwords do not match",
-        description: "Please ensure both password fields match."
-      });
-      return;
-    }
-
-    if (passwordData.password.length < 6) {
-      toast({
-        variant: "destructive",
-        title: "Password too short",
-        description: "Password must be at least 6 characters long."
-      });
-      return;
-    }
-
-    setPassLoading(true);
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: passwordData.password
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Password Updated",
-        description: "Your password has been changed successfully."
-      });
-
-      setPasswordData({ password: '', confirmPassword: '' });
-    } catch (error) {
-      console.error("Password update error:", error);
-
-      let errorMessage = error.message || "Failed to change password.";
-
-      // Handle specific error cases
-      if (errorMessage.includes("New password should be different") || error.code === "same_password") {
-        errorMessage = "Your new password cannot be the same as your old password.";
-      } else if (errorMessage.includes("Gateway Timeout") || error.status === 504) {
-        errorMessage = "Server is busy. Please wait a moment and try again.";
-      } else if (errorMessage.includes("fetch") || errorMessage.includes("network") || error.name === "TypeError") {
-        errorMessage = "Network error. Please check your connection and try again.";
-      } else if (error.status === 429) {
-        errorMessage = "Too many requests. Please wait a few minutes before trying again.";
-      }
-
-      toast({
-        variant: "destructive",
-        title: "Update Failed",
-        description: errorMessage
-      });
-    } finally {
-      setPassLoading(false);
-    }
-  };
-
-  const handleDetailsUpdate = async (e) => {
-    e.preventDefault();
-    setDetailsLoading(true);
-
-    try {
-      const profileTenantId = tenantId ?? null;
-      const { error } = await supabase
-        .from('user_profiles')
-        .upsert({
-          user_id: user.id,
-          tenant_id: profileTenantId,
-          description: profileDetails.description,
-          job_title: profileDetails.job_title,
-          department: profileDetails.department,
-          phone: profileDetails.phone,
-          alternate_email: profileDetails.alternate_email,
-          location: profileDetails.location,
-          timezone: profileDetails.timezone,
-          website_url: profileDetails.website_url,
-          linkedin_url: profileDetails.linkedin_url,
-          twitter_url: profileDetails.twitter_url,
-          github_url: profileDetails.github_url
-        }, { onConflict: 'user_id' });
-
-      if (error) throw error;
-
-      toast({
-        title: "Profile Details Saved",
-        description: "Your profile details have been updated successfully."
-      });
-    } catch (error) {
-      console.error('Profile details update error:', error);
-      toast({
-        variant: "destructive",
-        title: "Update Failed",
-        description: error.message || "Failed to update profile details."
-      });
-    } finally {
-      setDetailsLoading(false);
-    }
-  };
-
-  const handleAdminUpdate = async (e) => {
-    e.preventDefault();
-    setAdminLoading(true);
-
-    try {
-      const { error } = await supabase
-        .rpc('set_user_profile_admin_fields', {
-          p_user_id: user.id,
-          p_admin_notes: adminData.admin_notes,
-          p_admin_flags: adminData.admin_flags
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Admin Fields Saved",
-        description: "Encrypted admin notes have been updated successfully."
-      });
-    } catch (error) {
-      console.error('Admin profile update error:', error);
-      toast({
-        variant: "destructive",
-        title: "Update Failed",
-        description: error.message || "Failed to update admin fields."
-      });
-    } finally {
-      setAdminLoading(false);
-    }
-  };
-
-  return (
-    <div className="w-full space-y-8 pb-12">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-3xl font-semibold text-slate-900 dark:text-white tracking-tight">My Profile</h2>
-        <p className="text-slate-500 dark:text-slate-400">Manage your account settings and security preferences</p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-        {/* Left Column: Profile Details + Security */}
-        <div className="lg:col-span-2 space-y-6">
-
-          {/* Personal Information Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="dashboard-surface dashboard-surface-hover overflow-hidden"
-          >
-            <div className="flex items-center gap-3 border-b border-slate-200/60 bg-slate-50/70 px-6 py-5 dark:border-slate-800/70 dark:bg-slate-900/60">
-              <div className="rounded-xl bg-blue-100/70 p-2 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
-                <User className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900 dark:text-white">Personal Information</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Update your personal details</p>
-              </div>
-            </div>
-
-            <div className="p-6">
-              <form onSubmit={handleProfileUpdate} className="space-y-6">
-                <div className="grid gap-6 md:grid-cols-[200px,1fr]">
-                  <div className="flex flex-col items-center gap-3 md:items-start md:text-left">
-                    <div className="relative group">
-                      <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-slate-200/70 bg-slate-100 shadow-md dark:border-slate-800 dark:bg-slate-900">
-                        {profileData.avatar_url ? (
-                          <img
-                            src={profileData.avatar_url}
-                            alt="Profile"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-blue-100/70 dark:bg-blue-900/30">
-                            <User className="w-10 h-10 text-blue-400 dark:text-blue-300" />
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => document.getElementById('avatar-upload-trigger').click()}
-                        className="absolute bottom-1 right-1 p-2 bg-blue-600 rounded-full text-white shadow-lg ring-2 ring-white transition-colors hover:bg-blue-700 dark:ring-slate-900"
-                      >
-                        <Camera className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <div className="text-center text-xs text-slate-500 dark:text-slate-400 md:text-left">
-                      JPG/PNG up to 2MB
-                    </div>
-                  </div>
-                  <div className="space-y-4 rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/50">
-                    <ImageUpload
-                      id="avatar-upload-trigger"
-                      value={profileData.avatar_url}
-                      onChange={(url) => setProfileData({ ...profileData, avatar_url: url })}
-                      className="h-auto"
-                      hidePreview
-                    />
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Use Media Library or paste an external URL.</p>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="full_name" className="text-sm font-medium text-slate-600 dark:text-slate-300">Full Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                      <Input
-                        id="full_name"
-                        value={profileData.full_name}
-                        onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
-                        className="h-11 rounded-xl border-slate-200/70 bg-white/90 pl-9 shadow-sm focus:border-indigo-500/60 focus:ring-indigo-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
-                        placeholder="Your full name"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-medium text-slate-600 dark:text-slate-300">Email Address</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                      <Input
-                        id="email"
-                        type="email"
-                        value={profileData.email}
-                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                        className="h-11 rounded-xl border-slate-200/70 bg-white/90 pl-9 shadow-sm focus:border-indigo-500/60 focus:ring-indigo-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
-                        placeholder="your.email@example.com"
-                      />
-                    </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
-                      Changing email will require re-verification.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-2 flex justify-end">
-                  <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white">
-                    {loading ? (
-                      <span className="flex items-center gap-2">Saving...</span>
-                    ) : (
-                      <span className="flex items-center gap-2"><Save className="w-4 h-4" /> Save Changes</span>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="dashboard-surface dashboard-surface-hover overflow-hidden"
-          >
-            <div className="flex items-center gap-3 border-b border-slate-200/60 bg-slate-50/70 px-6 py-5 dark:border-slate-800/70 dark:bg-slate-900/60">
-              <div className="rounded-xl bg-emerald-100/70 p-2 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300">
-                <FileText className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900 dark:text-white">Profile Details</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Add richer profile information</p>
-              </div>
-            </div>
-
-            <div className="p-6">
-              <form onSubmit={handleDetailsUpdate} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="description" className="text-sm font-medium text-slate-600 dark:text-slate-300">Profile Description</Label>
-                  <Textarea
-                    id="description"
-                    value={profileDetails.description}
-                    onChange={(e) => setProfileDetails({ ...profileDetails, description: e.target.value })}
-                    className="min-h-[120px] rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
-                    placeholder="Share a short bio or summary"
-                  />
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="job_title" className="text-sm font-medium text-slate-600 dark:text-slate-300">Job Title</Label>
-                    <Input
-                      id="job_title"
-                      value={profileDetails.job_title}
-                      onChange={(e) => setProfileDetails({ ...profileDetails, job_title: e.target.value })}
-                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
-                      placeholder="e.g. Operations Lead"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="department" className="text-sm font-medium text-slate-600 dark:text-slate-300">Department</Label>
-                    <Input
-                      id="department"
-                      value={profileDetails.department}
-                      onChange={(e) => setProfileDetails({ ...profileDetails, department: e.target.value })}
-                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
-                      placeholder="e.g. Student Affairs"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-sm font-medium text-slate-600 dark:text-slate-300">Phone</Label>
-                    <Input
-                      id="phone"
-                      value={profileDetails.phone}
-                      onChange={(e) => setProfileDetails({ ...profileDetails, phone: e.target.value })}
-                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
-                      placeholder="+62 812-3456-7890"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="alternate_email" className="text-sm font-medium text-slate-600 dark:text-slate-300">Alternate Email</Label>
-                    <Input
-                      id="alternate_email"
-                      type="email"
-                      value={profileDetails.alternate_email}
-                      onChange={(e) => setProfileDetails({ ...profileDetails, alternate_email: e.target.value })}
-                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
-                      placeholder="secondary@email.com"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="location" className="text-sm font-medium text-slate-600 dark:text-slate-300">Location</Label>
-                    <Input
-                      id="location"
-                      value={profileDetails.location}
-                      onChange={(e) => setProfileDetails({ ...profileDetails, location: e.target.value })}
-                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
-                      placeholder="City, Province"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="timezone" className="text-sm font-medium text-slate-600 dark:text-slate-300">Timezone</Label>
-                    <Input
-                      id="timezone"
-                      value={profileDetails.timezone}
-                      onChange={(e) => setProfileDetails({ ...profileDetails, timezone: e.target.value })}
-                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
-                      placeholder="Asia/Jakarta"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="website_url" className="text-sm font-medium text-slate-600 dark:text-slate-300">Website</Label>
-                    <Input
-                      id="website_url"
-                      value={profileDetails.website_url}
-                      onChange={(e) => setProfileDetails({ ...profileDetails, website_url: e.target.value })}
-                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
-                      placeholder="https://your-site.com"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="linkedin_url" className="text-sm font-medium text-slate-600 dark:text-slate-300">LinkedIn</Label>
-                    <Input
-                      id="linkedin_url"
-                      value={profileDetails.linkedin_url}
-                      onChange={(e) => setProfileDetails({ ...profileDetails, linkedin_url: e.target.value })}
-                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
-                      placeholder="https://linkedin.com/in/username"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="twitter_url" className="text-sm font-medium text-slate-600 dark:text-slate-300">Twitter/X</Label>
-                    <Input
-                      id="twitter_url"
-                      value={profileDetails.twitter_url}
-                      onChange={(e) => setProfileDetails({ ...profileDetails, twitter_url: e.target.value })}
-                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
-                      placeholder="https://x.com/username"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="github_url" className="text-sm font-medium text-slate-600 dark:text-slate-300">GitHub</Label>
-                    <Input
-                      id="github_url"
-                      value={profileDetails.github_url}
-                      onChange={(e) => setProfileDetails({ ...profileDetails, github_url: e.target.value })}
-                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-emerald-500/60 focus:ring-emerald-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
-                      placeholder="https://github.com/username"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-2 flex justify-end">
-                  <Button type="submit" disabled={detailsLoading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                    {detailsLoading ? 'Saving...' : 'Save Details'}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </motion.div>
-
-          {canManageAdminFields && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.12 }}
-              className="dashboard-surface dashboard-surface-hover overflow-hidden"
-            >
-              <div className="flex items-center gap-3 border-b border-slate-200/60 bg-slate-50/70 px-6 py-5 dark:border-slate-800/70 dark:bg-slate-900/60">
-                <div className="rounded-xl bg-rose-100/70 p-2 text-rose-600 dark:bg-rose-900/30 dark:text-rose-300">
-                  <Shield className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-white">Administrative Notes</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Encrypted admin-only fields</p>
-                </div>
-              </div>
-
-              <div className="p-6">
-                <form onSubmit={handleAdminUpdate} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="admin_notes" className="text-sm font-medium text-slate-600 dark:text-slate-300">Admin Notes</Label>
-                    <Textarea
-                      id="admin_notes"
-                      value={adminData.admin_notes}
-                      onChange={(e) => setAdminData({ ...adminData, admin_notes: e.target.value })}
-                      className="min-h-[120px] rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-rose-500/60 focus:ring-rose-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
-                      placeholder="Sensitive notes for admin users only"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="admin_flags" className="text-sm font-medium text-slate-600 dark:text-slate-300">Admin Flags</Label>
-                    <Input
-                      id="admin_flags"
-                      value={adminData.admin_flags}
-                      onChange={(e) => setAdminData({ ...adminData, admin_flags: e.target.value })}
-                      className="h-11 rounded-xl border-slate-200/70 bg-white/90 shadow-sm focus:border-rose-500/60 focus:ring-rose-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
-                      placeholder="vip, compliance, sensitive"
-                    />
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Comma-separated, encrypted on save.</p>
-                  </div>
-                  <div className="pt-2 flex justify-end">
-                    <Button type="submit" disabled={adminLoading} className="bg-rose-600 hover:bg-rose-700 text-white">
-                      {adminLoading ? 'Saving...' : 'Save Admin Fields'}
-                    </Button>
-                  </div>
-                </form>
-              </div>
-            </motion.div>
-          )}
-
-          {/* 2FA Settings Component */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-          >
-            <TwoFactorSettings />
-          </motion.div>
-
-          {/* Security Card (Password) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="dashboard-surface dashboard-surface-hover overflow-hidden"
-          >
-            <div className="flex items-center gap-3 border-b border-slate-200/60 bg-slate-50/70 px-6 py-5 dark:border-slate-800/70 dark:bg-slate-900/60">
-              <div className="p-2 bg-orange-100/70 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-lg">
-                <Lock className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900 dark:text-white">Password</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Manage your password</p>
-              </div>
-            </div>
-
-            <div className="p-6">
-              <form onSubmit={handlePasswordChange} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="text-slate-700 dark:text-slate-300">New Password</Label>
-                    <div className="relative">
-                      <Key className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                      <Input
-                        id="password"
-                        type="password"
-                        value={passwordData.password}
-                        onChange={(e) => setPasswordData({ ...passwordData, password: e.target.value })}
-                        className="h-11 rounded-xl border-slate-200/70 bg-white/90 pl-9 shadow-sm focus:border-indigo-500/60 focus:ring-indigo-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
-                        placeholder="••••••••"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-slate-700 dark:text-slate-300">Confirm Password</Label>
-                    <div className="relative">
-                      <Key className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        value={passwordData.confirmPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                        className="h-11 rounded-xl border-slate-200/70 bg-white/90 pl-9 shadow-sm focus:border-indigo-500/60 focus:ring-indigo-500/30 dark:border-slate-700/70 dark:bg-slate-950/60"
-                        placeholder="••••••••"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-2 flex justify-end">
-                  <Button type="submit" variant="outline" disabled={passLoading || !passwordData.password} className="border-orange-200 text-orange-700 hover:bg-orange-50 hover:text-orange-800 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-900/20">
-                    {passLoading ? 'Updating...' : 'Update Password'}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Right Column: Roles & Permissions */}
-        <div className="lg:col-span-1 flex flex-col space-y-6">
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            className="dashboard-surface dashboard-surface-hover overflow-hidden flex flex-col flex-1 min-h-0"
-          >
-            <div className="flex items-center gap-3 border-b border-slate-200/60 bg-slate-50/70 px-6 py-5 dark:border-slate-800/70 dark:bg-slate-900/60">
-              <div className="p-2 bg-purple-100/70 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
-                <Shield className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900 dark:text-white">Access Control</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Your assigned role and permissions</p>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-6 flex-1 flex flex-col min-h-0">
-              <div>
-                <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-3 uppercase tracking-wider">Current Role</h4>
-                <div className={`inline-flex items-center px-3 py-1.5 rounded-full font-semibold text-sm border ${(profileData.role_is_platform_admin || profileData.role_is_full_access || isPlatformAdmin || isFullAccess)
-                  ? 'bg-purple-100/70 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-200/70 dark:border-purple-800'
-                  : 'bg-slate-100/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200/70 dark:border-slate-700'
-                  }`}>
-                  {(profileData.role_is_platform_admin || profileData.role_is_full_access || isPlatformAdmin || isFullAccess)
-                    ? <Crown className="w-3.5 h-3.5 mr-2 text-purple-600 dark:text-purple-400" />
-                    : <Shield className="w-3.5 h-3.5 mr-2" />}
-                  {(profileData.role_name || userRole) ? (profileData.role_name || userRole).replace(/_/g, ' ') : 'Guest'}
-                </div>
-                {profileData.role_description && (
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 italic">
-                    &quot;{profileData.role_description}&quot;
-                  </p>
-                )}
-              </div>
-
-              <div className="flex-1 flex flex-col min-h-0">
-                <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-3 uppercase tracking-wider flex items-center justify-between">
-                  Active Permissions
-                  <span className="text-xs normal-case bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                    {permissions?.length || 0}
-                  </span>
-                </h4>
-
-                {permissions && permissions.length > 0 ? (
-                  <div className="flex-1 min-h-0 rounded-2xl border border-slate-200/70 bg-white/80 p-3 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/50">
-                    <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar space-y-2">
-                      {permissions.map((perm, index) => (
-                        <div key={index} className="flex items-center gap-2 rounded-xl border border-transparent p-2 text-sm text-slate-600 transition-colors group hover:bg-slate-50/70 hover:border-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:border-slate-700">
-                          <CheckCircle2 className="w-4 h-4 text-green-500 dark:text-green-400 shrink-0" />
-                          <span className="group-hover:text-slate-900 dark:group-hover:text-slate-200">{perm.replace(/_/g, ' ')}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex-1 text-sm text-slate-400 italic p-6 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-center border border-slate-100 dark:border-slate-800/70 flex flex-col items-center justify-center gap-2">
-                    <Shield className="w-8 h-8 text-slate-200 dark:text-slate-600" />
-                    No specific permissions assigned.
-                  </div>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    </div>
-  );
+	const { user } = useAuth();
+	const { userRole, permissions, isPlatformAdmin, isFullAccess, hasPermission, tenantId } = usePermissions();
+	const { toast } = useToast();
+
+	const [loading, setLoading] = useState(false);
+	const [passLoading, setPassLoading] = useState(false);
+	const [detailsLoading, setDetailsLoading] = useState(false);
+	const [adminLoading, setAdminLoading] = useState(false);
+
+	const [profileData, setProfileData] = useState({
+		full_name: '',
+		email: '',
+		avatar_url: ''
+	});
+
+	const [profileDetails, setProfileDetails] = useState({
+		description: '',
+		job_title: '',
+		department: '',
+		phone: '',
+		alternate_email: '',
+		location: '',
+		timezone: '',
+		website_url: '',
+		linkedin_url: '',
+		twitter_url: '',
+		github_url: ''
+	});
+
+	const [adminData, setAdminData] = useState({
+		admin_notes: '',
+		admin_flags: ''
+	});
+
+	const [passwordData, setPasswordData] = useState({
+		password: '',
+		confirmPassword: ''
+	});
+
+	const canManageAdminFields = hasPermission('tenant.user.update') || isPlatformAdmin || isFullAccess;
+	const effectiveRole = (profileData.role_name || userRole || 'guest').replace(/_/g, ' ');
+	const permissionCount = permissions?.length || 0;
+	const completedDetailFields = Object.values(profileDetails).filter(Boolean).length;
+	const isPlatformScope = profileData.role_is_platform_admin || profileData.role_is_full_access || isPlatformAdmin || isFullAccess;
+
+	useEffect(() => {
+		if (!user) {
+			return;
+		}
+
+		const fetchProfile = async () => {
+			try {
+				const [userResponse, detailsResponse] = await Promise.all([
+					supabase
+						.from('users')
+						.select(`
+							full_name,
+							email,
+							avatar_url,
+							roles:roles!users_role_id_fkey (
+								name,
+								description,
+								is_platform_admin,
+								is_full_access
+							)
+						`)
+						.eq('id', user.id)
+						.maybeSingle(),
+					supabase
+						.from('user_profiles')
+						.select(`
+							description,
+							job_title,
+							department,
+							phone,
+							alternate_email,
+							location,
+							timezone,
+							website_url,
+							linkedin_url,
+							twitter_url,
+							github_url
+						`)
+						.eq('user_id', user.id)
+						.is('deleted_at', null)
+						.maybeSingle()
+				]);
+
+				if (userResponse.error) {
+					console.error('Error fetching profile:', userResponse.error);
+				}
+
+				if (detailsResponse.error) {
+					console.error('Error fetching profile details:', detailsResponse.error);
+				}
+
+				const data = userResponse.data;
+				const details = detailsResponse.data;
+
+				setProfileData({
+					full_name: data?.full_name || user.user_metadata?.full_name || '',
+					email: user.email || '',
+					avatar_url: data?.avatar_url || user.user_metadata?.avatar_url || '',
+					role_name: data?.roles?.name || '',
+					role_description: data?.roles?.description || '',
+					role_is_platform_admin: Boolean(data?.roles?.is_platform_admin),
+					role_is_full_access: Boolean(data?.roles?.is_full_access)
+				});
+
+				setProfileDetails({
+					description: details?.description || '',
+					job_title: details?.job_title || '',
+					department: details?.department || '',
+					phone: details?.phone || '',
+					alternate_email: details?.alternate_email || '',
+					location: details?.location || '',
+					timezone: details?.timezone || '',
+					website_url: details?.website_url || '',
+					linkedin_url: details?.linkedin_url || '',
+					twitter_url: details?.twitter_url || '',
+					github_url: details?.github_url || ''
+				});
+
+				if (canManageAdminFields) {
+					const { data: adminFields, error: adminError } = await supabase
+						.rpc('get_user_profile_admin_fields', { p_user_id: user.id });
+
+					if (adminError) {
+						console.error('Error fetching admin profile fields:', adminError);
+					}
+
+					const adminRow = Array.isArray(adminFields) ? adminFields[0] : adminFields;
+					setAdminData({
+						admin_notes: adminRow?.admin_notes || '',
+						admin_flags: adminRow?.admin_flags || ''
+					});
+				}
+			} catch (error) {
+				console.error('Unexpected error in fetchProfile:', error);
+			}
+		};
+
+		fetchProfile();
+	}, [user, canManageAdminFields]);
+
+	const handleProfileUpdate = async (event) => {
+		event.preventDefault();
+		setLoading(true);
+
+		try {
+			const { error: dbError } = await supabase
+				.from('users')
+				.update({
+					full_name: profileData.full_name,
+					avatar_url: profileData.avatar_url,
+					updated_at: new Date().toISOString()
+				})
+				.eq('id', user.id);
+
+			if (dbError) {
+				throw dbError;
+			}
+
+			const { error: authError } = await supabase.auth.updateUser({
+				data: {
+					full_name: profileData.full_name,
+					avatar_url: profileData.avatar_url
+				}
+			});
+
+			if (authError) {
+				throw authError;
+			}
+
+			if (profileData.email !== user.email) {
+				const { error: emailError } = await supabase.auth.updateUser({ email: profileData.email });
+				if (emailError) {
+					throw emailError;
+				}
+
+				toast({
+					title: 'Check your email',
+					description: 'Confirmation link sent to your new email address.'
+				});
+			}
+
+			toast({
+				title: 'Profile Updated',
+				description: 'Your profile information has been saved successfully.'
+			});
+		} catch (error) {
+			console.error('Update error:', error);
+			toast({
+				variant: 'destructive',
+				title: 'Update Failed',
+				description: error.message || 'Failed to update profile.'
+			});
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handlePasswordChange = async (event) => {
+		event.preventDefault();
+
+		if (passwordData.password !== passwordData.confirmPassword) {
+			toast({
+				variant: 'destructive',
+				title: 'Passwords do not match',
+				description: 'Please ensure both password fields match.'
+			});
+			return;
+		}
+
+		if (passwordData.password.length < 6) {
+			toast({
+				variant: 'destructive',
+				title: 'Password too short',
+				description: 'Password must be at least 6 characters long.'
+			});
+			return;
+		}
+
+		setPassLoading(true);
+		try {
+			const { error } = await supabase.auth.updateUser({ password: passwordData.password });
+			if (error) {
+				throw error;
+			}
+
+			toast({
+				title: 'Password Updated',
+				description: 'Your password has been changed successfully.'
+			});
+
+			setPasswordData({ password: '', confirmPassword: '' });
+		} catch (error) {
+			console.error('Password update error:', error);
+			let errorMessage = error.message || 'Failed to change password.';
+
+			if (errorMessage.includes('New password should be different') || error.code === 'same_password') {
+				errorMessage = 'Your new password cannot be the same as your old password.';
+			} else if (errorMessage.includes('Gateway Timeout') || error.status === 504) {
+				errorMessage = 'Server is busy. Please wait a moment and try again.';
+			} else if (errorMessage.includes('fetch') || errorMessage.includes('network') || error.name === 'TypeError') {
+				errorMessage = 'Network error. Please check your connection and try again.';
+			} else if (error.status === 429) {
+				errorMessage = 'Too many requests. Please wait a few minutes before trying again.';
+			}
+
+			toast({
+				variant: 'destructive',
+				title: 'Update Failed',
+				description: errorMessage
+			});
+		} finally {
+			setPassLoading(false);
+		}
+	};
+
+	const handleDetailsUpdate = async (event) => {
+		event.preventDefault();
+		setDetailsLoading(true);
+
+		try {
+			const profileTenantId = tenantId ?? null;
+			const { error } = await supabase
+				.from('user_profiles')
+				.upsert({
+					user_id: user.id,
+					tenant_id: profileTenantId,
+					description: profileDetails.description,
+					job_title: profileDetails.job_title,
+					department: profileDetails.department,
+					phone: profileDetails.phone,
+					alternate_email: profileDetails.alternate_email,
+					location: profileDetails.location,
+					timezone: profileDetails.timezone,
+					website_url: profileDetails.website_url,
+					linkedin_url: profileDetails.linkedin_url,
+					twitter_url: profileDetails.twitter_url,
+					github_url: profileDetails.github_url,
+				}, { onConflict: 'user_id' });
+
+			if (error) {
+				throw error;
+			}
+
+			toast({
+				title: 'Profile Details Saved',
+				description: 'Your profile details have been updated successfully.'
+			});
+		} catch (error) {
+			console.error('Profile details update error:', error);
+			toast({
+				variant: 'destructive',
+				title: 'Update Failed',
+				description: error.message || 'Failed to update profile details.'
+			});
+		} finally {
+			setDetailsLoading(false);
+		}
+	};
+
+	const handleAdminUpdate = async (event) => {
+		event.preventDefault();
+		setAdminLoading(true);
+
+		try {
+			const { error } = await supabase.rpc('set_user_profile_admin_fields', {
+				p_user_id: user.id,
+				p_admin_notes: adminData.admin_notes,
+				p_admin_flags: adminData.admin_flags,
+			});
+
+			if (error) {
+				throw error;
+			}
+
+			toast({
+				title: 'Admin Fields Saved',
+				description: 'Encrypted admin notes have been updated successfully.'
+			});
+		} catch (error) {
+			console.error('Admin profile update error:', error);
+			toast({
+				variant: 'destructive',
+				title: 'Update Failed',
+				description: error.message || 'Failed to update admin fields.'
+			});
+		} finally {
+			setAdminLoading(false);
+		}
+	};
+
+	return (
+		<AdminPageLayout>
+			<PageHeader
+				title="My Profile"
+				description="Manage your account settings and security preferences"
+				icon={User}
+				breadcrumbs={[{ label: 'Profile', icon: User }]}
+			/>
+
+			<ProfileSummaryCards
+				effectiveRole={effectiveRole}
+				isPlatformScope={isPlatformScope}
+				permissionCount={permissionCount}
+				completedDetailFields={completedDetailFields}
+				primaryEmail={profileData.email || user?.email || '-'}
+			/>
+
+			<div className="w-full space-y-8 pb-4">
+				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+					<div className="lg:col-span-2 space-y-6">
+						<motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+							<PersonalInformationCard
+								profileData={profileData}
+								setProfileData={setProfileData}
+								loading={loading}
+								onSubmit={handleProfileUpdate}
+							/>
+						</motion.div>
+
+						<motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+							<ProfileDetailsCard
+								profileDetails={profileDetails}
+								setProfileDetails={setProfileDetails}
+								detailsLoading={detailsLoading}
+								onSubmit={handleDetailsUpdate}
+							/>
+						</motion.div>
+
+						{canManageAdminFields && (
+							<motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
+								<AdminNotesCard
+									adminData={adminData}
+									setAdminData={setAdminData}
+									adminLoading={adminLoading}
+									onSubmit={handleAdminUpdate}
+								/>
+							</motion.div>
+						)}
+
+						<motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+							<TwoFactorSettings />
+						</motion.div>
+
+						<motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+							<PasswordCard
+								passwordData={passwordData}
+								setPasswordData={setPasswordData}
+								passLoading={passLoading}
+								onSubmit={handlePasswordChange}
+							/>
+						</motion.div>
+					</div>
+
+					<div className="lg:col-span-1 flex flex-col space-y-6">
+						<motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
+							<AccessControlCard
+								profileData={profileData}
+								userRole={userRole}
+								isPlatformAdmin={isPlatformAdmin}
+								isFullAccess={isFullAccess}
+								permissions={permissions}
+							/>
+						</motion.div>
+					</div>
+				</div>
+			</div>
+		</AdminPageLayout>
+	);
 }
 
 export default UserProfile;
