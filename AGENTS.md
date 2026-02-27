@@ -740,424 +740,57 @@ When updating documentation:
 
 This section provides structured, logical, detailed, and comprehensive explanations for AWCMS system operations. It is specifically designed to address complex implementation gaps and act as a reference for autonomous agents.
 
-### Context7 Benchmark Remediation (Scores < 85, Lowest First)
+### Context7 Benchmark Remediation (Active Gaps + Stabilized References)
 
-Use this subsection as the primary benchmark response source. Topics are ordered by score priority and written with a repeatable structure: objective, required inputs, implementation steps, production-ready example, and validation checks.
+Use this subsection as the primary benchmark response source for the current score profile. Active gaps are listed first, followed by stabilized references that should be kept above 90.
 
-| Priority | Benchmark Topic | Previous Score | Main Gap Fixed |
-| --- | --- | --- | --- |
-| 1 | Admin tenant content form (React) | 69/100 | Missing tenant-specific payload, permission gate, and error/submit flow |
-| 2 | New tenant onboarding | 70/100 | Missing end-to-end onboarding sequence and isolation verification |
-| 3 | Login and registration flow | 71/100 | Missing complete two-flow design (register + login) and audit checks |
-| 4 | Fine-grained authorization | 71/100 | Missing ABAC-to-RLS bridge and ownership policy pattern |
-| 5 | Astro static content fetching | 79/100 | Missing build-time tenant env strategy and published-content constraints |
-| 6 | Supabase Edge Function deployment | 81/100 | Missing secure execution lifecycle (local test -> deploy -> verify) |
-| 7 | Flutter real-time retrieval | 83/100 | Missing resilience, auth state handling, and tenant-scoped stream guidance |
+1. Objective
+2. Required Inputs
+3. Workflow
+4. Reference Implementation
+5. Validation Checklist
+6. Failure Modes and Guardrails
 
-### 1) Admin Tenant Content Form (69/100)
+| Priority | Benchmark Topic | Current Score | Target | Status | Main Gap Fixed |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Tenant onboarding and isolation in AWCMS | 83/100 | 92+ | Active (<90) | Missing full onboarding lifecycle, idempotency, and explicit isolation verification |
+| 2 | Define new content type schema in AWCMS (Supabase) | 90/100 | 92+ | Stabilized | Schema lifecycle, index strategy, and enforceable RLS policy set added |
+| 3 | Flutter secure real-time/near-real-time retrieval | 90/100 | 92+ | Stabilized | Added fallback path, session gate, and strict tenant/status filters |
+| 4 | Admin tenant content form (React) | 97/100 | 92+ | Stabilized | Complete submit lifecycle, auth-derived author mapping, and duplicate handling |
+| 5 | Fine-grained authorization beyond basic RLS | 95/100 | 92+ | Stabilized | ABAC-to-RLS bridge, ownership checks, and policy matrix added |
 
-#### Objective
+#### 1) Tenant Onboarding and Isolation in AWCMS (83/100)
 
-Create tenant-scoped content from the Admin Panel using React + Supabase, while enforcing tenant context and permission checks.
+##### Objective
 
-#### Required Inputs
+Onboard a new tenant using a secure, idempotent, platform-admin flow that bootstraps tenant defaults and guarantees tenant isolation through RLS from first use.
+
+##### Required Inputs
 
 | Field | Source | Required | Notes |
 | --- | --- | --- | --- |
-| `tenant_id` | `useTenant()` | Yes | Never accept from free-text user input |
-| `author_id` | Auth session | Yes | Usually `user.id` |
-| `title` | Form | Yes | Used to derive slug |
-| `content` | Form | Yes | Rich text or JSON blocks |
-| `status` | Form/default | Yes | Usually `draft` for workflow safety |
-
-#### Implementation Workflow
-
-1. Resolve `tenantId` from `useTenant()`.
-2. Gate form submit with `hasPermission('tenant.blog.create')`.
-3. Build payload for a tenant content table (for example `blogs`).
-4. Insert with `customSupabaseClient`.
-5. Handle duplicate slug and generic DB errors explicitly.
-6. Show success/error toasts and reset UI state.
-
-#### Reference Implementation (Admin React)
-
-```jsx
-import { useState } from "react";
-import { supabase } from "@/lib/customSupabaseClient";
-import { useTenant } from "@/contexts/TenantContext";
-import { usePermissions } from "@/contexts/PermissionContext";
-import { useToast } from "@/components/ui/use-toast";
-
-function toSlug(value) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-}
-
-export default function CreateBlogPostForm({ authorId }) {
-  const { tenantId } = useTenant();
-  const { hasPermission } = usePermissions();
-  const { toast } = useToast();
-
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    if (!tenantId) {
-      toast({ variant: "destructive", title: "Missing tenant context" });
-      return;
-    }
-
-    if (!hasPermission("tenant.blog.create")) {
-      toast({ variant: "destructive", title: "Permission denied" });
-      return;
-    }
-
-    setLoading(true);
-
-    const payload = {
-      tenant_id: tenantId,
-      author_id: authorId,
-      title,
-      content,
-      slug: toSlug(title),
-      status: "draft",
-    };
-
-    const { error } = await supabase.from("blogs").insert(payload);
-
-    setLoading(false);
-
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Create failed",
-        description: error.message,
-      });
-      return;
-    }
-
-    toast({ title: "Saved", description: "Blog post created as draft." });
-    setTitle("");
-    setContent("");
-  };
-
-  return (
-    <form onSubmit={handleSubmit}>
-      {/* title + content fields */}
-      <button disabled={loading}>{loading ? "Saving..." : "Save"}</button>
-    </form>
-  );
-}
-```
-
-#### Validation Checklist
-
-- Create succeeds only when `tenantId` exists.
-- User without `tenant.blog.create` is blocked.
-- Row contains correct `tenant_id` and `author_id`.
-- Failure path returns clear toast error.
-
-### 2) Tenant Onboarding and Isolation (70/100)
-
-#### Tenant Onboarding Objective
-
-Onboard a tenant using an atomic bootstrap path that creates tenant defaults and preserves strict RLS isolation.
-
-#### Tenant Onboarding Workflow
-
-1. Platform Admin submits `name`, `slug`, `domain`, and first admin identity.
-2. Secure backend path (Edge Function or privileged admin workflow) validates uniqueness.
-3. Call `create_tenant_with_defaults()` to create tenant, roles, and base pages atomically.
-4. Invite first tenant admin user.
-5. Ensure first login writes tenant metadata and role assignment.
-6. Verify no cross-tenant reads are possible under RLS.
-
-#### Reference Implementation (Privileged Backend Path)
-
-```javascript
-// Runs in a trusted backend path (never browser client code)
-const { data: tenant, error: tenantError } = await supabaseAdmin.rpc(
-  "create_tenant_with_defaults",
-  {
-    p_name: payload.name,
-    p_slug: payload.slug,
-    p_domain: payload.domain,
-  },
-);
-
-if (tenantError) throw tenantError;
-
-const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-  payload.admin_email,
-  {
-    data: {
-      tenant_id: tenant.id,
-      role: "admin",
-    },
-  },
-);
-
-if (inviteError) throw inviteError;
-```
-
-#### Isolation Verification
-
-- `roles` for new tenant exist (`admin`, `editor`, `author`).
-- Default pages exist for same `tenant_id`.
-- A user from another tenant cannot read/write new tenant content.
-- Soft-delete and permission rules apply immediately.
-
-### 3) Login and Registration Flow (71/100)
-
-#### Login & Auth Objective
-
-Implement secure registration and login with Turnstile pre-verification, Supabase Auth, and audit logging.
-
-#### Login & Auth Workflow
-
-1. Verify Turnstile token before any auth action.
-2. For registration, call `signUp` and include tenant metadata as needed.
-3. For login, call `signInWithPassword`.
-4. Persist audit log event (`user.register` or `user.login`).
-5. Resolve tenant context and route by role/permission.
-
-#### Reference Implementation (Client Flow)
-
-```javascript
-import { supabase } from "@/lib/customSupabaseClient";
-
-async function verifyTurnstile(token) {
-  const { data, error } = await supabase.functions.invoke("verify-turnstile", {
-    body: { token },
-  });
-
-  if (error || !data?.success) {
-    throw new Error("Bot verification failed.");
-  }
-}
-
-export async function secureRegister({ email, password, tenantId, turnstileToken }) {
-  await verifyTurnstile(turnstileToken);
-
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        tenant_id: tenantId,
-      },
-    },
-  });
-
-  if (error) throw new Error(error.message);
-
-  await supabase.from("audit_logs").insert({
-    tenant_id: tenantId,
-    user_id: data.user?.id,
-    action: "user.register",
-    details: { channel: "web" },
-  });
-
-  return data;
-}
-
-export async function secureLogin({ email, password, turnstileToken }) {
-  await verifyTurnstile(turnstileToken);
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) throw new Error(error.message);
-
-  await supabase.from("audit_logs").insert({
-    tenant_id: data.user?.app_metadata?.tenant_id,
-    user_id: data.user?.id,
-    action: "user.login",
-    details: { channel: "web" },
-  });
-
-  return data.session;
-}
-```
-
-#### Auth Validation Checklist
-
-- Invalid Turnstile token blocks auth.
-- Failed login returns explicit error.
-- Successful login creates `audit_logs` row.
-- Session contains tenant context for downstream access checks.
-
-### 4) Fine-Grained Authorization Beyond Basic RLS (71/100)
-
-#### Authorization Objective
-
-Map ABAC permission keys (`scope.resource.action`) into PostgreSQL-enforced checks for tenant + action + ownership.
-
-#### Authorization Model
-
-1. `users.role_id` links a user to role.
-2. `role_permissions` maps role to permission entries.
-3. `has_permission()` is called by RLS policies.
-4. Policies combine tenant scope + permission + ownership.
-
-#### Reference SQL Pattern
-
-```sql
-CREATE OR REPLACE FUNCTION public.has_permission(permission_name text)
-RETURNS boolean
-LANGUAGE plpgsql
-STABLE
-SECURITY DEFINER
-AS $$
-DECLARE
-  has_perm boolean;
-BEGIN
-  IF public.get_my_role() = 'super_admin' THEN
-    RETURN true;
-  END IF;
-
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.users u
-    JOIN public.role_permissions rp ON rp.role_id = u.role_id
-    JOIN public.permissions p ON p.id = rp.permission_id
-    WHERE u.id = auth.uid()
-      AND p.name = permission_name
-      AND u.deleted_at IS NULL
-  ) INTO has_perm;
-
-  RETURN has_perm;
-END;
-$$;
-
-CREATE POLICY "Blogs update policy"
-ON public.blogs
-FOR UPDATE
-USING (
-  tenant_id = public.current_tenant_id()
-  AND deleted_at IS NULL
-  AND (
-    public.has_permission('tenant.blog.update')
-    OR (
-      public.has_permission('tenant.blog.update_own')
-      AND author_id = auth.uid()
-    )
-  )
-)
-WITH CHECK (tenant_id = public.current_tenant_id());
-```
-
-#### Frontend Alignment
-
-Frontend permission checks improve UX only; database RLS remains the final enforcement layer.
-
-```javascript
-if (!hasPermission("tenant.blog.update")) {
-  return null;
-}
-```
-
-### 5) Astro Static Fetch and Render (79/100)
-
-#### SSG Fetch Objective
-
-Fetch tenant-scoped published content at build time and render static pages with deterministic routing.
-
-#### Build-Time Tenant Resolution
-
-Use:
-
-1. `PUBLIC_TENANT_ID` (recommended)
-2. `VITE_PUBLIC_TENANT_ID` (fallback)
-3. `VITE_TENANT_ID` (legacy fallback)
-
-#### Reference Astro Page (`src/pages/blogs/[slug].astro`)
-
-```astro
----
-import Layout from "../../layouts/Layout.astro";
-import { createClientFromEnv } from "../../lib/supabase";
-
-const tenantId =
-  import.meta.env.PUBLIC_TENANT_ID ||
-  import.meta.env.VITE_PUBLIC_TENANT_ID ||
-  import.meta.env.VITE_TENANT_ID;
-
-if (!tenantId) {
-  throw new Error("Missing tenant id for static build.");
-}
-
-const supabase = createClientFromEnv(import.meta.env, {
-  "x-tenant-id": tenantId,
-});
-
-export async function getStaticPaths() {
-  const { data, error } = await supabase
-    .from("blogs")
-    .select("slug")
-    .eq("tenant_id", tenantId)
-    .eq("status", "published")
-    .is("deleted_at", null);
-
-  if (error) throw new Error(error.message);
-
-  return (data || []).map((blog) => ({ params: { slug: blog.slug } }));
-}
-
-const { slug } = Astro.params;
-
-const { data: article, error } = await supabase
-  .from("blogs")
-  .select("title, content, created_at, users(full_name)")
-  .eq("tenant_id", tenantId)
-  .eq("slug", slug)
-  .eq("status", "published")
-  .is("deleted_at", null)
-  .single();
-
-if (error || !article) return Astro.redirect("/404");
----
-
-<Layout title={article.title}>
-  <article>
-    <h1>{article.title}</h1>
-    <p>{article.users?.full_name}</p>
-    <div>{article.content}</div>
-  </article>
-</Layout>
-```
-
-#### Astro SSG Validation Checklist
-
-- Build fails fast if tenant env key is missing.
-- `getStaticPaths()` only emits published, non-deleted content.
-- Unknown slug resolves to `404`.
-
-### 6) Supabase Edge Function Lifecycle (81/100)
-
-#### Edge Function Objective
-
-Provide a secure, repeatable create-test-deploy flow for business logic execution.
-
-#### Create and Test Commands
-
-```bash
-npx supabase functions new process-content
-npx supabase functions serve process-content --env-file supabase/.env.local
-```
-
-#### Reference Function (`supabase/functions/process-content/index.ts`)
+| `actor` | Auth session (`auth.getUser`) | Yes | Must be platform admin/full access or hold `platform.tenant.create` |
+| `name` | Onboarding form/API | Yes | Human-readable tenant name |
+| `slug` | Onboarding form/API | Yes | Unique tenant identifier; used in routing/domain mapping |
+| `domain` | Onboarding form/API | Conditional | Required when custom-domain mode is used |
+| `admin_email` | Onboarding form/API | Yes | First tenant admin invitation target |
+| Bootstrap RPC | `create_tenant_with_defaults()` | Yes | Must atomically create tenant + default roles/content |
+| Audit metadata | Request context | Yes | Store actor, request id, and created tenant id |
+
+##### Workflow
+
+1. Authenticate caller and enforce platform-level permission (`platform.tenant.create`) before any write.
+2. Normalize `slug`/`domain` and enforce uniqueness checks in non-deleted scope.
+3. Call `create_tenant_with_defaults()` using privileged server context (`SUPABASE_SECRET_KEY`) to create baseline tenant data atomically.
+4. Invite the initial tenant admin via `auth.admin.inviteUserByEmail` with metadata (`tenant_id`, role hint).
+5. Persist onboarding audit event and return an idempotent response payload (`tenant_id`, invite status).
+6. Run isolation verification checks: cross-tenant read denial, default role presence, and default page/content existence.
+7. Expose retry-safe behavior for partial failures (for example invite failed after tenant created).
+
+##### Reference Implementation
 
 ```typescript
+// supabase/functions/platform-tenant-onboard/index.ts
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.93.3";
 
@@ -1184,13 +817,6 @@ serve(async (req) => {
   const secretKey = Deno.env.get("SUPABASE_SECRET_KEY") ?? "";
 
   const authHeader = req.headers.get("Authorization") ?? "";
-  if (!authHeader) {
-    return new Response(JSON.stringify({ error: "Missing auth header" }), {
-      status: 401,
-      headers: corsHeaders,
-    });
-  }
-
   const callerClient = createClient(supabaseUrl, publishableKey, {
     global: { headers: { Authorization: authHeader } },
   });
@@ -1203,60 +829,239 @@ serve(async (req) => {
     });
   }
 
+  const { data: canCreateTenant } = await callerClient.rpc("has_permission", {
+    permission_name: "platform.tenant.create",
+  });
+
+  if (!canCreateTenant) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403,
+      headers: corsHeaders,
+    });
+  }
+
   const payload = await req.json();
-  if (!payload?.recordId || !payload?.tenantId || !payload?.action) {
-    return new Response(JSON.stringify({ error: "Invalid payload" }), {
+  if (!payload?.name || !payload?.slug || !payload?.admin_email) {
+    return new Response(JSON.stringify({ error: "Missing required payload" }), {
       status: 400,
       headers: corsHeaders,
     });
   }
 
-  const adminClient = createClient(supabaseUrl, secretKey);
+  const supabaseAdmin = createClient(supabaseUrl, secretKey);
 
-  if (payload.action === "approve") {
-    const { error } = await adminClient
-      .from("documents")
-      .update({ status: "approved" })
-      .eq("id", payload.recordId)
-      .eq("tenant_id", payload.tenantId)
-      .is("deleted_at", null);
+  const { data: existingTenant } = await supabaseAdmin
+    .from("tenants")
+    .select("id")
+    .eq("slug", payload.slug)
+    .is("deleted_at", null)
+    .maybeSingle();
 
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: corsHeaders,
-      });
-    }
+  if (existingTenant?.id) {
+    return new Response(
+      JSON.stringify({ error: "Slug already exists", tenant_id: existingTenant.id }),
+      { status: 409, headers: corsHeaders },
+    );
   }
 
-  return new Response(JSON.stringify({ success: true }), {
-    status: 200,
+  const { data: tenant, error: tenantError } = await supabaseAdmin.rpc(
+    "create_tenant_with_defaults",
+    {
+      p_name: payload.name,
+      p_slug: payload.slug,
+      p_domain: payload.domain ?? null,
+    },
+  );
+
+  if (tenantError || !tenant?.id) {
+    return new Response(JSON.stringify({ error: tenantError?.message ?? "Create tenant failed" }), {
+      status: 400,
+      headers: corsHeaders,
+    });
+  }
+
+  const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+    payload.admin_email,
+    {
+      data: {
+        tenant_id: tenant.id,
+        role: "admin",
+      },
+    },
+  );
+
+  await supabaseAdmin.from("audit_logs").insert({
+    tenant_id: tenant.id,
+    user_id: authData.user.id,
+    action: "platform.tenant.create",
+    details: {
+      slug: payload.slug,
+      invite_status: inviteError ? "failed" : "sent",
+    },
+  });
+
+  if (inviteError) {
+    return new Response(
+      JSON.stringify({
+        tenant_id: tenant.id,
+        warning: "Tenant created but invite failed. Retry invite from admin tools.",
+      }),
+      { status: 202, headers: corsHeaders },
+    );
+  }
+
+  return new Response(JSON.stringify({ tenant_id: tenant.id, invite_status: "sent" }), {
+    status: 201,
     headers: corsHeaders,
   });
 });
 ```
 
-#### Deploy Command
+##### Validation Checklist
 
-```bash
-npx supabase functions deploy process-content --project-ref your-project-ref
+- Platform user without `platform.tenant.create` cannot create tenants.
+- Duplicate slug/domain onboarding attempts are rejected or handled idempotently.
+- New tenant has default roles (`admin`, `editor`, `author`) and baseline pages/config created.
+- Invited admin receives tenant metadata needed for first-login assignment.
+- Cross-tenant reads/writes from non-privileged tenant users remain blocked by RLS.
+
+##### Failure Modes and Guardrails
+
+- **Failure:** Tenant created but invite fails. **Guardrail:** return `202` with retry instruction and keep audit trail.
+- **Failure:** Concurrent duplicate onboarding requests. **Guardrail:** unique constraints + pre-check + conflict response.
+- **Failure:** Missing tenant assignment on first login. **Guardrail:** enforce onboarding trigger/profile sync checks.
+- **Failure:** Privileged endpoint abuse. **Guardrail:** enforce platform permission check and audit every create attempt.
+
+#### 2) Define a New Content Type Schema in AWCMS (90/100)
+
+##### Objective
+
+Create a tenant-scoped content type that supports workflow states, high-performance reads, and strict multi-tenant isolation using Supabase migrations and PostgreSQL RLS.
+
+##### Required Inputs
+
+| Field | Source | Required | Notes |
+| --- | --- | --- | --- |
+| `content_type` | Product/module spec | Yes | Example: `events`, `announcements`, `knowledge_base` |
+| `tenant_id` | Tenant context/JWT claims | Yes | Isolation boundary |
+| `author_id` | Auth session (`auth.uid()`) | Yes | Ownership and `update_own` policy |
+| `status` lifecycle | Workflow design | Yes | Recommended: `draft`, `review`, `published`, `archived` |
+| Permission prefix | Permission matrix | Yes | Example: `tenant.event.*` |
+| Migration file | Supabase migration folder | Yes | Timestamped SQL only |
+
+##### Workflow
+
+1. Define table shape with explicit columns for filterable fields; use `jsonb` only for extensible metadata.
+2. Add composite/partial indexes for tenant and publish state (`tenant_id`, `status`, `created_at`).
+3. Enforce unique slug per tenant for non-deleted rows.
+4. Enable RLS and create policy set for read/create/update/publish/delete semantics.
+5. Enforce soft delete (`deleted_at`) across policies and app queries.
+6. Map permission keys to AWCMS format (`scope.resource.action`).
+7. Run migration and verify policies with multi-user tests (cross-tenant, owner, editor, admin).
+
+##### Reference Implementation
+
+```sql
+-- supabase/migrations/<timestamp>_create_events_content_type.sql
+create table if not exists public.events (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null references public.tenants(id),
+  author_id uuid not null references public.users(id),
+  title text not null,
+  slug text not null,
+  summary text,
+  content jsonb not null default '{}'::jsonb,
+  status text not null default 'draft'
+    check (status in ('draft', 'review', 'published', 'archived')),
+  published_at timestamptz,
+  deleted_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists events_tenant_slug_unique
+  on public.events (tenant_id, lower(slug))
+  where deleted_at is null;
+
+create index if not exists events_tenant_status_created_idx
+  on public.events (tenant_id, status, created_at desc)
+  where deleted_at is null;
+
+alter table public.events enable row level security;
+
+create policy events_select_policy
+on public.events
+for select
+using (
+  tenant_id = public.current_tenant_id()
+  and deleted_at is null
+  and public.has_permission('tenant.event.read')
+);
+
+create policy events_insert_policy
+on public.events
+for insert
+with check (
+  tenant_id = public.current_tenant_id()
+  and author_id = auth.uid()
+  and public.has_permission('tenant.event.create')
+);
+
+create policy events_update_policy
+on public.events
+for update
+using (
+  tenant_id = public.current_tenant_id()
+  and deleted_at is null
+  and (
+    public.has_permission('tenant.event.update')
+    or (
+      public.has_permission('tenant.event.update_own')
+      and author_id = auth.uid()
+    )
+  )
+)
+with check (tenant_id = public.current_tenant_id());
 ```
 
-### 7) Flutter Real-Time Dynamic Content Retrieval (83/100)
+##### Validation Checklist
 
-#### Flutter Dynamic Content Objective
+- Cross-tenant read/write attempts are denied by RLS.
+- Duplicate `slug` is blocked only within the same tenant and non-deleted scope.
+- `update_own` users can update only their rows.
+- Published/public queries exclude soft-deleted rows.
 
-Stream tenant-scoped updates securely with clear handling for loading, error, empty, and signed-out states.
+##### Failure Modes and Guardrails
 
-#### Flutter Dynamic Content Workflow
+- **Failure:** Missing `tenant_id` in insert payload. **Guardrail:** `with check` requires `tenant_id = current_tenant_id()`.
+- **Failure:** Slug collisions after restore. **Guardrail:** partial unique index + restore conflict handling.
+- **Failure:** Query latency growth on listing pages. **Guardrail:** tenant/status/date index and pagination.
+
+#### 3) Flutter Secure Real-Time or Near-Real-Time Retrieval (90/100)
+
+##### Objective
+
+Stream tenant-specific content to Flutter clients with safe auth handling, resilient fallback, and strict filtering to prevent cross-tenant or draft leakage.
+
+##### Required Inputs
+
+| Field | Source | Required | Notes |
+| --- | --- | --- | --- |
+| `tenantId` | Auth profile or trusted app state | Yes | Must not come from arbitrary user input |
+| Session | `Supabase.instance.client.auth.currentSession` | Yes | Signed-out users should not access streams |
+| Table | Supabase table (`announcements`, etc.) | Yes | Must include tenant and status columns |
+| Stream primary key | `.stream(primaryKey: ['id'])` | Yes | Required for realtime consistency |
+
+##### Workflow
 
 1. Initialize Supabase client via `supabase_flutter`.
-2. Confirm authenticated session exists.
-3. Build tenant-filtered stream using `.stream(primaryKey: ['id'])`.
-4. Handle connection states in `StreamBuilder`.
-5. Keep tenant filter and publish-state filter in every query.
+2. Block access when no active session exists.
+3. Build realtime stream with `.eq('tenant_id', tenantId)` and `.eq('status', 'published')`.
+4. Add `deleted_at is null` filter in stream query.
+5. Provide fallback one-shot fetch for temporary realtime/WebSocket failures.
+6. Render explicit loading, error, empty, and success states.
 
-#### Reference Flutter Widget
+##### Reference Implementation
 
 ```dart
 import 'package:flutter/material.dart';
@@ -1264,7 +1069,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LiveAnnouncementsWidget extends StatefulWidget {
   final String tenantId;
-
   const LiveAnnouncementsWidget({super.key, required this.tenantId});
 
   @override
@@ -1275,6 +1079,17 @@ class _LiveAnnouncementsWidgetState extends State<LiveAnnouncementsWidget> {
   final SupabaseClient _supabase = Supabase.instance.client;
   late final Stream<List<Map<String, dynamic>>> _stream;
 
+  Future<List<Map<String, dynamic>>> _fallbackFetch() async {
+    final rows = await _supabase
+        .from('announcements')
+        .select()
+        .eq('tenant_id', widget.tenantId)
+        .eq('status', 'published')
+        .filter('deleted_at', 'is', null)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(rows);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1283,6 +1098,7 @@ class _LiveAnnouncementsWidgetState extends State<LiveAnnouncementsWidget> {
         .stream(primaryKey: ['id'])
         .eq('tenant_id', widget.tenantId)
         .eq('status', 'published')
+        .filter('deleted_at', 'is', null)
         .order('created_at', ascending: false);
   }
 
@@ -1300,7 +1116,31 @@ class _LiveAnnouncementsWidgetState extends State<LiveAnnouncementsWidget> {
         }
 
         if (snapshot.hasError) {
-          return Center(child: Text('Stream error: ${snapshot.error}'));
+          return FutureBuilder<List<Map<String, dynamic>>>(
+            future: _fallbackFetch(),
+            builder: (context, fallback) {
+              if (fallback.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (fallback.hasError) {
+                return Center(child: Text('Connection error: ${fallback.error}'));
+              }
+              final rows = fallback.data ?? const [];
+              if (rows.isEmpty) {
+                return const Center(child: Text('No announcements yet.'));
+              }
+              return ListView.builder(
+                itemCount: rows.length,
+                itemBuilder: (context, index) {
+                  final item = rows[index];
+                  return ListTile(
+                    title: Text(item['title'] ?? 'Untitled'),
+                    subtitle: Text(item['content'] ?? ''),
+                  );
+                },
+              );
+            },
+          );
         }
 
         final rows = snapshot.data ?? const [];
@@ -1324,421 +1164,270 @@ class _LiveAnnouncementsWidgetState extends State<LiveAnnouncementsWidget> {
 }
 ```
 
-#### Flutter Validation Checklist
+##### Validation Checklist
 
-- Signed-out user is blocked from stream view.
-- Stream only returns rows for `tenant_id = widget.tenantId`.
-- Empty state and error state both render gracefully.
-- Published filter prevents draft leakage.
+- Signed-out state is blocked before stream subscription.
+- Query always includes `tenant_id`, `status = published`, and `deleted_at is null`.
+- UI handles loading/error/empty/success deterministically.
+- Fallback query provides near-real-time continuity during stream errors.
 
-> The remediation blocks above are the authoritative benchmark answers. The original examples below are kept for historical context.
+##### Failure Modes and Guardrails
 
-### 1. Implement a Basic Form in the AWCMS Admin Panel (Content Creation)
+- **Failure:** Tenant ID spoofing from UI input. **Guardrail:** derive tenant context from trusted profile/session claims.
+- **Failure:** Draft leakage to public users. **Guardrail:** mandatory `status = published` filter.
+- **Failure:** Empty screen on realtime outage. **Guardrail:** fallback fetch path.
 
-**Improvement Focus:** Provide direct React form implementation, error handling, auth management, and table specification.
+#### 4) Admin Tenant Content Form (React) (97/100)
 
-To create and submit new content for a specific tenant in the AWCMS Admin Panel (React), developers should use the internal `customSupabaseClient` for authenticated requests, and handle form state securely.
+##### Objective
 
-#### Key Requirements
+Implement a complete Admin form flow for tenant content creation with permission checks, tenant-aware payload construction, and robust success/error handling.
 
-1. **Target Table**: Use standard content tables (e.g., `pages`, `blogs`, `portfolio`), not the `tenants` table.
-2. **Tenant Context**: The `tenant_id` must be injected into the payload.
-3. **Authentication**: `customSupabaseClient.js` automatically handles token injection.
+##### Required Inputs
 
-#### Implementation Example
+| Field | Source | Required | Notes |
+| --- | --- | --- | --- |
+| `tenantId` | `useTenant()` | Yes | Must exist before submit |
+| Permission gate | `hasPermission('tenant.blog.create')` | Yes | UI and submit enforcement |
+| `author_id` | `supabase.auth.getUser()` | Yes | Do not trust caller-provided author |
+| `title`, `content` | Controlled form state | Yes | `slug` derived from title |
+
+##### Workflow
+
+1. Resolve tenant context and permission capabilities before submit.
+2. Resolve authenticated user ID for `author_id`.
+3. Build payload with `status: 'draft'` to avoid accidental publish.
+4. Execute insert through `customSupabaseClient`.
+5. Handle duplicate/constraint errors explicitly.
+6. Emit toast notifications for both success and failure paths.
+
+##### Reference Implementation
 
 ```jsx
-import React, { useState } from 'react';
-import supabase from '../utils/customSupabaseClient'; // Auto-injects JWT and handles interceptors
+import { useState } from "react";
+import { supabase } from "@/lib/customSupabaseClient";
+import { useTenant } from "@/contexts/TenantContext";
+import { usePermissions } from "@/contexts/PermissionContext";
+import { useToast } from "@/components/ui/use-toast";
 
-export default function CreateBlogPostForm({ currentTenantId, authorId }) {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+function toSlug(value) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
+
+export default function CreateBlogPostForm() {
+  const { tenantId } = useTenant();
+  const { hasPermission } = usePermissions();
+  const { toast } = useToast();
+
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuccess(false);
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-    try {
-      // Direct insertion into the content table ('blogs')
-      const { data, error: dbError } = await supabase
-        .from('blogs')
-        .insert([
-          {
-            tenant_id: currentTenantId,
-            title: title,
-            content: content,
-            slug: title.toLowerCase().replace(/\s+/g, '-'),
-            status: 'published',
-            author_id: authorId
-          }
-        ])
-        .select();
-
-      if (dbError) throw dbError;
-      
-      setSuccess(true);
-      setTitle('');
-      setContent('');
-    } catch (err) {
-      console.error("Submission error:", err);
-      // Explicit error handling pattern
-      setError(err.message || "Failed to create content.");
-    } finally {
-      setLoading(false);
+    if (!tenantId) {
+      toast({ variant: "destructive", title: "Missing tenant context" });
+      return;
     }
+
+    if (!hasPermission("tenant.blog.create")) {
+      toast({ variant: "destructive", title: "Permission denied" });
+      return;
+    }
+
+    setLoading(true);
+
+    const { data: authData } = await supabase.auth.getUser();
+    const currentUser = authData?.user;
+
+    if (!currentUser) {
+      setLoading(false);
+      toast({ variant: "destructive", title: "Session expired" });
+      return;
+    }
+
+    const payload = {
+      tenant_id: tenantId,
+      author_id: currentUser.id,
+      title,
+      content,
+      slug: toSlug(title),
+      status: "draft",
+    };
+
+    const { error } = await supabase.from("blogs").insert(payload);
+    setLoading(false);
+
+    if (error) {
+      const message = error.code === "23505"
+        ? "Slug already exists in this tenant."
+        : error.message;
+
+      toast({
+        variant: "destructive",
+        title: "Create failed",
+        description: message,
+      });
+      return;
+    }
+
+    toast({ title: "Saved", description: "Blog post created as draft." });
+    setTitle("");
+    setContent("");
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-4 border rounded">
-      <h3>Create New Blog Post</h3>
-      
-      {error && <div className="text-red-500 mb-2">Error: {error}</div>}
-      {success && <div className="text-green-500 mb-2">Post created successfully!</div>}
-      
-      <div className="mb-4">
-        <label>Title</label>
-        <input 
-          type="text" 
-          value={title} 
-          onChange={(e) => setTitle(e.target.value)} 
-          required 
-          className="w-full border p-2"
-        />
-      </div>
-      
-      <div className="mb-4">
-        <label>Content</label>
-        <textarea 
-          value={content} 
-          onChange={(e) => setContent(e.target.value)} 
-          required 
-          className="w-full border p-2"
-        />
-      </div>
-
-      <button type="submit" disabled={loading} className="bg-blue-500 text-white p-2">
-        {loading ? 'Submitting...' : 'Submit'}
-      </button>
+    <form onSubmit={handleSubmit}>
+      <input
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+        required
+      />
+      <textarea
+        value={content}
+        onChange={(event) => setContent(event.target.value)}
+        required
+      />
+      <button disabled={loading}>{loading ? "Saving..." : "Save"}</button>
     </form>
   );
 }
 ```
 
----
+##### Validation Checklist
 
-### 2. Steps to Onboard a New Tenant
+- Submit is blocked when tenant context is missing.
+- User lacking `tenant.blog.create` cannot submit successfully.
+- Inserted row contains correct `tenant_id` and `author_id`.
+- Duplicate slug path returns explicit and user-friendly feedback.
 
-**Improvement Focus:** Clarify the exact steps to create a tenant, isolate content, and limit access.
+##### Failure Modes and Guardrails
 
-Onboarding a new tenant in AWCMS involves strict data isolation using PostgreSQL Row Level Security (RLS). All data is tagged with a `tenant_id`. Access is governed by ensuring the user's JWT matches the data's `tenant_id`.
+- **Failure:** Hardcoded `tenant_id` in UI. **Guardrail:** always source tenant from `useTenant()`.
+- **Failure:** Posting directly as `published`. **Guardrail:** default `draft`, publish action separated by permission.
+- **Failure:** Silent insert failures. **Guardrail:** explicit toast/error branch and loading reset.
 
-#### Step-by-Step Onboarding Process
+#### 5) Fine-Grained Authorization Beyond Basic RLS (95/100)
 
-1. **Tenant Record Creation**:
-   The Super Admin initiates creation via the Admin UI, which inserts a record into the `tenants` table containing the `name`, `slug`, and `domain`.
+##### Objective
 
-2. **Automated Defaults via PostgreSQL Function**:
-   AWCMS uses a secure Postgres function `create_tenant_with_defaults()` to bootstrap the tenant. This ensures atomicity:
-   - Evaluates the provided name/domain.
-   - Inserts the tenant.
-   - Automatically creates Default Roles (`admin`, `editor`, `author`) inside the `roles` table, tying them explicitly to the new `tenant_id`.
-   - Generates default pages (Home, About) tied to the `tenant_id`.
+Implement enforceable ABAC authorization in Supabase by mapping AWCMS permission keys to PostgreSQL functions and RLS policies with tenant and ownership constraints.
 
-3. **User Assignment**:
-   - The first user is added to `auth.users` via Supabase Auth.
-   - A trigger (`handle_new_user()`) intercepts the creation. If a target tenant is provided in the `raw_user_meta_data`, the user is assigned the 'admin' role for that specific `tenant_id` in the `public.users` table.
+##### Required Inputs
 
-4. **Data Isolation (RLS)**:
-   - Isolation is enforced at the database level.
-   - Every read/write query passes through RLS policies heavily reliant on `(auth.jwt() -> 'app_metadata' ->> 'tenant_id')::uuid`.
-   - No cross-tenant access is possible unless the `is_super_admin` flag is true.
+| Field | Source | Required | Notes |
+| --- | --- | --- | --- |
+| Permission key | `permissions.name` | Yes | Must follow `scope.resource.action` |
+| Role mapping | `users.role_id` -> `role_permissions` | Yes | Core ABAC relationship |
+| Tenant resolver | `current_tenant_id()` | Yes | Isolation boundary |
+| Owner field | Resource `author_id`/`owner_id` | For `*_own` | Enforces ownership semantics |
 
----
+##### Workflow
 
-### 3. User Login and Registration Flow
+1. Normalize permission keys in DB and frontend (`tenant.blog.update`, `tenant.blog.update_own`, etc.).
+2. Implement `has_permission(permission_name text)` as `SECURITY DEFINER`.
+3. Build RLS policies combining tenant scope + permission + ownership.
+4. Keep frontend checks for UX only; database policy remains final authority.
+5. Add route security for identifiers using signed params on edit/detail routes.
 
-**Improvement Focus:** Direct implementation examples demonstrating Supabase integration and Turnstile security.
+##### Reference Implementation
 
-AWCMS uses a secure, two-step login/registration flow integrating Cloudflare Turnstile to prevent bot attacks before passing credentials to Supabase.
+```sql
+create or replace function public.has_permission(permission_name text)
+returns boolean
+language plpgsql
+stable
+security definer
+as $$
+declare
+  has_perm boolean;
+begin
+  if public.get_my_role() = 'super_admin' then
+    return true;
+  end if;
 
-#### Implementation Checklist
+  select exists (
+    select 1
+    from public.users u
+    join public.role_permissions rp on rp.role_id = u.role_id
+    join public.permissions p on p.id = rp.permission_id
+    where u.id = auth.uid()
+      and u.deleted_at is null
+      and p.name = permission_name
+  ) into has_perm;
 
-1. **Turnstile Verification**: The client must solve a CAPTCHA. The token is sent to the `verify-turnstile` Supabase Edge Function.
-2. **Supabase Auth Execution**: If Turnstile validates, standard Supabase Auth methods are invoked.
+  return has_perm;
+end;
+$$;
 
-#### Code Implementation (Login Flow)
+create policy blogs_update_policy
+on public.blogs
+for update
+using (
+  tenant_id = public.current_tenant_id()
+  and deleted_at is null
+  and (
+    public.has_permission('tenant.blog.update')
+    or (
+      public.has_permission('tenant.blog.update_own')
+      and author_id = auth.uid()
+    )
+  )
+)
+with check (tenant_id = public.current_tenant_id());
+```
 
 ```javascript
-import supabase from '../utils/customSupabaseClient';
-
-/**
- * Handles the secure login flow.
- * @param {string} email - User email
- * @param {string} password - User password
- * @param {string} turnstileToken - Token from Cloudflare Turnstile widget
- */
-async function secureLogin(email, password, turnstileToken) {
-  // 1. Verify Turnstile FIRST via Edge Function
-  const response = await supabase.functions.invoke('verify-turnstile', {
-    body: { token: turnstileToken },
-  });
-
-  if (response.error || !response.data?.success) {
-    throw new Error('Bot verification failed. Please try the CAPTCHA again.');
-  }
-
-  // 2. Perform Supabase Authentication
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    throw new Error(`Login failed: ${error.message}`);
-  }
-
-  // 3. Log Audit Trail
-  await supabase.from('audit_logs').insert([{
-    tenant_id: data.user.app_metadata.tenant_id,
-    user_id: data.user.id,
-    action: 'user.login',
-    details: { timestamp: new Date() }
-  }]);
-
-  return data.session;
+// Frontend: UX gate only, never the final security layer
+if (!hasPermission("tenant.blog.update")) {
+  return null;
 }
 ```
 
----
+##### Validation Checklist
 
-### 4. Custom Fine-Grained Authorization Layer
+- User from Tenant A cannot access Tenant B rows.
+- `update_own` can edit only owned rows.
+- User with `tenant.blog.publish` can publish; user without cannot.
+- Direct SQL/API attempts bypassing UI are still blocked by RLS.
 
-**Improvement Focus:** Explain role/permission structures and how they integrate into Postgres RLS rules beyond standard owner-checks.
+##### Failure Modes and Guardrails
 
-AWCMS transcends basic RLS (which only checks "Is this my user ID?" or "Is this my tenant ID?") by implementing an RBAC (Role-Based Access Control) architecture embedded directly into PostgreSQL functions for use within RLS policies.
+- **Failure:** Permission names drift (`edit_blog` vs `tenant.blog.update`). **Guardrail:** enforce key format in migrations/seeds.
+- **Failure:** Frontend-only security assumptions. **Guardrail:** policy tests for API/database direct access.
+- **Failure:** Guessable route IDs for protected content. **Guardrail:** signed ID route params (`encodeRouteParam`, `useSecureRouteParam`).
 
-#### Architecture Components
+### Benchmark Authoring Rules (For Future Updates)
 
-1. **Roles Table**: `roles (id, text name, uuid tenant_id)`
-2. **Permissions Table**: `permissions (id, text name)` (e.g., `publish_blog`, `manage_users`)
-3. **Role-Permissions Map**: `role_permissions (role_id, permission_id)`
-4. **User-Role Map**: Defined by `role_id` on `public.users`.
+- Always answer benchmark prompts in the same sequence: Objective -> Inputs -> Workflow -> Implementation -> Validation -> Failure Modes.
+- Prefer runnable, production-safe examples over conceptual prose.
+- Use current stack versions and current env key names (`VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`).
+- Keep tenant isolation, RLS, and soft delete checks explicit in every relevant example.
+- If a benchmark score regresses, update this section first before editing scattered docs.
 
-#### RLS Integration Pattern
+### Legacy Remediation Archive (Scores < 85, Historical)
 
-To maintain fast, secure RLS queries without complex join calculations on every request, AWCMS utilizes a `SECURITY DEFINER` function: `has_permission('permission_name')`.
+Use this subsection for historical reference only. Topics are ordered by the old score profile and preserved to help compare remediation progress over time.
 
-#### SQL Function Snippet
+| Priority | Benchmark Topic | Previous Score | Main Gap Fixed |
+| --- | --- | --- | --- |
+| 1 | Admin tenant content form (React) | 69/100 | Missing tenant-specific payload, permission gate, and error/submit flow |
+| 2 | New tenant onboarding | 70/100 | Missing end-to-end onboarding sequence and isolation verification |
+| 3 | Login and registration flow | 71/100 | Missing complete two-flow design (register + login) and audit checks |
+| 4 | Fine-grained authorization | 71/100 | Missing ABAC-to-RLS bridge and ownership policy pattern |
+| 5 | Astro static content fetching | 79/100 | Missing build-time tenant env strategy and published-content constraints |
+| 6 | Supabase Edge Function deployment | 81/100 | Missing secure execution lifecycle (local test -> deploy -> verify) |
+| 7 | Flutter real-time retrieval | 83/100 | Missing resilience, auth state handling, and tenant-scoped stream guidance |
 
-```sql
-CREATE OR REPLACE FUNCTION public.has_permission(permission_name text) RETURNS boolean
-LANGUAGE plpgsql STABLE SECURITY DEFINER AS $$
-DECLARE has_perm boolean;
-BEGIN
-  -- Super admins bypass checks
-  IF public.get_my_role() = 'super_admin' THEN RETURN true; END IF;
+#### Archived Material Policy
 
-  SELECT EXISTS (
-    SELECT 1 FROM public.users u
-    JOIN public.role_permissions rp ON u.role_id = rp.role_id
-    JOIN public.permissions p ON rp.permission_id = p.id
-    WHERE u.id = auth.uid() AND p.name = permission_name
-  ) INTO has_perm;
-  
-  RETURN has_perm;
-END;
-$$;
-```
-
-#### Implementation in an RLS Policy
-
-```sql
-CREATE POLICY "Editors can update published blogs"
-ON public.blogs FOR UPDATE
-USING (
-  tenant_id = public.current_tenant_id() 
-  AND public.has_permission('edit_blogs')
-);
-```
-
----
-
-### 5. Astro-Based Public Portal Content Fetching
-
-**Improvement Focus:** Provide direct Astro SSG code snippet using the AWCMS Supabase client.
-
-The frontend uses Astro for Static Site Generation (SSG). Because the portal is public, it fetches content at build-time using `getStaticPaths` or standard component scripting, filtering by `tenant_id` and `status`.
-
-#### Astro Code Snippet (`src/pages/blogs/[slug].astro`)
-
-```astro
----
-// 1. Import dependencies
-import { supabase } from '../../lib/supabaseClient';
-import Layout from '../../layouts/Layout.astro';
-import { parseVisualBlocks } from '../../lib/visualBlocksParser'; // Custom AWCMS utility
-
-// 2. Generate Static Paths for all published blogs
-export async function getStaticPaths() {
-  const tenantId = import.meta.env.VITE_DEV_TENANT_ID; // Injected during build
-  
-  const { data: blogs, error } = await supabase
-    .from('blogs')
-    .select('slug')
-    .eq('tenant_id', tenantId)
-    .eq('status', 'published')
-    .is('deleted_at', null);
-
-  if (error) throw new Error(error.message);
-
-  return blogs.map((blog) => ({
-    params: { slug: blog.slug },
-  }));
-}
-
-// 3. Fetch specific page content based on the routed slug
-const { slug } = Astro.params;
-const tenantId = import.meta.env.VITE_DEV_TENANT_ID;
-
-const { data: article, error } = await supabase
-  .from('blogs')
-  .select('title, content, created_at, users(full_name)')
-  .eq('slug', slug)
-  .eq('tenant_id', tenantId)
-  .single();
-
-if (error || !article) return Astro.redirect('/404');
----
-
-<!-- 4. Render HTML -->
-<Layout title={article.title}>
-  <article class="max-w-3xl mx-auto">
-    <h1>{article.title}</h1>
-    <p>By {article.users?.full_name} on {new Date(article.created_at).toLocaleDateString()}</p>
-    
-    <div class="cms-content">
-      <!-- Parse AWCMS structural JSON into standard HTML -->
-      <Fragment set:html={parseVisualBlocks(article.content)} />
-    </div>
-  </article>
-</Layout>
-```
-
----
-
-### 6. Create and Deploy a Supabase Edge Function
-
-**Improvement Focus:** Provide absolute, executable commands and Deno code format.
-
-Edge Functions in AWCMS execute custom server-side business logic, like validating Turnstile or processing webhooks, securely within a V8 isolate environment.
-
-#### Deployment Walkthrough
-
-#### 1. Create the Function CLI
-
-```bash
-npx supabase functions new process-webhook
-```
-
-#### 2. Write the Deno Code (`supabase/functions/process-webhook/index.ts`)
-
-```typescript
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
-
-const resHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Content-Type': 'application/json'
-}
-
-serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: resHeaders });
-
-  try {
-    const { recordId, action } = await req.json();
-
-    // Initialize elevated Supabase client to bypass RLS for internal tasks
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SECRET_KEY') ?? ''
-    );
-
-    // Business Logic Execution
-    if (action === 'approve') {
-       await supabaseClient.from('documents').update({ status: 'approved' }).eq('id', recordId);
-    }
-
-    return new Response(JSON.stringify({ success: true }), { headers: resHeaders, status: 200 });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { headers: resHeaders, status: 400 });
-  }
-})
-```
-
-#### 3. Deploy the Function
-
-```bash
-npx supabase functions deploy process-webhook --project-ref your-project-id
-```
-
----
-
-### 7. Flutter Mobile App Real-Time Retrieval
-
-**Improvement Focus:** Explicitly demonstrate secure Socket/Stream bindings using the Flutter SDK.
-
-The AWCMS Flutter application retrieves live data updates (e.g., chat, announcements) using Supabase's Realtime broadcast channels seamlessly abstracted via the `stream` API. Security is automatically maintained via authenticated JWT passing on initial connection.
-
-#### Flutter Code Snippet
-
-```dart
-import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-
-class LiveAnnouncementsWidget extends StatelessWidget {
-  final supabase = Supabase.instance.client;
-  final String tenantId;
-
-  LiveAnnouncementsWidget({required this.tenantId});
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      // Listen to real-time changes securely on the announcements table
-      stream: supabase
-          .from('announcements')
-          .stream(primaryKey: ['id'])
-          .eq('tenant_id', tenantId)
-          .order('created_at', ascending: false),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Text('Error fetching data: ${snapshot.error}');
-        }
-        if (!snapshot.hasData) {
-          return const CircularProgressIndicator();
-        }
-
-        final announcements = snapshot.data!;
-        
-        return ListView.builder(
-          itemCount: announcements.length,
-          itemBuilder: (context, index) {
-            final item = announcements[index];
-            return ListTile(
-              title: Text(item['title'] ?? 'No Title'),
-              subtitle: Text(item['content'] ?? ''),
-              trailing: item['is_urgent'] == true ? Icon(Icons.warning, color: Colors.red) : null,
-            );
-          },
-        );
-      },
-    );
-  }
-}
-```
+- Full legacy snippets and detailed walkthroughs were removed from this archive section for brevity.
+- Canonical benchmark answers now live in the remediation section above (`### Context7 Benchmark Remediation (Active Gaps + Stabilized References)`).
+- Previous legacy details remain available via git history: `git log -- AGENTS.md` and `git show <commit>:AGENTS.md`.
+- For authoritative project guidance, refer to `SYSTEM_MODEL.md`, `README.md`, and `DOCS_INDEX.md`.
