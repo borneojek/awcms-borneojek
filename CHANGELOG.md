@@ -5,6 +5,8 @@ All notable changes to the **AWCMS** project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.32.1] "Codex" - 2026-02-27
+
 ### Added
 
 - Added `docs/dev/documentation-audit-tracker.md` as the docs-audit drift register and phase tracker.
