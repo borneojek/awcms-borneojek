@@ -73,6 +73,15 @@ const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env
 - Use `supabaseAdmin` (`SUPABASE_SECRET_KEY`) for cross-tenant operations and elevated workflows.
 - Must enforce tenant context checks and resource sharing rules before mutating data.
 
+### Tenant Provisioning RPC Signatures
+
+`create_tenant_with_defaults` currently exists in both compatibility and hierarchy-aware signatures in migration history:
+
+- 4-argument signature: `(p_name, p_slug, p_domain, p_tier)`
+- 6-argument signature: `(p_name, p_slug, p_domain, p_tier, p_parent_tenant_id, p_role_inheritance_mode)`
+
+Seed migrations for hierarchy-enabled tenants currently use the 6-argument signature.
+
 ## Implementation Patterns
 
 ### Admin Client Usage

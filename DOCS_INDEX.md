@@ -42,7 +42,7 @@ All documentation follows this authority structure:
 | --- | --- | --- |
 | **System Model** | [SYSTEM_MODEL.md](SYSTEM_MODEL.md) | **Authoritative: Stack versions, architecture, security** |
 | **AI Guidelines** | [AGENTS.md](AGENTS.md) | **Authoritative: Coding standards, Context7 refs** |
-| **Wiki / Guide** | [docs/README.md](docs/README.md) | Detailed repository guide & concepts |
+| **Documentation Hub** | [docs/README.md](docs/README.md) | Practical docs entrypoint and routing |
 | **Resource Map** | [docs/RESOURCE_MAP.md](docs/RESOURCE_MAP.md) | Resource registry and permission mapping |
 
 ### Architecture
@@ -90,6 +90,7 @@ All documentation follows this authority structure:
 | Setup Guide | [docs/dev/setup.md](docs/dev/setup.md) | **Start Here** |
 | Documentation Audit Plan | [docs/dev/documentation-audit-plan.md](docs/dev/documentation-audit-plan.md) | Repository-wide Context7-first audit and revision workflow |
 | Documentation Audit Tracker | [docs/dev/documentation-audit-tracker.md](docs/dev/documentation-audit-tracker.md) | Phase progress, drift register, and reconciliation status |
+| Context7 Benchmark Playbook | [docs/dev/context7-benchmark-playbook.md](docs/dev/context7-benchmark-playbook.md) | Canonical benchmark answer structure and topic playbooks |
 | Stitch Integration Plan | [docs/dev/stitch-integration-plan.md](docs/dev/stitch-integration-plan.md) | File-by-file execution checklist + migration skeletons |
 | Admin Panel | [docs/dev/admin.md](docs/dev/admin.md) | React Admin development |
 | Public Portal | [docs/dev/public.md](docs/dev/public.md) | Astro development |
@@ -119,7 +120,7 @@ When implementing features, reference these Context7 library IDs:
 
 - `supabase/supabase-js` - Database operations
 - `vitejs/vite` - Build tooling
-- `withastro/astro` - Public portal framework
+- `withastro/docs` - Public portal framework
 - `remix-run/react-router` - Routing
 - `websites/react_dev` - React patterns
 - `websites/tailwindcss` - Styling

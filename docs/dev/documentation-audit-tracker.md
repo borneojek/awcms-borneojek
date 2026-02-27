@@ -1,10 +1,246 @@
-# Documentation Audit Tracker - Phase 0/1/2/3/4
+# Documentation Audit Tracker - Context7 Re-Audit
 
 > **Date:** 2026-02-27
 >
 > **Related Plan:** `docs/dev/documentation-audit-plan.md`
 >
-> **Status:** Phase 0 completed, Phase 1 completed, Phase 2 completed, Phase 3 completed, Phase 4 completed
+> **Status:** All phases (Phase 0 through Phase 5) completed for the new re-audit cycle; previous cycle archived below as baseline evidence.
+
+## Current Cycle Status
+
+| Phase | Status | Notes |
+| --- | --- | --- |
+| Phase 0 - Re-Inventory and Drift Refresh | Completed | Inventory refreshed, baseline evidence captured, drift register updated |
+| Phase 1 - Authority Reconciliation | Completed | Authority docs reconciled, Context7 IDs normalized, terminology aligned |
+| Phase 2 - DB/Security/Tenancy Reconciliation | Completed | DB/security/tenancy docs reconciled against migrations and Context7 matrix expanded |
+| Phase 3 - Scripts/CI/Deploy Reconciliation | Completed | CI/deploy/docs commands reconciled and runtime constraints aligned in package manifests |
+| Phase 4 - Feature + Package Documentation Pass | Completed | Module/package reconciliation completed; README coverage and metadata classification gaps resolved |
+| Phase 5 - QA and Publication | Completed | Lint/link/build validation gates executed and changelog updated |
+
+## Phase 0 Update (Current Cycle)
+
+### Scope Executed (Phase 0)
+
+- Rebuilt markdown inventory across the full repository.
+- Refreshed docs-area counts for all `docs/**` domains.
+- Re-validated baseline truth sources (package scripts, workflows, migration roots).
+- Logged Context7 preflight verification for Supabase CLI, Astro, and Vite guidance.
+
+### Inventory Snapshot (2026-02-27)
+
+| Surface | Count | Notes |
+| --- | ---: | --- |
+| Total markdown files in repository | 104 | Includes docs, package READMEs, `.agents` references, and issue templates |
+| `docs/**/*.md` | 63 | Canonical documentation scope |
+| `docs/architecture/*.md` | 7 | No change |
+| `docs/security/*.md` | 4 | No change |
+| `docs/tenancy/*.md` | 4 | No change |
+| `docs/deploy/*.md` | 2 | No change |
+| `docs/compliance/*.md` | 3 | No change |
+| `docs/dev/*.md` | 17 | Increased from 15 (added benchmark playbook + refreshed plan) |
+| `docs/modules/*.md` | 21 | No change |
+| `docs/guides/*.md` | 3 | No change |
+| `docs/*.md` root files | 2 | `docs/README.md`, `docs/RESOURCE_MAP.md` |
+
+### Package README Surfaces (Current)
+
+- Maintained/actionable package README files:
+  - `awcms/README.md`
+  - `awcms-mcp/README.md`
+  - `awcms-public/README.md`
+  - `awcms-public/primary/README.md`
+  - `awcms-public/smandapbun/README.md`
+  - `awcms-mobile/README.md`
+  - `awcms-mobile/primary/README.md`
+  - `awcms-mobile-java/README.md`
+  - `awcms-esp32/README.md`
+  - `awcms-esp32/primary/README.md`
+  - `awcms-ext/README.md`
+- Non-authoritative/vendor/template README files (excluded):
+  - `awcms-public/primary/vendor/README.md`
+  - `awcms-mobile/primary/ios/Runner/Assets.xcassets/LaunchImage.imageset/README.md`
+  - `awcms/src/templates/flowbiteadminastro/README.md`
+  - `awcms/src/templates/flowbiteadminastro/src/components/README.md`
+  - `awcms/src/templates/flowbiteadminastro/src/services/README.md`
+
+### Baseline Evidence Refresh
+
+| Surface | Evidence |
+| --- | --- |
+| Node runtime in CI | `.github/workflows/ci-pr.yml` and `ci-push.yml` use `NODE_VERSION: '22.12.0'` |
+| Core package engines | `awcms`, `awcms-public`, `awcms-public/primary`, `awcms-public/smandapbun` specify `>=22.12.0` |
+| Docs link validation | `awcms`: `npm run docs:check` passes |
+| Migration parity | `scripts/verify_supabase_migration_consistency.sh` passes (`99` mirrored migration files, local history aligned) |
+| Migration roots | `supabase/migrations/*.sql` = `99`, `awcms/supabase/migrations/*.sql` = `99` |
+
+### Context7 Verification Log (Phase 0 Preflight)
+
+| Library ID | Query Focus | Takeaway |
+| --- | --- | --- |
+| `/supabase/cli` | local vs linked migration workflow and push safety | Keep docs explicit on `migration list --local\|--linked`, `db push --dry-run`, and repair workflow |
+| `/withastro/docs` | static route generation and build-time data with `getStaticPaths` | Keep public docs build-time tenant resolution explicit; avoid runtime-only assumptions in static mode |
+| `/vitejs/vite` | `loadEnv` behavior and `VITE_` exposure model | Preserve `VITE_` client exposure rules; use `loadEnv` in config-time scenarios |
+
+### Drift Register (Current Cycle)
+
+| ID | Severity | Finding | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| REAUDIT-001 | High | `docs/README.md` contained broad conceptual sections not consistently evidence-linked to implementation/module docs | Resolved (Phase 1) | `docs/README.md`, `DOCS_INDEX.md`, `README.md`, `SYSTEM_MODEL.md` |
+| REAUDIT-002 | Medium | No maintained package README exists for `awcms-public/smandapbun`, creating a documentation gap for that workspace | Resolved (Phase 4) | `awcms-public/smandapbun/README.md`, `awcms-public/README.md`, README inventory |
+| REAUDIT-003 | Medium | Context7 matrix in plan included 12 libraries, but Phase 0 preflight re-validated only 3; remaining libraries needed verification pass | Resolved (Phase 2) | Context7 verification log (Phase 0 + Phase 2), `docs/dev/documentation-audit-plan.md` |
+| REAUDIT-004 | Medium | Authority docs stated Node `>=22.12.0` baseline, but `awcms-mcp/package.json` did not declare `engines.node`; enforcement was implicit, not manifest-based | Resolved (Phase 3) | `awcms-mcp/package.json`, `docs/dev/ci-cd.md`, `.github/workflows/ci-pr.yml`, `.github/workflows/ci-push.yml` |
+| REAUDIT-005 | Low | Repository has 104 markdown files, including `.agents` skill references and issue templates not yet classified by ownership/status in current cycle tracker | Resolved (Phase 4) | `rg --files -g "*.md" .agents`, `rg --files -g "*.md" .github/ISSUE_TEMPLATE`, classification notes in Phase 4 update |
+
+## Phase 1 Update (Current Cycle)
+
+### Scope Executed (Phase 1)
+
+- Reconciled Tier 0 authority docs against current repository truth sources.
+- Normalized Context7 Astro library ID references to `withastro/docs` across authority surfaces.
+- Aligned security/key terminology to prioritize `SUPABASE_SECRET_KEY` server-side usage wording.
+- Reworked `docs/README.md` into an implementation-backed hub that routes to canonical docs instead of conceptual guidance.
+
+### Files Updated (Phase 1)
+
+- `SYSTEM_MODEL.md`
+- `AGENTS.md`
+- `README.md`
+- `DOCS_INDEX.md`
+- `docs/README.md`
+
+### Phase 1 Exit Check
+
+- Authority chain remains consistent across all Tier 0 docs.
+- Context7 library IDs in authority docs are aligned (`withastro/docs`).
+- `docs/README.md` now functions as documentation routing hub with evidence-source guidance.
+
+## Phase 2 Update (Current Cycle)
+
+### Scope Executed (Phase 2)
+
+- Reconciled tenancy, security, and database docs against active migration evidence.
+- Normalized privileged access wording to `SUPABASE_SECRET_KEY` server-side usage.
+- Clarified tenant provisioning RPC signature behavior in Supabase tenancy docs.
+- Added migration-source snapshots for core security helper functions.
+- Completed Context7 verification pass for the remaining libraries in the plan matrix.
+
+### Files Updated (Phase 2)
+
+- `SYSTEM_MODEL.md`
+- `docs/tenancy/overview.md`
+- `docs/tenancy/supabase.md`
+- `docs/security/overview.md`
+- `docs/security/abac.md`
+- `docs/security/rls.md`
+- `docs/architecture/database.md`
+
+### Context7 Verification Log (Phase 2 Completion)
+
+| Library ID | Query Focus | Takeaway |
+| --- | --- | --- |
+| `/supabase/supabase` | multi-tenant RLS policy design | Keep RLS as hard boundary with tenant-scoped predicates and security definer helpers |
+| `/supabase/supabase-js` | client init/auth/session best practices | Keep PKCE, session persistence, and scoped headers patterns in docs |
+| `/remix-run/react-router` | route params/loaders data safety | Keep dynamic params + loader patterns explicit in admin/public docs |
+| `/websites/react_dev` | React 19 component patterns | Preserve function component-first guidance and targeted optimization notes |
+| `/websites/tailwindcss` | Tailwind v4 tokens and CSS variables | Keep docs aligned to CSS-variable token strategy and utility-first usage |
+| `/puckeditor/puck` | render and external data patterns | Keep `Render`-based safe rendering guidance and component config references |
+| `/ueberdosis/tiptap-docs` | output/persistence and content handling | Keep JSON/HTML persistence guidance and sanitization boundaries explicit |
+| `/grx7/framer-motion` | motion configuration and reduced motion | Keep animation guidance focused on performance and accessibility defaults |
+| `/openclaw/openclaw` | multi-agent routing and secure gateway baseline | Keep per-tenant isolation and token/loopback security guidance in gateway docs |
+
+### Phase 2 Exit Check
+
+- Tenancy/security/database docs now reference migration-backed helper function sources.
+- Service-role terminology in active docs is normalized to `SUPABASE_SECRET_KEY` server-only paths.
+- Context7 matrix verification is complete for all libraries listed in the current audit plan.
+
+## Phase 3 Update (Current Cycle)
+
+### Scope Executed (Phase 3)
+
+- Reconciled scripts/CI/deploy docs with active workflow files and script behavior.
+- Validated documented migration and parity commands against current repository scripts.
+- Fixed local verification path sequence in CI/CD docs to avoid invalid directory traversal.
+- Added explicit note for known `supabase db lint` advisory warnings in CI parity guidance.
+- Aligned package runtime enforcement by adding Node engine constraint to `awcms-mcp/package.json`.
+
+### Files Updated (Phase 3)
+
+- `docs/dev/ci-cd.md`
+- `awcms-mcp/package.json`
+
+### Evidence Snapshot (Phase 3)
+
+- `scripts/verify_supabase_function_consistency.sh` -> passes (root/mirror function parity).
+- `npx supabase migration list --local` -> executes successfully from repo root.
+- `npx supabase db lint` (in `awcms/supabase`) -> executes with known advisory warnings and CI-compatible behavior.
+- `.github/workflows/ci-pr.yml` and `.github/workflows/ci-push.yml` remain pinned to Node `22.12.0`.
+
+### Phase 3 Exit Check
+
+- CI/CD and deploy runbooks now use valid, reproducible command paths.
+- Node runtime requirements are consistently declared in both authority docs and package manifests.
+- Scripts/CI/deploy documentation reflects current workflow and script behavior.
+
+## Phase 4 Update (Current Cycle)
+
+### Scope Executed (Phase 4)
+
+- Added maintained package README coverage for `awcms-public/smandapbun`.
+- Updated `awcms-public/README.md` routing so package discovery includes both primary and tenant-specific portal packages.
+- Classified non-canonical markdown surfaces tracked under REAUDIT-005.
+- Completed package/module markdown quality pass for maintained README surfaces.
+
+### Metadata Markdown Classification (Ownership/Status)
+
+| Surface | Count | Classification | Ownership | Status in Current Cycle |
+| --- | ---: | --- | --- | --- |
+| `.agents/**/*.md` | 35 | Agent runtime skill/reference docs (non-canonical for product behavior) | AI tooling maintainers | Indexed as auxiliary; excluded from authority/module doc correctness gates |
+| `.github/ISSUE_TEMPLATE/**/*.md` | 2 | Contribution templates (process docs) | Repository maintainers | Indexed as process docs; excluded from implementation truth-source reconciliation |
+
+### Files Updated (Phase 4)
+
+- `awcms-public/smandapbun/README.md` (new)
+- `awcms-public/README.md`
+- `awcms-mobile/README.md`
+- `awcms-mobile/primary/README.md`
+- `awcms-mobile-java/README.md`
+- `awcms-esp32/README.md`
+- `awcms-esp32/primary/README.md`
+- `awcms-ext/README.md`
+
+### Phase 4 Exit Check
+
+- Package README gap REAUDIT-002 is resolved.
+- Metadata ownership/status gap REAUDIT-005 is resolved.
+- Maintained module docs and package README markdown lint checks pass.
+
+## Phase 5 Update (Current Cycle)
+
+### Scope Executed (Phase 5)
+
+- Ran repository documentation validation gates for updated planning/tracker/docs surfaces.
+- Re-ran docs link checks and migration/function parity checks to confirm no regression.
+- Executed package sanity checks for touched workspaces (`awcms`, `awcms-public/primary`, `awcms-mcp`).
+- Updated changelog with final re-audit closure notes.
+
+### Evidence Snapshot (Phase 5)
+
+- `npx markdownlint-cli --config ".markdownlint.json" docs/dev/documentation-audit-plan.md docs/dev/documentation-audit-tracker.md docs/dev/ci-cd.md` -> passes.
+- `npx markdownlint-cli --config ".markdownlint.json" docs/modules/*.md` + maintained package README set -> passes.
+- `cd awcms && npm run docs:check` -> passes.
+- `scripts/verify_supabase_migration_consistency.sh` -> passes.
+- `scripts/verify_supabase_function_consistency.sh` -> passes.
+- `cd awcms && npm run lint && npm run build` -> passes.
+- `cd awcms-public/primary && npm run check && npm run build` -> passes.
+- `cd awcms-mcp && npm run lint && npm run build` -> passes.
+
+### Phase 5 Exit Check
+
+- Validation gates required by the current re-audit cycle are complete.
+- No unresolved high-severity drift items remain in current-cycle register.
+
+## Previous Cycle Archive (Completed Baseline)
 
 ## 1) Scope Executed
 
@@ -118,7 +354,7 @@ Phase 0 baseline coverage completed for:
 
 ### Priority B
 
-2. Reclassify checklist-heavy docs into:
+1. Reclassify checklist-heavy docs into:
     - implementation truth,
     - roadmap/backlog,
     so readers do not confuse planned and shipped behavior.

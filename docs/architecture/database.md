@@ -22,6 +22,10 @@ Describe the tenant-scoped PostgreSQL schema used by AWCMS.
 
 AWCMS uses PostgreSQL via Supabase. This document describes the core database schema.
 
+> **Schema Accuracy Note:** SQL blocks in this document are representative snapshots for developer orientation.
+> Canonical executable schema truth is the migration history in `supabase/migrations/` (mirrored in `awcms/supabase/migrations/`).
+> Before relying on a specific column, constraint, or policy shape, verify against the latest migration files.
+
 ---
 
 ## Entity Relationship Diagram
@@ -709,6 +713,7 @@ USING (status = 'published' AND deleted_at IS NULL);
 CREATE POLICY "Authors can edit own blogs"
 ON blogs FOR UPDATE
 USING (auth.uid() = author_id);
+```
 
 ---
 

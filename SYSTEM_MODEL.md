@@ -85,7 +85,7 @@ Agents must respect these exact versions to ensure compatibility across the mono
   * **Public:** Static builds resolve tenant via build-time env (`PUBLIC_TENANT_ID` or `VITE_PUBLIC_TENANT_ID`); middleware resolution is reserved for SSR/runtime deployments.
 * **RLS (Row Level Security):**
   * **Strict Enforcement:** RLS must be enabled on ALL tables.
-  * **Bypass Rule:** NEVER bypass RLS in client code. Only `supabaseAdmin` (Service Role) in Edge Functions is permitted to bypass, and only for specific administrative tasks.
+  * **Bypass Rule:** NEVER bypass RLS in client code. Only server-side clients using `SUPABASE_SECRET_KEY` inside scoped Edge Functions may perform privileged operations, and only for explicit administrative tasks.
 * **Resource Sharing:**
   * **Shared:** `settings`, `branding`, `modules` (Configurable inheritance).
   * **Isolated:** `users`, `content`, `media`, `commerce` (orders, products).
@@ -97,7 +97,8 @@ Agents must respect these exact versions to ensure compatibility across the mono
   * **Operation:** `DELETE` SQL commands are forbidden for business data. Use `UPDATE table SET deleted_at = NOW()`.
 * **Filtering:** All read queries must filter `.is('deleted_at', null)`.
 * **Foreign Keys:**
-  * Must use `ON DELETE RESTRICT` or `ON DELETE SET NULL` to prevent accidental cascades, supporting the Soft Delete pattern.
+  * Prefer `ON DELETE RESTRICT` or `ON DELETE SET NULL` for core business entities to preserve Soft Delete integrity.
+  * `ON DELETE CASCADE` is allowed for join/link tables and non-business associative records when intentional and documented in migrations.
 
 * **Admin-Only Profile Data:**
   * Stored in `public.user_profile_admin` with pgcrypto encryption.
@@ -112,7 +113,7 @@ Agents must respect these exact versions to ensure compatibility across the mono
 * **Reference**: See [AGENTS.md](AGENTS.md) for enforcement patterns.
 
   * Frontend: `usePermissions().hasPermission('...')`
-  * Database: `auth.has_permission('...')` in RLS policies.
+  * Database: `public.has_permission('...')` in RLS policies.
 
 * **Standard Roles:**
   * **Platform:** Owner, Super Admin.

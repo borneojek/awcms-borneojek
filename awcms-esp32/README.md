@@ -1,9 +1,11 @@
 # AWCMS ESP32
 
 ## Purpose
+
 ESP32 firmware for IoT telemetry in AWCMS.
 
 ## Prerequisites
+
 - PlatformIO
 
 ## Quick Start

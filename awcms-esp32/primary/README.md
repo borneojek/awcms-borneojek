@@ -1,9 +1,11 @@
 # AWCMS ESP32 Firmware
 
 ## Purpose
+
 Firmware for ESP32 devices sending telemetry to Supabase.
 
 ## Prerequisites
+
 - PlatformIO
 
 ## Quick Start

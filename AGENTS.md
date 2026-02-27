@@ -89,7 +89,7 @@ To ensure successful code generation and integration, Agents must adhere to the 
 1. **Context First**: Before generating code, read `README.md` and related component files to understand the existing patterns.
 
 2. **Multi-Tenancy Awareness**:
-   - **RLS is Sacred**: Never bypass RLS unless explicitly creating a Platform Admin feature (using `auth_is_admin()` or Service Role).
+   - **RLS is Sacred**: Never bypass RLS unless explicitly creating a Platform Admin feature (using `auth_is_admin()` or a server-side `SUPABASE_SECRET_KEY` path inside Edge Functions).
    - **Tenant Context**: Always use `useTenant()` or `usePermissions()` to get `tenantId`.
    - **Public Portal Tenant Context**: Static builds use `PUBLIC_TENANT_ID`/`VITE_PUBLIC_TENANT_ID`; avoid `Astro.locals` in build-time code.
    - **Tenancy**: Use `tenant_id` for all isolation. Respect the **5-level** hierarchy limit.
@@ -121,7 +121,7 @@ To ensure successful code generation and integration, Agents must adhere to the 
    - **Ignored Files**: Ensure `.env`, `.env.local`, `.env.production`, and `.env.remote` are always ignored by Git.
    - **Agent Workspace**: The `awcms/.agent/` directory contains local MCP configurations and potential sensitive data. It MUST be ignored by adding `awcms/.agent/` to `.gitignore`.
    - **Template Updates**: `.env.example` must contain ALL keys found in any `.env` file, but populated ONLY with dummy secrets.
-   - **Key Naming**: Use `VITE_SUPABASE_PUBLISHABLE_KEY` (public) and `SUPABASE_SECRET_KEY` (private/service role). Avoid `ANON` or `SERVICE_ROLE` terminology.
+   - **Key Naming**: Use `VITE_SUPABASE_PUBLISHABLE_KEY` (public) and `SUPABASE_SECRET_KEY` (private/server-only). Avoid `ANON` or `SERVICE_ROLE` terminology.
    - **Vite Env Prefix**: Only `VITE_`-prefixed variables are exposed to client code; use `loadEnv` in `vite.config` when config values need env access.
 
 2. **Routing & URL Security**:

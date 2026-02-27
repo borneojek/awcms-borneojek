@@ -70,6 +70,7 @@ This repository follows a strict documentation hierarchy aligned with the **Cont
 - **[docs/README.md](docs/README.md)**: Detailed wiki and concepts
 - **[docs/dev/documentation-audit-plan.md](docs/dev/documentation-audit-plan.md)**: Context7-driven doc audit workflow
 - **[docs/dev/documentation-audit-tracker.md](docs/dev/documentation-audit-tracker.md)**: Phase progress, drift register, and reconciliation backlog
+- **[docs/dev/context7-benchmark-playbook.md](docs/dev/context7-benchmark-playbook.md)**: Structured benchmark response playbook and reusable templates
 
 ## Database & Migrations
 
@@ -90,7 +91,7 @@ This repository uses Context7 for AI-assisted development. Key library IDs:
 
 - `supabase/supabase-js` - Database operations
 - `vitejs/vite` - Build tooling  
-- `withastro/astro` - Public portal framework
+- `withastro/docs` - Public portal framework
 - See [AGENTS.md](AGENTS.md) for complete list
 
 ## MCP Topology (OpenCode)

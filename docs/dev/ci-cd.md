@@ -65,6 +65,8 @@ Notes:
 Run locally before pushing:
 
 ```bash
+# From repository root
+
 # Admin Panel
 cd awcms
 npm run lint
@@ -80,14 +82,14 @@ cd ../../awcms
 npm run docs:check
 
 # Mobile
-cd ../../awcms-mobile/primary
+cd ../awcms-mobile/primary
 flutter pub get
 flutter analyze
 flutter test
 
 # Database lint job parity
 cd ../../awcms/supabase
-supabase db lint
+npx supabase db lint
 ```
 
 ## Troubleshooting
@@ -95,6 +97,7 @@ supabase db lint
 - Missing env vars: verify secrets and repo variables.
 - Cloudflare deploys: `CLOUDFLARE_API_TOKEN` is required and must be scoped to a single account with access to the Accounts API. The workflow resolves the account ID automatically via the Cloudflare Accounts API.
 - Public build env mismatch: CI injects `PUBLIC_SUPABASE_*`, while runtime code often prefers `VITE_SUPABASE_*`. Keep values aligned; `createClientFromEnv` accepts both.
+- DB lint warnings: `supabase db lint` may report known advisory warnings (for example `extensions.index_advisor`) while still passing CI. Track these in migration notes before treating as regressions.
 - Deploy scope confusion: `deploy-production` currently deploys only `awcms/dist` (admin panel). Public deployment remains a separate Cloudflare Pages pipeline.
 - Docs workflow differences: docs link checks run in `docs-link-check.yml` and are independent from `ci-pr.yml` and `ci-push.yml`.
 

@@ -100,7 +100,16 @@ The system defines 4 strict scopes for roles and permissions:
 
 ## 1. Permission Matrix (Live)
 
-These lists correspond directly to the database `permissions` table and `PermissionMatrix.jsx`.
+These lists are maintained against the database `permissions` table and `awcms/src/components/dashboard/PermissionMatrix.jsx`.
+
+To verify against current database state before documentation updates:
+
+```sql
+select name, resource, action
+from public.permissions
+where deleted_at is null
+order by name;
+```
 
 ### A. Platform (Global Scope)
 
@@ -209,6 +218,10 @@ These lists correspond directly to the database `permissions` table and `Permiss
 ### SQL Helper Functions (Backend Definitions)
 
 AWCMS relies on a robust set of PostgreSQL helper functions to execute ABAC logic at the Row-Level Security (RLS) layer. Below are the canonical definitions:
+
+- `current_tenant_id()` source baseline: `supabase/migrations/20260119230212_remote_schema.sql`
+- `has_permission()` and `auth_is_admin()` source baseline: `supabase/migrations/20260127090000_role_flags_staff_hierarchy.sql`
+- Hierarchical sharing helper source baseline: `supabase/migrations/20260127160000_tenant_hierarchy_resource_sharing.sql`
 
 #### 1. `current_tenant_id()`
 

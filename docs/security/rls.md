@@ -29,7 +29,7 @@ Document the RLS helpers and standard policy patterns used in AWCMS.
 | `auth_is_admin()` | boolean | **SECURITY DEFINER**: Checks platform admin/full-access flags. Bypasses RLS recursion. |
 | `is_platform_admin()` | boolean | **Standard**: Checks platform admin/full-access flags. Subject to RLS recursion. |
 | `has_permission(key)` | boolean | Checks if current user has specific permission key |
-| `is_admin_or_above()` | boolean | **DEPRECATED for Logic** - Returns true for tenant admin or platform admin flags. Use `has_permission` instead. |
+| `is_admin_or_above()` | boolean | Legacy helper still used in existing policies; prefer `has_permission` for new policy authoring. |
 | `is_tenant_descendant(ancestor, descendant)` | boolean | Checks tenant hierarchy membership (descendant path). |
 | `tenant_can_access_resource(row_tenant, resource_key, action)` | boolean | Enforces shared vs isolated resource access across tenant levels. |
 
@@ -41,6 +41,13 @@ Document the RLS helpers and standard policy patterns used in AWCMS.
 - Use `npx supabase migration list --local` before local migration ops.
 - Use `npx supabase db pull --schema public,extensions` only when syncing linked/remote schema snapshots.
 - Keep non-migration SQL in `supabase/manual/` (not in migration directories).
+
+### Helper Function Source Snapshot
+
+- `public.current_tenant_id()` -> `supabase/migrations/20260119230212_remote_schema.sql`
+- `public.auth_is_admin()` -> `supabase/migrations/20260127090000_role_flags_staff_hierarchy.sql`
+- `public.has_permission()` -> `supabase/migrations/20260127090000_role_flags_staff_hierarchy.sql`
+- Hierarchy access helpers (`tenant_can_access_resource`, `is_tenant_descendant`) -> `supabase/migrations/20260127160000_tenant_hierarchy_resource_sharing.sql`
 
 ### Migration History Drift
 
@@ -139,7 +146,7 @@ FOR SELECT USING (
 
 - **Granularity**: Policies should match the permissions defined in `PermissionMatrix.jsx`.
 - **Isolation**: Every tenant-scoped table must include `tenant_id` and `deleted_at`.
-- **Public access**: Public reads must be explicitly scoped to published content (e.g. `is_published = true`).
+- **Public access**: Public reads must be explicitly scoped to published content (for example `status = 'published'` and `deleted_at IS NULL`).
 - **Plugins**: Extension/Plugin routes must query tenant-scoped tables with `tenant_id = current_tenant_id()` and rely on ABAC permissions (no role-name checks).
 - **Public portal headers**: Ensure `x-tenant-id` is set by scoped Supabase clients (static builds) or middleware (SSR) so `current_tenant_id()` resolves correctly.
 - **Migration files**: RLS policy SQL must be committed as timestamped migrations only.

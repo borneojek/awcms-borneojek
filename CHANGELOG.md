@@ -8,6 +8,9 @@ All notable changes to the **AWCMS** project will be documented in this file.
 ### Changed
 
 - Documentation: Added benchmark-ready sections for the ten Context7 benchmark prompts using a standard structure: Objective, Required Inputs, Workflow, Reference Implementation, Validation Checklist, and Failure Modes and Guardrails.
+- Documentation: Completed the 2026-Q1 Context7 re-audit cycle (Phase 0-5) and updated the audit plan/tracker with closure evidence.
+- Documentation: Added maintained package README coverage for `awcms-public/smandapbun` and updated `awcms-public/README.md` routing.
+- Documentation: Normalized markdown structure in maintained mobile/ESP32/extension package READMEs to satisfy markdownlint validation gates.
 
 ## [2.32.1] "Codex" - 2026-02-27
 

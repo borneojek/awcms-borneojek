@@ -99,7 +99,7 @@ Legacy tables may still use tenant-only select policies and rely on admin UI ABA
 ### Edge Functions
 
 - All edge functions must validate tenant context and permissions.
-- Service-role access is allowed only in edge functions, migrations, and trusted operational scripts.
+- Privileged access with `SUPABASE_SECRET_KEY` is allowed only in edge functions, migrations, and trusted operational scripts.
 
 ## Implementation Patterns
 

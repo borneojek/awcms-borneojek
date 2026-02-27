@@ -80,13 +80,15 @@ Provision a new tenant using a privileged, idempotent flow that seeds default ro
 
 1. Authenticate caller and enforce `platform.tenant.create` before any writes.
 2. Normalize and uniqueness-check `slug`/`domain` for non-deleted tenants.
-3. Call `create_tenant_with_defaults()` using `SUPABASE_SECRET_KEY`.
+3. Call `create_tenant_with_defaults()` using `SUPABASE_SECRET_KEY` (4-argument standard signature or 6-argument hierarchy-aware signature).
 4. Invite the initial tenant admin via `auth.admin.inviteUserByEmail` with `tenant_id` metadata.
 5. Write an audit log entry with actor, tenant, and invite status.
 6. Verify isolation: cross-tenant read denies, default roles/pages exist, headers resolve tenant correctly.
 7. Return idempotent response on retries (409 on duplicate slug or 202 on invite failure).
 
-#### Reference Implementation (Edge Function)
+#### Reference Blueprint (Example Edge Function)
+
+> This is a benchmark-ready implementation blueprint. If this endpoint is implemented, place it under `supabase/functions/` and wire it to platform admin routes.
 
 ```ts
 // supabase/functions/platform-tenant-onboard/index.ts
@@ -252,7 +254,7 @@ $$;
 ### Row Level Security (RLS)
 
 - **Strict Enforcement**: RLS is mandatory for all tables.
-- **Bypass Prohibition**: Client-side code must NEVER bypass RLS. Elevation to Service Role is restricted to specific Edge Functions.
+- **Bypass Prohibition**: Client-side code must NEVER bypass RLS. Elevation is restricted to server-side `SUPABASE_SECRET_KEY` paths in specific Edge Functions.
 
 ### Data Lifecycle (Soft Delete)
 
