@@ -3,6 +3,7 @@
 Practical examples of building production systems with DSPy.
 
 ## Table of Contents
+
 - RAG Systems
 - Agent Systems
 - Classification
@@ -658,6 +659,6 @@ response = loaded_bot(message="I can't log in")
 
 ## Resources
 
-- **Documentation**: https://dspy.ai
-- **Examples Repo**: https://github.com/stanfordnlp/dspy/tree/main/examples
-- **Discord**: https://discord.gg/XCGy2WDCQB
+- **Documentation**: <https://dspy.ai>
+- **Examples**: <https://dspy.ai/tutorials>
+- **Discord**: <https://discord.gg/XCGy2WDCQB>

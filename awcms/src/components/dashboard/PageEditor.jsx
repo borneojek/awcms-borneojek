@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Save, X, Globe, Calendar, Lock, Layout, Share2, FolderOpen } from 'lucide-react';
+import { Save, X, Globe, Calendar, Lock, Layout, Share2, FolderOpen, ChevronDown } from 'lucide-react';
+import { usePortalSites } from '@/hooks/usePortalSites';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,6 +24,9 @@ function PageEditor({ page, onClose, onSuccess }) {
     const { hasPermission } = usePermissions();
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState([]);
+    const { portals } = usePortalSites();
+    const [selectedPortal, setSelectedPortal] = useState(0);
+    const [portalMenuOpen, setPortalMenuOpen] = useState(false);
 
     const [formData, setFormData] = useState({
         title: page?.title || '',
@@ -230,16 +234,49 @@ function PageEditor({ page, onClose, onSuccess }) {
                 </div>
 
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => {
-                        const baseUrl = import.meta.env.VITE_PUBLIC_PORTAL_URL || 'http://localhost:4321';
-                        const previewSecret = import.meta.env.VITE_PREVIEW_SECRET || '';
-                        const url = previewSecret
-                            ? `${baseUrl}/${formData.slug}?preview_secret=${previewSecret}`
-                            : `${baseUrl}/${formData.slug}`;
-                        window.open(url, '_blank');
-                    }}>
-                        <Globe className="w-4 h-4 mr-2" /> Preview
-                    </Button>
+                    {portals.length <= 1 ? (
+                        <Button variant="outline" size="sm" onClick={() => {
+                            const baseUrl = portals[0]?.url || import.meta.env.VITE_PUBLIC_PORTAL_URL || 'http://localhost:4321';
+                            const previewSecret = import.meta.env.VITE_PREVIEW_SECRET || '';
+                            const url = previewSecret
+                                ? `${baseUrl}/${formData.slug}?preview_secret=${previewSecret}`
+                                : `${baseUrl}/${formData.slug}`;
+                            window.open(url, '_blank');
+                        }}>
+                            <Globe className="w-4 h-4 mr-2" /> Preview
+                        </Button>
+                    ) : (
+                        <div className="relative">
+                            <Button variant="outline" size="sm" onClick={() => setPortalMenuOpen(!portalMenuOpen)}>
+                                <Globe className="w-4 h-4 mr-1" />
+                                Preview: {portals[selectedPortal]?.name || 'Select'}
+                                <ChevronDown className="w-3 h-3 ml-1" />
+                            </Button>
+                            {portalMenuOpen && (
+                                <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 min-w-[200px]">
+                                    {portals.map((portal, idx) => (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg flex items-center justify-between"
+                                            onClick={() => {
+                                                setSelectedPortal(idx);
+                                                setPortalMenuOpen(false);
+                                                const previewSecret = import.meta.env.VITE_PREVIEW_SECRET || '';
+                                                const url = previewSecret
+                                                    ? `${portal.url}/${formData.slug}?preview_secret=${previewSecret}`
+                                                    : `${portal.url}/${formData.slug}`;
+                                                window.open(url, '_blank');
+                                            }}
+                                        >
+                                            <span>{portal.name}</span>
+                                            <span className="text-xs text-slate-400 ml-2">{new URL(portal.url).hostname}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                     <Button type="button" onClick={handleSubmit} disabled={loading} className="bg-slate-900 hover:bg-slate-800 text-white">
                         <Save className="w-4 h-4 mr-2" />
                         {loading ? 'Saving...' : 'Save Page'}

@@ -3,6 +3,7 @@ import Layout from "../../layouts/Layout.astro";
 import { Icon } from "astro-icon/components";
 import { getLocale, t, getLocalizedValue, type Locale } from "../../utils/i18n";
 import { getFinancePageData } from "../../lib/api";
+import { sanitizeHTML } from "~/utils/sanitize";
 
 const locale = getLocale(Astro.url) as Locale;
 const financeData = await getFinancePageData();
@@ -87,7 +88,7 @@ const { financePage, bos, apbd, committee } = financeData;
         >
           <div
             class="prose dark:prose-invert max-w-none"
-            set:html={getLocalizedValue(bos.content, locale)}
+            set:html={sanitizeHTML(getLocalizedValue(bos.content, locale))}
           />
 
           {
@@ -145,7 +146,7 @@ const { financePage, bos, apbd, committee } = financeData;
         >
           <div
             class="prose dark:prose-invert max-w-none"
-            set:html={getLocalizedValue(apbd.content, locale)}
+            set:html={sanitizeHTML(getLocalizedValue(apbd.content, locale))}
           />
         </div>
       </div>
@@ -182,7 +183,7 @@ const { financePage, bos, apbd, committee } = financeData;
         >
           <div
             class="prose dark:prose-invert max-w-none"
-            set:html={getLocalizedValue(committee.content, locale)}
+            set:html={sanitizeHTML(getLocalizedValue(committee.content, locale))}
           />
         </div>
       </div>

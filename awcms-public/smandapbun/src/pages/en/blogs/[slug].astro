@@ -5,6 +5,7 @@ import { Icon } from "astro-icon/components";
 import { t, getLocalizedValue, getLocalizedPath } from "../../../utils/i18n";
 
 import { getPosts } from "../../../lib/api";
+import { sanitizeHTML } from "~/utils/sanitize";
 
 export const prerender = true;
 
@@ -106,7 +107,7 @@ const relatedBlogs = allPosts
             <div class="p-8 md:p-12">
               <div
                 class="prose prose-lg dark:prose-invert max-w-none"
-                set:html={getLocalizedValue(post.content, locale)}
+                set:html={sanitizeHTML(getLocalizedValue(post.content, locale))}
               />
 
               <!-- Tags -->

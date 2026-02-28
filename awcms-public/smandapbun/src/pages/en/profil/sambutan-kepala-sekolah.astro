@@ -9,6 +9,7 @@ import {
   type Locale,
 } from "../../../utils/i18n";
 import { getProfilePageData } from "../../../lib/api";
+import { sanitizeHTML } from "~/utils/sanitize";
 
 const locale = getLocale(Astro.url) as Locale;
 const profileData = await getProfilePageData();
@@ -96,7 +97,7 @@ const { principalMessage } = profileData;
           <div class="p-8 md:p-12">
             <div
               class="prose dark:prose-invert prose-lg max-w-none"
-              set:html={getLocalizedValue(principalMessage.content, locale)}
+              set:html={sanitizeHTML(getLocalizedValue(principalMessage.content, locale))}
             />
 
             <!-- Signature -->

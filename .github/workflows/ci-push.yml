@@ -75,7 +75,7 @@ jobs:
           cache-dependency-path: './awcms-public/primary/package-lock.json'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build
         run: npm run build
@@ -190,3 +190,34 @@ jobs:
           apiToken: ${{ secrets['CLOUDFLARE_API_TOKEN'] }}
           accountId: ${{ steps.cloudflare-account.outputs.account_id }}
           command: pages deploy awcms/dist --project-name=awcms-admin
+
+  # ============================================
+  # Lint & Build - SMANDAPBUN Portal (Astro)
+  # ============================================
+  lint-build-smandapbun:
+    name: Lint & Build (Smandapbun)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./awcms-public/smandapbun
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: './awcms-public/smandapbun/package-lock.json'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          PUBLIC_SUPABASE_URL: ${{ secrets['SMANDAPBUN_SUPABASE_URL'] }}
+          PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets['SMANDAPBUN_SUPABASE_KEY'] }}
+          PUBLIC_TENANT_ID: ${{ secrets['SMANDAPBUN_TENANT_ID'] }}

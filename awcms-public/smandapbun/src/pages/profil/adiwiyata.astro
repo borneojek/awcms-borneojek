@@ -9,6 +9,7 @@ import {
   type Locale,
 } from "../../utils/i18n";
 import { getProfilePageData } from "../../lib/api";
+import { sanitizeHTML } from "~/utils/sanitize";
 
 const locale = getLocale(Astro.url) as Locale;
 const profileData = await getProfilePageData();
@@ -80,7 +81,7 @@ const { adiwiyata } = profileData;
           </div>
           <div
             class="prose dark:prose-invert prose-lg max-w-none"
-            set:html={getLocalizedValue(adiwiyata.content, locale)}
+            set:html={sanitizeHTML(getLocalizedValue(adiwiyata.content, locale))}
           />
         </div>
 

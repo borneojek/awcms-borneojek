@@ -79,7 +79,7 @@ jobs:
           cache-dependency-path: './awcms-public/primary/package-lock.json'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build
         run: npm run build
@@ -119,6 +119,37 @@ jobs:
 
       - name: Run tests
         run: flutter test
+
+  # ============================================
+  # Lint & Build - SMANDAPBUN Portal (Astro)
+  # ============================================
+  lint-build-smandapbun:
+    name: Lint & Build (Smandapbun)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./awcms-public/smandapbun
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: './awcms-public/smandapbun/package-lock.json'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          PUBLIC_SUPABASE_URL: "https://mock.supabase.co"
+          PUBLIC_SUPABASE_PUBLISHABLE_KEY: "mock-publishable-key"
+          PUBLIC_TENANT_ID: "00000000-0000-0000-0000-000000000000"
 
   # ============================================
   # Database Migrations Check

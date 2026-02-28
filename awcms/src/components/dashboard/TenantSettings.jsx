@@ -13,6 +13,7 @@ import TenantSettingsLoadingState from '@/components/dashboard/tenant-settings/T
 import TenantSettingsErrorState from '@/components/dashboard/tenant-settings/TenantSettingsErrorState';
 import TenantSettingsOverviewCards from '@/components/dashboard/tenant-settings/TenantSettingsOverviewCards';
 import TenantBrandingFormCard from '@/components/dashboard/tenant-settings/TenantBrandingFormCard';
+import PortalSitesManager from '@/components/dashboard/PortalSitesManager';
 
 export default function TenantSettings() {
   const { t } = useTranslation();
@@ -138,6 +139,8 @@ export default function TenantSettings() {
             t={t}
             colorPickerId={colorPickerId}
           />
+
+          <PortalSitesManager />
 
           <div className="flex justify-end">
             <Button type="submit" disabled={saving} className="h-10 rounded-xl bg-primary px-4 text-primary-foreground shadow-sm hover:opacity-95">

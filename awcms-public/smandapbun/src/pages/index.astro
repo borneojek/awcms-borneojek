@@ -18,6 +18,7 @@ const { principalMessage } = profileData;
 const featuredBlogs = posts.filter((a) => a.featured).slice(0, 3);
 // Import assets
 import { HeroSlider } from "../components/HeroSlider";
+import { sanitizeHTML } from "~/utils/sanitize";
 const images = import.meta.glob<{ default: ImageMetadata }>(
   "../assets/foto-smandapbun/foto-campur-smanda/*.webp",
   { eager: true },
@@ -323,7 +324,7 @@ const heroImages = Object.values(images).map((img) => img.default);
               class="prose dark:prose-invert max-w-none mb-8 line-clamp-4 text-gray-600 dark:text-gray-300"
             >
               <div
-                set:html={getLocalizedValue(principalMessage.content, locale)}
+                set:html={sanitizeHTML(getLocalizedValue(principalMessage.content, locale))}
               />
             </div>
             <div class="flex items-center gap-4 mb-6">
