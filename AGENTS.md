@@ -760,6 +760,7 @@ For standardized AI-assisted development workflows, see:
 
 ---
 
+<!-- markdownlint-disable MD024 -->
 ## 🎯 Context7 Benchmark Implementation Details
 
 This section provides structured, logical, detailed, and comprehensive explanations for all ten AWCMS benchmark topics.
