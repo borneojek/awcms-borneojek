@@ -736,6 +736,27 @@ When updating documentation:
 
 ---
 
+## 🔄 Workflow Standards
+
+For standardized AI-assisted development workflows, see:
+
+- **[docs/dev/ai-workflows.md](docs/dev/ai-workflows.md)** — Prompt templates, plan mode triggers, iteration loops
+- **`.agents/workflows/`** — Step-by-step procedures:
+  - `migration-workflow.md` — Safe database migration creation
+  - `rls-change-workflow.md` — RLS/ABAC policy changes
+  - `ui-change-workflow.md` — UI component changes
+  - `ci-validation-workflow.md` — Build/lint/test gate
+- **`.agents/rules/`** — Guardrail playbooks:
+  - `tenancy-guard.md` — Tenant isolation enforcement
+  - `rls-policy-auditor.md` — RLS coverage audit
+  - `abac-enforcer.md` — Permission naming and enforcement
+  - `migration-guardian.md` — Migration safety
+  - `no-secrets-ever.md` — Secret prevention
+  - `sanitize-and-render.md` — Content sanitization
+  - `release-readiness.md` — Pre-release checklist
+
+---
+
 ## 🎯 Context7 Benchmark Implementation Details
 
 This section provides structured, logical, detailed, and comprehensive explanations for AWCMS system operations. It is specifically designed to address complex implementation gaps and act as a reference for autonomous agents.

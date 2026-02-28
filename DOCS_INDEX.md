@@ -55,6 +55,14 @@ All documentation follows this authority structure:
 | Folder Structure | [docs/architecture/folder-structure.md](docs/architecture/folder-structure.md) | Monorepo layout |
 | Database Schema | [docs/architecture/database.md](docs/architecture/database.md) | Tables and relations |
 
+### Product & Specs
+
+| Topic | Canonical Doc | Notes |
+| --- | --- | --- |
+| Product Requirements | [docs/product/PRD.md](docs/product/PRD.md) | Scope, personas, capabilities, non-goals |
+| User Stories | [docs/product/USER_STORY.md](docs/product/USER_STORY.md) | Flows by persona and ABAC role |
+| Acceptance Criteria | [docs/product/ACCEPTANCE_CRITERIA.md](docs/product/ACCEPTANCE_CRITERIA.md) | Testable requirements per feature area |
+
 ### Tenancy
 
 | Topic | Canonical Doc | Notes |
@@ -98,6 +106,7 @@ All documentation follows this authority structure:
 | IoT Firmware | [docs/dev/esp32.md](docs/dev/esp32.md) | ESP32 platform |
 | CI/CD | [docs/dev/ci-cd.md](docs/dev/ci-cd.md) | GitHub Actions |
 | Testing | [docs/dev/testing.md](docs/dev/testing.md) | Vitest and smoke checks |
+| AI Workflows | [docs/dev/ai-workflows.md](docs/dev/ai-workflows.md) | Prompt templates, plan mode triggers, iteration loops |
 | AI Gateway | [docs/architecture/openclaw-gateway.md](docs/architecture/openclaw-gateway.md) | OpenClaw per-tenant setup, routing, and security runbook |
 | Programmatic Content Types | [docs/architecture/schema-definition.md](docs/architecture/schema-definition.md) | Defining and migrating custom schemas |
 | Edge Functions | [docs/dev/edge-functions.md](docs/dev/edge-functions.md) | Supabase Deno Edge Functions |
@@ -111,6 +120,24 @@ All documentation follows this authority structure:
 | --- | --- | --- |
 | General Deployment | [docs/deploy/overview.md](docs/deploy/overview.md) | Deployment strategies |
 | Cloudflare | [docs/deploy/cloudflare.md](docs/deploy/cloudflare.md) | Hosting on Cloudflare |
+
+### Compliance
+
+| Topic | Canonical Doc | Notes |
+| --- | --- | --- |
+| Compliance Overview | [docs/compliance/overview.md](docs/compliance/overview.md) | Framework mapping summary |
+| UU PDP (Law 27/2022) | [docs/compliance/pdp-uu27-2022.md](docs/compliance/pdp-uu27-2022.md) | Indonesian personal data protection |
+| PP 71/2019 (PSTE) | [docs/compliance/pp71-2019-pste.md](docs/compliance/pp71-2019-pste.md) | Electronic system obligations |
+| ISO Mapping | [docs/compliance/iso-mapping.md](docs/compliance/iso-mapping.md) | ISO 27001–15408 control mapping |
+| Indonesia Guide | [docs/compliance/indonesia.md](docs/compliance/indonesia.md) | Combined Indonesia compliance overview |
+
+### Agent Guidance
+
+| Topic | Path | Notes |
+| --- | --- | --- |
+| Agent Rules | [.agents/rules/](.agents/rules/) | 7 guardrail playbooks (tenancy, RLS, ABAC, etc.) |
+| Agent Skills | [.agents/skills/](.agents/skills/) | Technology-specific skills (React, Vite, etc.) |
+| Agent Workflows | [.agents/workflows/](.agents/workflows/) | Step-by-step procedures for common tasks |
 
 ---
 

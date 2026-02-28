@@ -55,6 +55,14 @@ Map AWCMS security controls to common compliance frameworks.
 | Data security | HTTPS + RLS | `docs/security/overview.md` |
 | Consent notice | `analytics_consent` settings + banner | `docs/dev/public.md` |
 
+## Detailed Compliance Guides
+
+| Document | Scope |
+| --- | --- |
+| [pdp-uu27-2022.md](pdp-uu27-2022.md) | UU PDP data subject rights, incident reporting, deployer checklist |
+| [pp71-2019-pste.md](pp71-2019-pste.md) | PP 71/2019 PSE obligations, security governance, data localization |
+| [iso-mapping.md](iso-mapping.md) | Full ISO/IEC standard mapping (27001–15408) |
+
 ## Security and Compliance Notes
 
 - Compliance requirements must be validated against your hosting configuration.
@@ -64,3 +72,6 @@ Map AWCMS security controls to common compliance frameworks.
 ## References
 
 - `docs/security/overview.md`
+- [pdp-uu27-2022.md](pdp-uu27-2022.md)
+- [pp71-2019-pste.md](pp71-2019-pste.md)
+- [iso-mapping.md](iso-mapping.md)
