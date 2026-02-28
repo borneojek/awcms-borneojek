@@ -8,6 +8,7 @@
     "deploy:functions": "npx supabase functions deploy",
     "secrets:rotate": "node scripts/rotate_db_password.js",
     "dev": "node scripts/check_secrets.js && vite",
+    "dev:full": "node scripts/check_secrets.js && (cd .. && npx supabase functions serve &) && vite",
     "test": "vitest",
     "docs:check": "npx markdown-link-check --config ../.mlc_config.json ../README.md ../AGENTS.md README.md ../DOCS_INDEX.md ../CHANGELOG.md ../CONTRIBUTING.md ../SECURITY.md ../CODE_OF_CONDUCT.md ../docs/**/*.md",
     "db:pull": "npx supabase db pull --schema public",

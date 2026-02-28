@@ -180,8 +180,19 @@ const LoginPage = () => {
           body: { token: turnstileToken },
         });
 
-        if (verifyResponse.error || !verifyResponse.data?.success) {
-          // Reset Turnstile on verification failure
+        // Check for hard errors vs. service unavailability
+        const is503 = verifyResponse.error?.message?.includes('503') ||
+          verifyResponse.error?.status === 503 ||
+          verifyResponse.error?.context?.status === 503;
+
+        if (is503 && isLocalhost) {
+          // Edge runtime not running locally — skip server-side verification.
+          // The Cloudflare test site key (1x00000000000000000000AA) already
+          // validates client-side. Run `supabase functions serve` to enable full verification.
+          console.warn('[Login] verify-turnstile edge function unavailable (503). ' +
+            'Run `npx supabase functions serve` in the project root to enable server-side verification.');
+        } else if (verifyResponse.error || !verifyResponse.data?.success) {
+          // Reset Turnstile on genuine verification failure
           setTurnstileToken('');
           if (window.turnstileReset) {
             window.turnstileReset();
