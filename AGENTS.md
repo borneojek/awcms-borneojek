@@ -754,6 +754,9 @@ For standardized AI-assisted development workflows, see:
   - `no-secrets-ever.md` — Secret prevention
   - `sanitize-and-render.md` — Content sanitization
   - `release-readiness.md` — Pre-release checklist
+  - `styling-guard.md` — Semantic CSS variables enforcement
+  - `soft-delete-enforcer.md` — Soft delete lifecycle enforcement
+  - `edge-function-safety.md` — Supabase-only backend architecture
 
 ---
 

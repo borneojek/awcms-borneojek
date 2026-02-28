@@ -5,6 +5,21 @@ All notable changes to the **AWCMS** project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Agent Rules: Created `styling-guard.md` — enforces semantic CSS variables, prevents hardcoded hex/rgb in components.
+- Agent Rules: Created `soft-delete-enforcer.md` — enforces `deleted_at` lifecycle, prevents hard deletes on business data.
+- Agent Rules: Created `edge-function-safety.md` — enforces Supabase-only backend, prevents Node.js server creation.
+- User Stories: Added 14 new stories for Tenant Auditor (AD-1–3), IoT/Device Operator (IO-1–3), AI-Assisted Content (AI-1–3), Multi-Language (ML-1–3), and Email Integration (EM-1–2).
+
+### Changed
+
+- Configuration: Renamed `awcms/wrangler.toml` project name from `awcms-public` to `awcms-admin` across all environments.
+- Configuration: Added `PUBLIC_TENANT_ID` to `awcms-public/primary/.env.example` and `awcms-public/smandapbun/.env.example`.
+- Configuration: Added `temp_supabase/` to `.gitignore`.
+- Documentation: Updated `AGENTS.md` workflow standards with 3 new agent rule references.
+- Wiki: Synced 6 new files and 4 updated files to local GitHub wiki, updated `Home.md`.
+
 ## [2.33.0] "Blueprint" - 2026-02-28
 
 ### Added
