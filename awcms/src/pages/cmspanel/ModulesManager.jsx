@@ -26,7 +26,7 @@ const ModulesManager = () => {
   const { toast } = useToast();
   const { menuItems, loading: menuLoading } = useAdminMenu();
   const { currentTenant } = useTenant();
-  const { hasPermission, hasAnyPermission, isPlatformAdmin, isFullAccess, userRole } = usePermissions();
+  const { hasPermission, hasAnyPermission, isPlatformAdmin, isFullAccess, isTenantAdmin, userRole } = usePermissions();
   const { applyFilters } = usePlugins();
 
   const [modules, setModules] = useState([]);
@@ -97,6 +97,7 @@ const ModulesManager = () => {
     hasAnyPermission,
     isPlatformAdmin,
     isFullAccess,
+    isTenantAdmin,
     subscriptionTier: currentTenant?.subscription_tier,
     applyFilters,
     userRole
@@ -106,6 +107,7 @@ const ModulesManager = () => {
     hasAnyPermission,
     isPlatformAdmin,
     isFullAccess,
+    isTenantAdmin,
     currentTenant?.subscription_tier,
     applyFilters,
     userRole

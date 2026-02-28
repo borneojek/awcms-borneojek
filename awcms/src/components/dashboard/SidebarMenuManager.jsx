@@ -37,6 +37,7 @@ function SidebarMenuManager() {
     hasAnyPermission,
     isPlatformAdmin,
     isFullAccess,
+    isTenantAdmin,
     userRole,
     loading: permsLoading,
   } = usePermissions();
@@ -105,6 +106,7 @@ function SidebarMenuManager() {
     hasAnyPermission,
     isPlatformAdmin,
     isFullAccess,
+    isTenantAdmin,
     subscriptionTier: currentTenant?.subscription_tier,
     applyFilters,
     userRole,
@@ -114,6 +116,7 @@ function SidebarMenuManager() {
     hasAnyPermission,
     isPlatformAdmin,
     isFullAccess,
+    isTenantAdmin,
     currentTenant?.subscription_tier,
     applyFilters,
     userRole,

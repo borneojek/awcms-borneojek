@@ -72,7 +72,8 @@ export const filterMenuItemsForSidebar = ({
   subscriptionTier,
   applyFilters,
   userRole,
-  hasAnyPermission
+  hasAnyPermission,
+  isTenantAdmin // Add isTenantAdmin parameter
 }) => {
   const baseItems = Array.isArray(items) ? items : [];
   let filtered = baseItems.filter((item) => {
@@ -80,7 +81,7 @@ export const filterMenuItemsForSidebar = ({
     if (item.permission === 'super_admin_only') return isFullAccess || isPlatformAdmin;
     if (item.permission === 'platform_admin_only') return isPlatformAdmin || isFullAccess;
 
-    if (isPlatformAdmin || isFullAccess) return true;
+    if (isPlatformAdmin || isFullAccess || isTenantAdmin) return true; // Allow tenant admins too
 
     if (!isPlatformAdmin && !isFullAccess) {
       const featureKey = getMenuFeatureKey(item);

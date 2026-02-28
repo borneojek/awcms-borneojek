@@ -58,7 +58,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     const location = useLocation();
     const { t } = useTranslation();
     const { menuItems, loading } = useAdminMenu();
-    const { hasPermission, hasAnyPermission, isPlatformAdmin, isFullAccess, userRole } = usePermissions();
+    const { hasPermission, hasAnyPermission, isPlatformAdmin, isFullAccess, isTenantAdmin, userRole } = usePermissions();
     const { currentTenant } = useTenant();
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -81,6 +81,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             hasAnyPermission,
             isPlatformAdmin,
             isFullAccess,
+            isTenantAdmin,
             subscriptionTier: currentTenant?.subscription_tier,
             userRole,
             loading

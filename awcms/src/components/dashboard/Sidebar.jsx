@@ -16,7 +16,7 @@ import { filterMenuItemsForSidebar } from '@/lib/adminMenuUtils';
 
 function Sidebar({ isOpen, setIsOpen }) {
   const { t } = useTranslation();
-  const { hasPermission, hasAnyPermission, userRole, isPlatformAdmin, isFullAccess } = usePermissions();
+  const { hasPermission, hasAnyPermission, userRole, isPlatformAdmin, isFullAccess, isTenantAdmin } = usePermissions();
   const { currentTenant } = useTenant();
   const { signOut } = useAuth();
   const { applyFilters } = usePlugins(); // Moved to top level
@@ -84,6 +84,7 @@ function Sidebar({ isOpen, setIsOpen }) {
       hasAnyPermission,
       isPlatformAdmin,
       isFullAccess,
+      isTenantAdmin,
       subscriptionTier: currentTenant?.subscription_tier,
       applyFilters,
       userRole

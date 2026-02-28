@@ -1,0 +1,2 @@
+-- Remote migration 20260228150054 (no local file)
+-- Marking as applied to sync with remote
