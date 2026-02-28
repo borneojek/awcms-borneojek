@@ -5,12 +5,33 @@ All notable changes to the **AWCMS** project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Context Engineering: Created `docs/product/PRD.md` (Product Requirements Document) with personas, capabilities, non-goals, and success metrics.
+- Context Engineering: Created `docs/product/USER_STORY.md` with user stories by persona mapped to ABAC roles.
+- Context Engineering: Created `docs/product/ACCEPTANCE_CRITERIA.md` with testable criteria for tenancy, ABAC, data integrity, security, and build quality.
+- Agent Rules: Created 7 guardrail playbooks in `.agents/rules/` — `tenancy-guard`, `rls-policy-auditor`, `abac-enforcer`, `migration-guardian`, `no-secrets-ever`, `sanitize-and-render`, `release-readiness`.
+- Agent Workflows: Created 4 step-by-step procedures in `.agents/workflows/` — `migration-workflow`, `rls-change-workflow`, `ui-change-workflow`, `ci-validation-workflow`.
+- AI Workflows: Created `docs/dev/ai-workflows.md` with prompt templates, plan mode triggers, and self-correction loops.
+- Compliance: Created `docs/compliance/pdp-uu27-2022.md` (UU PDP data subject rights, incident reporting, deployer checklist).
+- Compliance: Created `docs/compliance/pp71-2019-pste.md` (PP 71/2019 PSE obligations, security governance, data localization).
+- Documentation: Added benchmark-ready sections for the ten Context7 benchmark prompts using a standard structure: Objective, Required Inputs, Workflow, Reference Implementation, Validation Checklist, and Failure Modes and Guardrails.
+- Documentation: Added maintained package README coverage for `awcms-public/smandapbun` and updated `awcms-public/README.md` routing.
+- Documentation: Added `WIKI_UPDATE_SUMMARY.md` detailing Context7-based 2026-Q1 full re-audit cycle documentation updates to the GitHub wiki.
+
 ### Changed
 
-- Documentation: Added benchmark-ready sections for the ten Context7 benchmark prompts using a standard structure: Objective, Required Inputs, Workflow, Reference Implementation, Validation Checklist, and Failure Modes and Guardrails.
-- Documentation: Completed the 2026-Q1 Context7 re-audit cycle (Phase 0-5) and updated the audit plan/tracker with closure evidence.
-- Documentation: Added maintained package README coverage for `awcms-public/smandapbun` and updated `awcms-public/README.md` routing.
+- Compliance: Expanded `docs/compliance/iso-mapping.md` from basic 27001 table to full 10-standard coverage (27001/27002/27005/27017/27018/27701/27034/20000/22301/15408).
+- Compliance: Updated `docs/compliance/overview.md` with cross-references to new split compliance documents.
+- Documentation: Updated `DOCS_INDEX.md` with Product & Specs, Compliance, Agent Guidance, and AI Workflows sections.
+- Documentation: Updated `AGENTS.md` with Workflow Standards section referencing all agent rules and workflows.
+- Documentation: Completed the 2026-Q1 Context7 re-audit cycle (Phase 0–5) and updated the audit plan/tracker with closure evidence.
 - Documentation: Normalized markdown structure in maintained mobile/ESP32/extension package READMEs to satisfy markdownlint validation gates.
+- Documentation: Revised documentation audit plan to clarify scope and integrate Context7 as primary reference for library best practices.
+
+### Removed
+
+- Documentation: Removed Context7 Benchmark Remediation section from `AGENTS.md` (consolidated into benchmark implementation details).
 
 ## [2.32.1] "Codex" - 2026-02-27
 
