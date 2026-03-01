@@ -8,7 +8,7 @@ import { usePermissions } from '@/contexts/PermissionContext';
 import { useTenant } from '@/contexts/TenantContext';
 import { usePlugins } from '@/contexts/PluginContext';
 import { useSearch } from '@/hooks/useSearch';
-import { filterMenuItemsForSidebar } from '@/lib/adminMenuUtils';
+import { filterMenuItemsForSidebar, resolveGroupMeta } from '@/lib/adminMenuUtils';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import useSplatSegments from '@/hooks/useSplatSegments';
@@ -100,18 +100,39 @@ function SidebarMenuManager() {
     }
   }, [segments, hasTabSegment, hasExtraSegment, activeTab, navigate]);
 
-  const visibleItems = useMemo(() => filterMenuItemsForSidebar({
-    items: menuItems,
-    hasPermission,
-    hasAnyPermission,
-    isPlatformAdmin,
-    isFullAccess,
-    isTenantAdmin,
-    subscriptionTier: currentTenant?.subscription_tier,
-    applyFilters,
-    userRole,
-  }), [
+  // Sidebar Manager shows ALL items regardless of user permissions
+  // This allows admins to manage visibility for all modules
+  const visibleItems = useMemo(() => {
+    if (isSuperAdmin || canManage) {
+      // Admins see ALL items (no permission filtering)
+      return menuItems.map((item) => {
+        const { label: groupLabel, order: groupOrder } = resolveGroupMeta(
+          item.group_label,
+          item.group_order
+        );
+        return {
+          ...item,
+          group_label: groupLabel,
+          group_order: groupOrder
+        };
+      });
+    }
+    // Non-admins use permission filtering
+    return filterMenuItemsForSidebar({
+      items: menuItems,
+      hasPermission,
+      hasAnyPermission,
+      isPlatformAdmin,
+      isFullAccess,
+      isTenantAdmin,
+      subscriptionTier: currentTenant?.subscription_tier,
+      applyFilters,
+      userRole,
+    });
+  }, [
     menuItems,
+    isSuperAdmin,
+    canManage,
     hasPermission,
     hasAnyPermission,
     isPlatformAdmin,

@@ -899,6 +899,7 @@
     "group_order": "Urutan Grup",
     "key": "Kunci (Baca Saja)",
     "managed_by_ext": "Dikelola oleh Ekstensi",
+    "managed_by_plugin": "Dikelola oleh Plugin",
     "module": "Modul",
     "core": "Inti",
     "add_group": "Tambah Grup",

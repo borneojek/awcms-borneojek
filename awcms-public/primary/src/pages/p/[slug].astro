@@ -16,9 +16,16 @@ export const getStaticPaths = (async () => {
   const supabase = createClientFromEnv(import.meta.env);
   if (!supabase) return [];
 
+  const tenantId = getPublicTenantId();
+  if (!tenantId) {
+    console.warn("[Page] No tenant ID configured, skipping static path generation");
+    return [];
+  }
+
   const { data, error } = await supabase
     .from("pages")
     .select("slug")
+    .eq("tenant_id", tenantId)
     .eq("status", "published")
     .eq("page_type", "regular")
     .is("deleted_at", null);

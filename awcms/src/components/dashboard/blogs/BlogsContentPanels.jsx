@@ -16,7 +16,18 @@ function BlogsContentPanels({
 	categoryFormFields,
 	tagColumns,
 	tagFormFields,
+	onContentSaved,
 }) {
+	// Wrap BlogEditorComponent to trigger onContentSaved after save
+	const WrappedBlogEditor = onContentSaved ? (props) => {
+		const { onSuccess: originalOnSuccess, ...restProps } = props;
+		const wrappedOnSuccess = () => {
+			if (originalOnSuccess) originalOnSuccess();
+			if (onContentSaved) onContentSaved();
+		};
+		return <BlogEditorComponent {...restProps} onSuccess={wrappedOnSuccess} />;
+	} : BlogEditorComponent;
+
 	return (
 		<PageTabs
 			value={activeTab}
@@ -34,7 +45,7 @@ function BlogsContentPanels({
 					permissionPrefix="blog"
 					showBreadcrumbs={false}
 					defaultFilters={blogFilters}
-					EditorComponent={BlogEditorComponent}
+					EditorComponent={WrappedBlogEditor}
 					customRowActions={customRowActions}
 					customToolbarActions={customToolbarActions}
 				/>

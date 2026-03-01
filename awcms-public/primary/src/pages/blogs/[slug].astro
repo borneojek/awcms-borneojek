@@ -1,6 +1,7 @@
 ---
 import { defaultLocale } from "~/utils/i18n";
 import { createClientFromEnv } from "~/lib/supabase";
+import { getPublicTenantId } from "~/lib/publicTenant";
 
 export const prerender = true;
 
@@ -10,10 +11,18 @@ export async function getStaticPaths() {
   );
   if (!supabase) return [];
 
+  const tenantId = getPublicTenantId();
+  if (!tenantId) {
+    console.warn("[Blog] No tenant ID configured, skipping static path generation");
+    return [];
+  }
+
   const { data } = await supabase
     .from("blogs")
     .select("slug")
-    .eq("status", "published");
+    .eq("tenant_id", tenantId)
+    .eq("status", "published")
+    .is("deleted_at", null);
 
   return (data || []).map((blog) => ({
     params: { slug: blog.slug },

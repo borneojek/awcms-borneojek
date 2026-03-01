@@ -33,6 +33,8 @@ function BlogsManager() {
   const hasValidTrashSuffix = segments[1] === 'trash';
 
   const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [rebuildRequired, setRebuildRequired] = useState(false);
+  const [isRebuilding, setIsRebuilding] = useState(false);
   const languages = useMemo(() => [
     { code: 'en', label: 'English', flag: '🇺🇸' },
     { code: 'id', label: 'Indonesia', flag: '🇮🇩' }
@@ -46,12 +48,12 @@ function BlogsManager() {
   const legacyStatus = searchParams.get('status');
 
   const blogFilters = useMemo(() => {
-    const filters = { locale: selectedLanguage };
+    const filters = {};
     if (activeView === 'queue') {
       filters.workflow_state = 'reviewed';
     }
     return filters;
-  }, [activeView, selectedLanguage]);
+  }, [activeView]);
 
   useEffect(() => {
     if (segments.length > 0 && !hasTabSegment && !hasViewSegment) {
@@ -88,6 +90,40 @@ function BlogsManager() {
     }
   }, [segments.length, legacyEditId, legacyStatus, navigate]);
 
+  // Handle rebuild notification
+  const handleContentSaved = () => {
+    setRebuildRequired(true);
+  };
+
+  const handleRebuild = async () => {
+    setIsRebuilding(true);
+    try {
+      // Try to trigger rebuild via API (if available)
+      const response = await fetch('/api/rebuild-public', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.ok) {
+        setRebuildRequired(false);
+        alert('Public site rebuild started! Changes will be live in a few minutes.');
+      } else {
+        throw new Error('API not available');
+      }
+    } catch (error) {
+      // Show manual rebuild instructions
+      setRebuildRequired(false);
+      alert(
+        'Rebuild Required!\n\n' +
+        'To publish your changes to the public site, please run:\n\n' +
+        'cd awcms-public/primary && npm run build\n\n' +
+        'Then deploy the dist/ folder to your hosting provider.'
+      );
+    } finally {
+      setIsRebuilding(false);
+    }
+  };
+
   // Tab definitions
   const tabs = [
     { value: 'blogs', label: t('menu.blogs'), icon: FileText, color: 'blue' },
@@ -121,6 +157,9 @@ function BlogsManager() {
       activeView={activeView}
       selectedLanguageLabel={selectedLanguageLabel}
       navigate={navigate}
+      rebuildRequired={rebuildRequired}
+      onRebuild={handleRebuild}
+      isRebuilding={isRebuilding}
     />
   );
 
@@ -324,6 +363,7 @@ function BlogsManager() {
         categoryFormFields={categoryFormFields}
         tagColumns={tagColumns}
         tagFormFields={tagFormFields}
+        onContentSaved={handleContentSaved}
       />
     </AdminPageLayout>
   );

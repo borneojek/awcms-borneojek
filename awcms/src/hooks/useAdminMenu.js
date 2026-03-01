@@ -79,10 +79,48 @@ export function useAdminMenu() {
       // Combine
       // If coreMenus is empty, use default config. Extensions still merge.
       let baseMenus = (coreMenus && coreMenus.length > 0) ? coreMenus : DEFAULT_MENU_CONFIG;
+      let resourceFallbackItems = [];
 
       // ENRICH baseMenus with Resource details
       if (resources && resources.length > 0) {
         const resourceMap = new Map(resources.map(r => [r.key, r]));
+        
+        // Track which resources already have menu entries
+        const menuResourceKeys = new Set();
+        baseMenus.forEach(menu => {
+          if (menu.key) menuResourceKeys.add(menu.key);
+          if (menu.resource_id) {
+            const res = resources.find(r => r.id === menu.resource_id);
+            if (res) menuResourceKeys.add(res.key);
+          }
+        });
+
+        // Add missing resources as menu items (resources without admin_menus entries)
+        const missingResources = resources.filter(r => !menuResourceKeys.has(r.key));
+        resourceFallbackItems = missingResources.map(res => {
+          const { label: groupLabel, order: groupOrder } = resolveGroupMeta(
+            res.scope?.toUpperCase() || 'SYSTEM',
+            60
+          );
+          return {
+            id: `resource-${res.key}`,
+            key: res.key,
+            label: res.label,
+            icon: res.icon || 'FileText',
+            path: res.key, // Use resource key as default path
+            group_label: groupLabel,
+            group_order: groupOrder,
+            order: 999, // Put at end
+            is_visible: true, // Default to visible
+            permission: res.permission_prefix ? `${res.permission_prefix}.read` : null,
+            permission_prefix: res.permission_prefix,
+            resource_id: res.id,
+            resource_type: res.type,
+            source: 'resource',
+            is_resource_fallback: true
+          };
+        });
+
         baseMenus = baseMenus.map(menu => {
           // Find matching resource by direct ID link or Key match
           const matchedRes = resources.find(r => r.id === menu.resource_id) || resourceMap.get(menu.key);
@@ -117,7 +155,7 @@ export function useAdminMenu() {
         });
       }
 
-      let combined = [...baseMenus, ...normalizedExtMenus];
+      let combined = [...baseMenus, ...normalizedExtMenus, ...resourceFallbackItems];
 
       // Sort again by group_order then order to ensure merged list is correct
       combined.sort((a, b) => {
@@ -319,8 +357,11 @@ export function useAdminMenu() {
 
   const toggleVisibility = async (id, currentVisibility) => {
     try {
-      // Check if it's an extension item
+      // Check if it's an extension item (ext- prefix)
       const isExtension = id.toString().startsWith('ext-');
+      
+      // Check if it's a plugin item (plugin- prefix)
+      const isPlugin = id.toString().startsWith('plugin-');
 
       // Check if this is a fallback item (not a UUID)
       const isUUID = typeof id === 'string' &&
@@ -333,6 +374,13 @@ export function useAdminMenu() {
           .update({ is_active: !currentVisibility })
           .eq('id', realId);
         if (error) throw error;
+      } else if (isPlugin) {
+        // Plugin items are managed by plugins via hooks - cannot toggle directly
+        // Return success but don't persist - plugins manage their own visibility
+        setMenuItems(prev => prev.map(item =>
+          item.id === id ? { ...item, is_visible: !currentVisibility } : item
+        ));
+        return true;
       } else if (isUUID) {
         const { error } = await supabase
           .from('admin_menus')

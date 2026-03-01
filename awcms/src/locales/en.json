@@ -899,6 +899,7 @@
     "group_order": "Group Order",
     "key": "Key (Read Only)",
     "managed_by_ext": "Managed by Extension",
+    "managed_by_plugin": "Managed by Plugin",
     "module": "Module",
     "core": "Core",
     "add_group": "Add Group",

@@ -17,6 +17,12 @@ export const getStaticPaths = (async () => {
   const supabase = createClientFromEnv(import.meta.env);
   if (!supabase) return [];
 
+  const tenantId = getPublicTenantId();
+  if (!tenantId) {
+    console.warn("[Page] No tenant ID configured, skipping static path generation");
+    return [];
+  }
+
   type PageSlugRow = {
     slug: string;
     locale?: Locale | null;
@@ -28,6 +34,7 @@ export const getStaticPaths = (async () => {
   const localizedQuery = await supabase
     .from("pages")
     .select("slug, locale")
+    .eq("tenant_id", tenantId)
     .eq("status", "published")
     .eq("page_type", "regular")
     .is("deleted_at", null);
@@ -40,6 +47,7 @@ export const getStaticPaths = (async () => {
       const fallbackQuery = await supabase
         .from("pages")
         .select("slug")
+        .eq("tenant_id", tenantId)
         .eq("status", "published")
         .eq("page_type", "regular")
         .is("deleted_at", null);

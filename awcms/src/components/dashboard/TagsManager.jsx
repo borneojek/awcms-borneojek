@@ -76,8 +76,8 @@ function TagsManager() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const canCreate = hasPermission('tenant.tag.create');
-  const canEdit = hasPermission('tenant.tag.update');
+  const canCreate = hasPermission('tenant.tags.create');
+  const canEdit = hasPermission('tenant.tags.update');
   const canSoftDelete = hasPermission('tenant.tag.delete');
   const canRestore = hasPermission('tenant.tag.restore') || hasPermission('tenant.tag.delete');
 

@@ -64,40 +64,22 @@ export async function getPageBySlug(
   supabase: SupabaseClient,
   slug: string,
   tenantId?: string | null,
-  locale?: string,
+  _locale?: string,
 ): Promise<PageData | null> {
-  const runQuery = async (withLocale: boolean) => {
-    let query = supabase
-      .from("pages")
-      .select("*")
-      .eq("slug", slug)
-      .eq("status", "published");
+  let query = supabase
+    .from("pages")
+    .select("*")
+    .eq("slug", slug)
+    .eq("status", "published");
 
-    if (withLocale && locale) {
-      query = query.eq("locale", locale);
-    }
-
-    if (tenantId) {
-      query = query.eq("tenant_id", tenantId);
-    }
-
-    return query
-      .order("published_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-  };
-
-  let localeFilterEnabled = Boolean(locale);
-  let { data, error } = await runQuery(localeFilterEnabled);
-
-  if (
-    error &&
-    localeFilterEnabled &&
-    isMissingLocaleColumnError(error.message || "")
-  ) {
-    localeFilterEnabled = false;
-    ({ data, error } = await runQuery(false));
+  if (tenantId) {
+    query = query.eq("tenant_id", tenantId);
   }
+
+  const { data, error } = await query
+    .order("published_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   if (error) {
     console.error("[Content] Error fetching page:", error.message);
@@ -113,40 +95,22 @@ export async function getPageBySlug(
 export async function getAllPages(
   supabase: SupabaseClient,
   tenantId?: string | null,
-  locale?: string,
+  _locale?: string,
   limit = 100,
 ): Promise<PageData[]> {
-  const runQuery = async (withLocale: boolean) => {
-    let query = supabase
-      .from("pages")
-      .select("*")
-      .eq("status", "published")
-      .eq("page_type", "regular")
-      .order("published_at", { ascending: false })
-      .limit(limit);
+  let query = supabase
+    .from("pages")
+    .select("*")
+    .eq("status", "published")
+    .eq("page_type", "regular")
+    .order("published_at", { ascending: false })
+    .limit(limit);
 
-    if (withLocale && locale) {
-      query = query.eq("locale", locale);
-    }
-
-    if (tenantId) {
-      query = query.eq("tenant_id", tenantId);
-    }
-
-    return query;
-  };
-
-  let localeFilterEnabled = Boolean(locale);
-  let { data, error } = await runQuery(localeFilterEnabled);
-
-  if (
-    error &&
-    localeFilterEnabled &&
-    isMissingLocaleColumnError(error.message || "")
-  ) {
-    localeFilterEnabled = false;
-    ({ data, error } = await runQuery(false));
+  if (tenantId) {
+    query = query.eq("tenant_id", tenantId);
   }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("[Content] Error fetching pages:", error.message);
@@ -163,40 +127,22 @@ export async function getPageByType(
   supabase: SupabaseClient,
   pageType: string,
   tenantId?: string | null,
-  locale?: string,
+  _locale?: string,
 ): Promise<PageData | null> {
-  const runQuery = async (withLocale: boolean) => {
-    let query = supabase
-      .from("pages")
-      .select("*")
-      .eq("page_type", pageType)
-      .eq("status", "published");
+  let query = supabase
+    .from("pages")
+    .select("*")
+    .eq("page_type", pageType)
+    .eq("status", "published");
 
-    if (withLocale && locale) {
-      query = query.eq("locale", locale);
-    }
-
-    if (tenantId) {
-      query = query.eq("tenant_id", tenantId);
-    }
-
-    return query
-      .order("published_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-  };
-
-  let localeFilterEnabled = Boolean(locale);
-  let { data, error } = await runQuery(localeFilterEnabled);
-
-  if (
-    error &&
-    localeFilterEnabled &&
-    isMissingLocaleColumnError(error.message || "")
-  ) {
-    localeFilterEnabled = false;
-    ({ data, error } = await runQuery(false));
+  if (tenantId) {
+    query = query.eq("tenant_id", tenantId);
   }
+
+  const { data, error } = await query
+    .order("published_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   if (error) {
     console.error("[Content] Error fetching page by type:", error.message);
@@ -213,96 +159,42 @@ export async function getBlogBySlug(
   supabase: SupabaseClient,
   slug: string,
   tenantId?: string | null,
-  locale?: string,
+  _locale?: string,
 ): Promise<BlogData | null> {
-  const runPrimaryQuery = async (withLocale: boolean) => {
-    let query = supabase
-      .from("blogs")
-      .select(
-        `
-      *,
-      category:categories!blogs_category_id_fkey(id, name, slug)
-    `,
-      )
-      .eq("slug", slug)
-      .eq("status", "published");
-
-    if (withLocale && locale) {
-      query = query.eq("locale", locale);
-    }
-
-    if (tenantId) {
-      query = query.eq("tenant_id", tenantId);
-    }
-
-    return query.maybeSingle();
-  };
-
-  let localeFilterEnabled = Boolean(locale);
-  let { data, error } = await runPrimaryQuery(localeFilterEnabled);
-
-  if (
-    error &&
-    localeFilterEnabled &&
-    isMissingLocaleColumnError(error.message || "")
-  ) {
-    localeFilterEnabled = false;
-    ({ data, error } = await runPrimaryQuery(false));
-  }
-
-  if (!error) {
-    return (data || null) as BlogData | null;
-  }
-
-  const errorMessage = error.message || "";
-  if (
-    !errorMessage.includes("relationship") &&
-    !errorMessage.includes("schema cache")
-  ) {
-    console.error("[Content] Error fetching blog:", errorMessage);
-    return null;
-  }
-
-  let fallbackQuery = supabase
+  let query = supabase
     .from("blogs")
     .select("*")
     .eq("slug", slug)
     .eq("status", "published");
 
   if (tenantId) {
-    fallbackQuery = fallbackQuery.eq("tenant_id", tenantId);
+    query = query.eq("tenant_id", tenantId);
   }
 
-  if (locale && localeFilterEnabled) {
-    fallbackQuery = fallbackQuery.eq("locale", locale);
-  }
+  const { data, error } = await query.maybeSingle();
 
-  const { data: fallbackData, error: fallbackError } = await fallbackQuery
-    .order("published_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (fallbackError) {
-    console.error("[Content] Error fetching blog:", fallbackError.message);
+  if (error) {
+    console.error("[Content] Error fetching blog:", error.message);
     return null;
   }
 
-  if (!fallbackData) {
+  if (!data) {
     return null;
   }
 
+  // Fetch category separately
   let category = null;
-  if (fallbackData.category_id) {
+  if (data.category_id) {
     const { data: categoryData } = await supabase
       .from("categories")
       .select("id, name, slug")
-      .eq("id", fallbackData.category_id)
+      .eq("id", data.category_id)
       .maybeSingle();
     category = categoryData || null;
   }
 
   return {
-    ...(fallbackData as BlogData),
+    ...(data as BlogData),
     category,
   };
 }
@@ -317,92 +209,11 @@ export async function getBlogs(
     limit?: number;
     offset?: number;
     categorySlug?: string;
-    locale?: string;
   } = {},
 ): Promise<{ blogs: BlogData[]; total: number }> {
-  const { limit = 10, offset = 0, categorySlug, locale } = options;
+  const { limit = 10, offset = 0, categorySlug } = options;
 
-  const runPrimaryQuery = async (withLocale: boolean) => {
-    let query = supabase
-      .from("blogs")
-      .select(
-        `
-      *,
-      category:categories!blogs_category_id_fkey(id, name, slug)
-    `,
-        { count: "exact" },
-      )
-      .eq("status", "published")
-      .order("published_at", { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (tenantId) {
-      query = query.eq("tenant_id", tenantId);
-    }
-
-    if (categorySlug) {
-      query = query.eq("category.slug", categorySlug);
-    }
-
-    if (withLocale && locale) {
-      query = query.eq("locale", locale);
-    }
-
-    return query;
-  };
-
-  let localeFilterEnabled = Boolean(locale);
-  let { data, error, count } = await runPrimaryQuery(localeFilterEnabled);
-
-  if (
-    error &&
-    localeFilterEnabled &&
-    isMissingLocaleColumnError(error.message || "")
-  ) {
-    localeFilterEnabled = false;
-    ({ data, error, count } = await runPrimaryQuery(false));
-  }
-
-  if (!error) {
-    return {
-      blogs: (data || []) as BlogData[],
-      total: count || 0,
-    };
-  }
-
-  const errorMessage = error.message || "";
-  if (
-    !errorMessage.includes("relationship") &&
-    !errorMessage.includes("schema cache")
-  ) {
-    console.error("[Content] Error fetching blogs:", errorMessage);
-    return { blogs: [], total: 0 };
-  }
-
-  let categoryId: string | null = null;
-  if (categorySlug) {
-    const { data: categoryData, error: categoryError } = await supabase
-      .from("categories")
-      .select("id")
-      .eq("slug", categorySlug)
-      .maybeSingle();
-
-    if (categoryError) {
-      console.error(
-        "[Content] Error fetching category:",
-        categoryError.message,
-      );
-      return { blogs: [], total: 0 };
-    }
-
-    if (!categoryData) {
-      return { blogs: [], total: 0 };
-    }
-
-    categoryId = categoryData.id as string;
-  }
-
-  let fallbackQuery = supabase
+  let query = supabase
     .from("blogs")
     .select("*", { count: "exact" })
     .eq("status", "published")
@@ -410,29 +221,23 @@ export async function getBlogs(
     .range(offset, offset + limit - 1);
 
   if (tenantId) {
-    fallbackQuery = fallbackQuery.eq("tenant_id", tenantId);
+    query = query.eq("tenant_id", tenantId);
   }
 
-  if (categoryId) {
-    fallbackQuery = fallbackQuery.eq("category_id", categoryId);
+  if (categorySlug) {
+    query = query.eq("category_id", categorySlug);
   }
 
-  if (locale && localeFilterEnabled) {
-    fallbackQuery = fallbackQuery.eq("locale", locale);
-  }
+  const { data, error, count } = await query;
 
-  const {
-    data: fallbackData,
-    error: fallbackError,
-    count: fallbackCount,
-  } = await fallbackQuery;
-
-  if (fallbackError) {
-    console.error("[Content] Error fetching blogs:", fallbackError.message);
+  if (error) {
+    console.error("[Content] Error fetching blogs:", error.message);
     return { blogs: [], total: 0 };
   }
 
-  const blogs = (fallbackData || []) as BlogData[];
+  const blogs = (data || []) as BlogData[];
+  
+  // Fetch categories separately
   const categoryIds = Array.from(
     new Set(blogs.map((blog) => blog.category_id).filter(Boolean)),
   ) as string[];
@@ -456,7 +261,7 @@ export async function getBlogs(
 
   return {
     blogs,
-    total: fallbackCount || 0,
+    total: count || 0,
   };
 }
 

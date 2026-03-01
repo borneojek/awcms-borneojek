@@ -46,6 +46,8 @@ function CategoriesManager() {
         columns={columns}
         formFields={formFields}
         permissionPrefix="categories"
+        viewPermission="tenant.categories.read"
+        createPermission="tenant.categories.create"
         showBreadcrumbs={false}
       />
     </AdminPageLayout>

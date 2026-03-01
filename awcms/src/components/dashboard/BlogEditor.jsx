@@ -66,7 +66,6 @@ function BlogEditor({ item, onClose, onSuccess }) {
     const [formData, setFormData] = useState({
         title: item?.title || '',
         slug: item?.slug || '',
-        locale: item?.locale || 'en',
         content: item?.content || '',
         excerpt: item?.excerpt || '',
         featured_image: item?.featured_image || '',
@@ -74,7 +73,6 @@ function BlogEditor({ item, onClose, onSuccess }) {
         workflow_state: item?.workflow_state || 'draft',
         is_active: item?.is_active ?? true,
         is_public: item?.is_public ?? false,
-        editor_type: item?.editor_type || (isVisualContent ? 'visual' : 'richtext'),
         category_id: item?.category_id || '',
         tags: item?.tags || [],
 
@@ -115,18 +113,22 @@ function BlogEditor({ item, onClose, onSuccess }) {
 
     const fetchCategories = async () => {
         try {
-            let q = supabase
+            let query = supabase
                 .from('categories')
                 .select('id, name')
                 .eq('type', 'blog');
 
-            if (currentTenant?.id) {
-                q = q.eq('tenant_id', currentTenant.id);
+            const { data, error } = await query;
+            
+            if (error) {
+                // Try without type filter
+                const { data: allData } = await supabase
+                    .from('categories')
+                    .select('id, name');
+                setCategories(allData || []);
+            } else {
+                setCategories(data || []);
             }
-
-            const { data, error } = await q;
-            if (error) throw error;
-            setCategories(data || []);
         } catch (error) {
             console.error('Error fetching categories:', error);
         }
@@ -176,7 +178,6 @@ function BlogEditor({ item, onClose, onSuccess }) {
                 tenant_id: currentTenant.id,
                 title: formData.title,
                 slug: formData.slug || generateSlug(formData.title),
-                locale: formData.locale,
                 content: formData.content,
                 excerpt: formData.excerpt,
                 featured_image: formData.featured_image,
@@ -249,8 +250,9 @@ function BlogEditor({ item, onClose, onSuccess }) {
             if (!isEditMode && onSuccess) {
                 onSuccess();
                 onClose();
-            } else if (onSuccess) {
-                // onSuccess(); // Refresh parent if needed
+            } else if (isEditMode && onSuccess) {
+                onSuccess(); // Refresh parent after edit
+                onClose();   // Close editor after successful edit
             }
 
         } catch (error) {

@@ -8,6 +8,7 @@ import {
   GripVertical,
   Puzzle,
   Settings2,
+  FileText,
 } from 'lucide-react';
 import { getIconComponent } from '@/lib/adminIcons';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +25,13 @@ function SidebarMenuItemRow({
 }) {
   const iconComponent = getIconComponent(item.icon);
   const inputId = `visible-${item.id}`;
+  
+  const isExtension = item.source === 'extension';
+  const isPlugin = item.source === 'plugin';
+  const isResource = item.source === 'resource' || item.is_resource_fallback;
+  const isCore = item.plugin_type === 'core' || item.is_core;
+  const canEdit = canManage && !isExtension && !isPlugin && !isResource;
+  const canToggle = canManage && !isPlugin;
 
   return (
     <Reorder.Item
@@ -73,6 +81,20 @@ function SidebarMenuItemRow({
             </span>
           )}
 
+          {item.source === 'plugin' && (
+            <span className="flex items-center rounded border border-purple-100 bg-purple-50 px-1.5 py-0.5 text-purple-600 dark:border-purple-900/20 dark:bg-purple-900/10 dark:text-purple-400">
+              <Puzzle className="mr-1 h-3 w-3" />
+              Plugin
+            </span>
+          )}
+
+          {item.source === 'resource' && (
+            <span className="flex items-center rounded border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-blue-600 dark:border-blue-900/20 dark:bg-blue-900/10 dark:text-blue-400">
+              <FileText className="mr-1 h-3 w-3" />
+              Resource
+            </span>
+          )}
+
           {(item.plugin_type === 'core' || item.is_core) && (
             <span className="flex items-center rounded border border-emerald-100 bg-emerald-50 px-1.5 py-0.5 text-emerald-600 dark:border-emerald-900/20 dark:bg-emerald-900/10 dark:text-emerald-400">
               <Puzzle className="mr-1 h-3 w-3" />
@@ -88,9 +110,9 @@ function SidebarMenuItemRow({
             variant="ghost"
             size="sm"
             onClick={() => onEdit(item)}
-            disabled={item.source === 'extension'}
-            className={item.source === 'extension' ? 'cursor-not-allowed text-muted-foreground opacity-50' : 'text-muted-foreground hover:text-primary'}
-            title={item.source === 'extension' ? t('sidebar_manager.managed_by_ext') : t('sidebar_manager.edit_item')}
+            disabled={!canEdit}
+            className={!canEdit ? 'cursor-not-allowed text-muted-foreground opacity-50' : 'text-muted-foreground hover:text-primary'}
+            title={!canEdit ? (isExtension ? t('sidebar_manager.managed_by_ext') : isPlugin ? t('sidebar_manager.managed_by_plugin') : t('sidebar_manager.edit_item')) : t('sidebar_manager.edit_item')}
           >
             <Edit2 className="h-4 w-4" />
           </Button>
@@ -101,7 +123,7 @@ function SidebarMenuItemRow({
           <Switch
             id={inputId}
             checked={item.is_visible}
-            disabled={!canManage}
+            disabled={!canToggle}
             onCheckedChange={() => onToggleVisibility(item)}
           />
           {item.is_visible ? (

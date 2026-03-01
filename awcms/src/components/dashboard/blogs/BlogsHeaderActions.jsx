@@ -1,16 +1,38 @@
 import { Button } from '@/components/ui/button';
-import { Languages } from 'lucide-react';
+import { Languages, RefreshCw, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function BlogsHeaderActions({
-	t,
-	activeTab,
-	activeView,
-	selectedLanguageLabel,
-	navigate,
-}) {
-	return (
-		<div className="flex flex-wrap items-center gap-2">
+ 	t,
+ 	activeTab,
+ 	activeView,
+ 	selectedLanguageLabel,
+ 	navigate,
+ 	rebuildRequired,
+ 	onRebuild,
+ 	isRebuilding,
+ }) {
+ 	return (
+ 		<div className="flex flex-wrap items-center gap-2">
+			{rebuildRequired && (
+				<Button
+					variant="outline"
+					onClick={onRebuild}
+					disabled={isRebuilding}
+					className={cn(
+						'h-9 rounded-xl px-3 shadow-sm border-amber-500/50 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-950 dark:text-amber-400',
+						isRebuilding && 'opacity-50'
+					)}
+				>
+					{isRebuilding ? (
+						<RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" />
+					) : (
+						<AlertTriangle className="h-3.5 w-3.5 mr-2" />
+					)}
+					{isRebuilding ? 'Rebuilding...' : 'Rebuild Site'}
+				</Button>
+			)}
+
 			<span className="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
 				<Languages className="h-3.5 w-3.5" />
 				{selectedLanguageLabel}
