@@ -23,7 +23,7 @@ Describe the runtime architecture and data flow across the AWCMS monorepo.
 AWCMS is a headless system with multiple clients sharing a Supabase backend:
 
 - Admin Panel: React 19 SPA (Vite)
-- Public Portal: Astro static output + islands (Cloudflare Pages)
+- Public Portal: Astro hybrid output (SSG default + SSR on-demand) + islands (Cloudflare Pages)
 - Mobile: Flutter app
 - IoT: ESP32 firmware
 
@@ -37,7 +37,7 @@ graph TD
     Admin[Tenant Admin] -->|HTTPS| AdminPanel
     Owner[Platform Owner] -->|HTTPS| AdminPanel
 
-    subgraph "Public Portal (Static Build)"
+    subgraph "Public Portal (Hybrid Build)"
         PublicPortal[Astro App]
         Resolver[Build-Time Tenant Resolver]
         PublicPortal --> Resolver
@@ -77,7 +77,7 @@ graph TD
 
 ### Public Portal Flow
 
-1. Build-time tenant resolution uses `PUBLIC_TENANT_ID` or `VITE_PUBLIC_TENANT_ID` and `getStaticPaths` for tenant routes.
+1. Build-time tenant resolution uses `PUBLIC_TENANT_ID` or `VITE_PUBLIC_TENANT_ID` and `getStaticPaths` for tenant routes. **Dynamic Server-Side Rendering (SSR) is available on demand** via the Cloudflare Pages adapter.
 2. Supabase clients are created via `createClientFromEnv(import.meta.env)` (static builds).
 3. Pages render with `PuckRenderer` and a registry allow-list.
 4. Analytics logging runs only when SSR/runtime middleware is enabled.
