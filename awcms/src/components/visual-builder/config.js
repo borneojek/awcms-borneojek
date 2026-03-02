@@ -18,7 +18,9 @@ import { ContactFormBlock, ContactFormBlockFields } from './blocks/ContactFormBl
 import { NavigationBlock, NavigationBlockFields } from './blocks/NavigationBlock';
 import { PromotionBlock, PromotionBlockFields } from './blocks/PromotionBlock';
 import { SectionBlock, SectionBlockFields } from './blocks/SectionBlock';
+import { ContainerBlock, ContainerBlockFields } from './blocks/ContainerBlock';
 import { DividerBlock, DividerBlockFields } from './blocks/DividerBlock';
+import { advancedStyleFields, withAdvancedStyles } from './utils/styleHelpers';
 import { YouTubeBlock, YouTubeBlockFields } from './blocks/YouTubeBlock';
 import { StatsBlock, StatsBlockFields } from './blocks/StatsBlock';
 import { PricingBlock, PricingBlockFields } from './blocks/PricingBlock';
@@ -40,7 +42,7 @@ export const puckConfig = {
     categories: {
         layout: {
             title: 'Layout & Structure',
-            components: ['Section', 'Grid', 'Divider', 'Spacer', 'WidgetArea']
+            components: ['Container', 'Section', 'Grid', 'Divider', 'Spacer', 'WidgetArea']
         },
         content: {
             title: 'Basic Content',
@@ -57,6 +59,20 @@ export const puckConfig = {
     },
     components: {
         // --- Structural Blocks ---
+        Container: {
+            label: 'Container',
+            fields: ContainerBlockFields,
+            defaultProps: {
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem',
+                paddingTop: '2rem',
+                paddingBottom: '2rem',
+                paddingLeft: '1rem',
+                paddingRight: '1rem'
+            },
+            render: ContainerBlock
+        },
         Section: {
             label: 'Section Container',
             fields: SectionBlockFields,
@@ -177,13 +193,16 @@ export const puckConfig = {
         },
         Text: {
             label: 'Text Content',
-            fields: TextBlockFields,
+            fields: {
+                ...TextBlockFields,
+                ...advancedStyleFields
+            },
             defaultProps: {
                 content: '<p>Enter your text content here...</p>',
                 alignment: 'left',
                 textColor: '#000000'
             },
-            render: TextBlock
+            render: withAdvancedStyles(TextBlock)
         },
         RawHTML: {
             label: 'Raw HTML (Fallback)',
@@ -213,17 +232,7 @@ export const puckConfig = {
                         { label: 'Small (25%)', value: 'small' }
                     ]
                 },
-                borderRadius: {
-                    type: 'select',
-                    label: 'Border Radius',
-                    options: [
-                        { label: 'None', value: 'none' },
-                        { label: 'Small', value: 'sm' },
-                        { label: 'Medium', value: 'md' },
-                        { label: 'Large', value: 'lg' },
-                        { label: 'Full', value: 'full' }
-                    ]
-                }
+                ...advancedStyleFields
             },
             defaultProps: {
                 src: '',
@@ -232,7 +241,7 @@ export const puckConfig = {
                 width: 'full',
                 borderRadius: 'none'
             },
-            render: ImageBlock
+            render: withAdvancedStyles(ImageBlock)
         },
         Button: {
             label: 'Button',
@@ -264,7 +273,8 @@ export const puckConfig = {
                         { label: 'Lift', value: 'lift' },
                         { label: 'Glow', value: 'glow' }
                     ]
-                }
+                },
+                ...advancedStyleFields
             },
             defaultProps: {
                 text: 'Click Me',
@@ -273,7 +283,7 @@ export const puckConfig = {
                 size: 'medium',
                 alignment: 'left'
             },
-            render: ButtonBlock
+            render: withAdvancedStyles(ButtonBlock)
         },
         YouTube: {
             label: 'YouTube Video',

@@ -28,7 +28,9 @@ import PartnersListBlock from "../puck-blocks/PartnersListBlock.astro";
 import TestimonialsListBlock from "../puck-blocks/TestimonialsListBlock.astro";
 import ButtonBlock from "../puck-blocks/ButtonBlock.astro";
 import CardBlock from "../puck-blocks/CardBlock.astro";
+import ContainerBlock from "../puck-blocks/ContainerBlock.astro";
 import { getSanitizedRawHtml } from "./puckRendererRawHtml";
+import { generateInlineStyles } from "../../utils/styleHelpers.js";
 
 export interface Props {
   /** Puck JSON content object */
@@ -138,9 +140,12 @@ const blocks: PuckBlock[] =
           const align = (props.align as string) || "left";
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const Tag = `h${level}` as any;
+          const styleStr = generateInlineStyles(props);
+
           return (
             <Tag
               class={`${HEADING_SIZES[level] || HEADING_SIZES[2]} text-${align} mb-4 dark:text-slate-200`}
+              style={styleStr || undefined}
             >
               {text}
             </Tag>
@@ -153,12 +158,18 @@ const blocks: PuckBlock[] =
           const text =
             (props.text as string) || (props.content as string) || "";
           const align = (props.align as string) || "left";
+          const styleStr = generateInlineStyles(props);
           return (
-            <p
-              class={`text-lg text-slate-600 dark:text-slate-400 mb-4 text-${align}`}
+            <div
+              style={styleStr || undefined}
+              class="awcms-advanced-style-wrapper w-full"
             >
-              {text}
-            </p>
+              <p
+                class={`text-lg text-slate-600 dark:text-slate-400 mb-4 text-${align}`}
+              >
+                {text}
+              </p>
+            </div>
           );
         }
 
@@ -167,14 +178,20 @@ const blocks: PuckBlock[] =
           const src = (props.src as string) || (props.url as string) || "";
           const alt = (props.alt as string) || "";
           const caption = (props.caption as string) || "";
+          const styleStr = generateInlineStyles(props);
           if (!src) return null;
           return (
-            <figure class="my-6">
+            <figure class="my-6" style={styleStr || undefined}>
               <img
                 src={src}
                 alt={alt}
-                class="w-full rounded-xl shadow-lg"
+                class="w-full shadow-lg"
                 loading="lazy"
+                style={
+                  props.borderRadius
+                    ? `border-radius: ${props.borderRadius}`
+                    : "border-radius: 0.75rem"
+                }
               />
               {caption && (
                 <figcaption class="mt-2 text-center text-sm text-slate-500 dark:text-slate-400">
@@ -186,8 +203,20 @@ const blocks: PuckBlock[] =
         }
 
         case "Button":
-        case "button":
+        case "button": {
+          const styleStr = generateInlineStyles(props);
+          if (styleStr) {
+            return (
+              <div
+                style={styleStr || undefined}
+                class="awcms-advanced-style-wrapper w-full"
+              >
+                <ButtonBlock {...props} />
+              </div>
+            );
+          }
           return <ButtonBlock {...props} />;
+        }
 
         // --- Layout Blocks ---
 
@@ -210,15 +239,14 @@ const blocks: PuckBlock[] =
 
         case "Container":
         case "container": {
-          const children = (props.children as PuckBlock[]) || [];
-          const padding = (props.padding as string) || "6";
-          return (
-            <div
-              class={`p-${padding} bg-slate-50 dark:bg-slate-800 rounded-xl my-6`}
-            >
-              <Astro.self content={{ content: children }} />
-            </div>
-          );
+          // Puck passes nested DropZone children usually in the `zones` object or directly as children/content.
+          // ContainerBlock uses the `content` prop.
+          const containerChildren =
+            (block as any).zones?.content ||
+            props.content ||
+            props.children ||
+            [];
+          return <ContainerBlock {...props} content={containerChildren} />;
         }
 
         case "Divider":
