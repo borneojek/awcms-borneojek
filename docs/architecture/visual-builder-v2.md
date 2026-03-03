@@ -5,7 +5,9 @@
 
 ## Purpose
 
-This document outlines the architecture for the next-generation AWCMS Visual Builder (v2). It introduces an "Elementor-like" CSS-first paradigm, moving away from rigid layout preset blocks (`Section`, `Grid`) toward a fluid, recursive `Container` model using Puck's `<Slot>` capabilities and dynamic inline styling.
+This document outlines the architecture for the next-generation AWCMS Visual Builder (v2).
+It introduces an "Elementor-like" CSS-first paradigm, moving away from rigid layout preset blocks (`Section`, `Grid`)
+toward a fluid, recursive `Container` model using Puck's `<Slot>` capabilities and dynamic inline styling.
 
 ## Audience
 
