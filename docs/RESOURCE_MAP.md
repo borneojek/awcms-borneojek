@@ -58,6 +58,7 @@ UI schemas live in `ui_configs`, and editor/component settings live in `componen
 | `push_notifications`| Tenant | `tenant.push_notifications` | Push Notifications | Mobile | `push_notifications` |
 | `mobile_config` | Tenant | `tenant.mobile` | App Config | Mobile | `settings` |
 | `tenants` | Platform | `platform.tenant` | Tenant Management | System | `tenants` |
+| `test_dynamic` | Tenant | `tenant.setting` | Test Dynamic Resource | Settings | `settings` |
 
 ## UI Components Map
 
