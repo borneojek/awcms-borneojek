@@ -28,8 +28,8 @@ UI schemas live in `ui_configs`, and editor/component settings live in `componen
 | `contact_messages` | Tenant | `tenant.contact_messages` | Contact Messages | Data | `contact_messages` |
 | `contacts` | Tenant | `tenant.contacts` | Contacts CRM | Data | `contacts` |
 | `files` | Tenant | `tenant.files` | Media Library | Media | `files` |
-| `photo_gallery` | Tenant | `tenant.photo_gallery` | Photo Gallery | Media | `galleries` |
-| `video_gallery` | Tenant | `tenant.video_gallery` | Video Gallery | Media | `galleries` |
+| `photo_gallery` | Tenant | `tenant.photo_gallery` | Photo Gallery | Media | `photo_gallery` |
+| `video_gallery` | Tenant | `tenant.video_gallery` | Video Gallery | Media | `video_gallery` |
 | `products` | Tenant | `tenant.products` | Products | Commerce | `products` |
 | `product_types` | Tenant | `tenant.product_types` | Product Types | Commerce | `product_types` |
 | `orders` | Tenant | `tenant.orders` | Orders | Commerce | `orders` |
@@ -41,7 +41,7 @@ UI schemas live in `ui_configs`, and editor/component settings live in `componen
 | `stitch_import` | Tenant | `tenant.stitch_import` | Stitch Import | Settings | `stitch_import_jobs` |
 | `roles` | Tenant | `tenant.role` | Roles & Permissions | RBAC | `roles` |
 | `policies` | Tenant | `tenant.policy` | Policies | Data | `policies` |
-| `seo_manager` | Tenant | `tenant.seo` | SEO Manager | Settings | `seo_settings` |
+| `seo_manager` | Tenant | `tenant.seo` | SEO Manager | Settings | `seo_metadata` |
 | `languages` | Tenant | `tenant.languages` | Languages | Config | `languages` |
 | `extensions` | Platform | `platform.extensions` | Extensions | System | `extensions` |
 | `modules` | Platform | `platform.module` | Modules | System | `modules` |
@@ -50,22 +50,19 @@ UI schemas live in `ui_configs`, and editor/component settings live in `componen
 | `audit_logs` | Tenant | `tenant.audit` | Audit Logs | Logs | `audit_logs` |
 | `settings_general` | Tenant | `tenant.setting` | General Settings | Settings | `settings` |
 | `settings_branding`| Tenant | `tenant.setting` | Branding | Settings | `settings` |
-| `sso` | Tenant | `tenant.sso` | SSO & Security | Config | `sso_config` |
+| `sso` | Tenant | `tenant.sso` | SSO & Security | Config | `sso_providers` |
 | `email_settings` | Tenant | `tenant.setting` | Email Settings | Config | `settings` |
 | `email_logs` | Tenant | `tenant.setting` | Email Logs | Logs | `email_logs` |
-| `iot_devices` | Tenant | `tenant.iot` | IoT Devices | IoT | `iot_devices` |
+| `iot_devices` | Tenant | `tenant.iot` | IoT Devices | IoT | `devices` |
 | `mobile_users` | Tenant | `tenant.mobile_users` | Mobile Users | Mobile | `mobile_users` |
 | `push_notifications`| Tenant | `tenant.push_notifications` | Push Notifications | Mobile | `push_notifications` |
 | `mobile_config` | Tenant | `tenant.mobile` | App Config | Mobile | `settings` |
 | `tenants` | Platform | `platform.tenant` | Tenant Management | System | `tenants` |
 | `test_dynamic` | Tenant | `tenant.setting` | Test Dynamic Resource | Settings | `settings` |
 
-## UI Components Map
+### Refactored Components using Dynamic UI
 
-### Hardcoded components to be replaced by Dynamic UI
-
-- `SchoolPagesManager` -> `DynamicResourceManager(resource='school_pages')`
-- `RolesManager` -> `DynamicTable(resource='roles')`
+- `RolesManager` -> `GenericContentManager(tableName='roles')`
 
 ## Editor Configurations
 

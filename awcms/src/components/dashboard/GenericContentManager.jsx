@@ -42,7 +42,9 @@ const GenericContentManager = ({
     omitCreatedBy = false,
     enableSoftDelete = true,
     enableTrashRoute = true,
-    trashRouteSegment = 'trash'
+    trashRouteSegment = 'trash',
+    onEditOverride, // Optional override function for the edit action
+    onCreateOverride // Optional override function for the create action
 }) => {
     const { t } = useTranslation();
     const { toast } = useToast();
@@ -185,8 +187,13 @@ const GenericContentManager = ({
             toast({ variant: 'destructive', title: 'Access Denied', description: 'You can only edit your own content.' });
             return;
         }
-        setSelectedItem(item);
-        setShowEditor(true);
+        
+        if (onEditOverride) {
+            onEditOverride(item);
+        } else {
+            setSelectedItem(item);
+            setShowEditor(true);
+        }
     };
 
     // Show delete confirmation dialog
@@ -417,7 +424,13 @@ const GenericContentManager = ({
                             })}
 
                             {canCreate && !showTrash && (
-                                <Button onClick={() => { setSelectedItem(null); setShowEditor(true); }} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                                <Button onClick={() => { 
+                                    if (onCreateOverride) {
+                                        onCreateOverride();
+                                    } else {
+                                        setSelectedItem(null); setShowEditor(true); 
+                                    }
+                                }} className="bg-primary text-primary-foreground hover:bg-primary/90">
                                     <Plus className="w-4 h-4 mr-2" /> {t('common.create_resource', { resource: resourceName })}
                                 </Button>
                             )}
