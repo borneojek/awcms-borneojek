@@ -46,7 +46,12 @@ const ResourceSelect = ({
                             return;
                         }
 
-                        if (val !== undefined && val !== null && val !== '') {
+                        if (val === null) {
+                            query = query.is(key, null);
+                            return;
+                        }
+
+                        if (val !== undefined && val !== '') {
                             query = query.eq(key, val);
                         }
                     });
