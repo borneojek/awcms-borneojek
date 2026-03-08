@@ -211,10 +211,10 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
             session_bound_access: Boolean(file.session_bound_access),
         });
 
-        if (file.session_bound_access && file.file_type?.startsWith('image/')) {
+        if (!isTrashView && file.session_bound_access && file.file_type?.startsWith('image/')) {
             await ensureAccessUrl(file, { silent: true });
         }
-    }, [ensureAccessUrl]);
+    }, [ensureAccessUrl, isTrashView]);
 
     const closeDetails = useCallback((open) => {
         if (open) return;
@@ -415,10 +415,19 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
     };
 
     const handleCopyUrl = useCallback(async (file) => {
+        if (isTrashView) {
+            toast({
+                variant: 'destructive',
+                title: 'Copy unavailable in trash',
+                description: 'Restore the file before generating or copying an access URL.',
+            });
+            return;
+        }
+
         const url = await ensureAccessUrl(file);
         if (!url) return;
         copyToClipboard(url);
-    }, [ensureAccessUrl]);
+    }, [ensureAccessUrl, isTrashView, toast]);
 
     const handleSelectFile = useCallback(async (file) => {
         if (!onSelect) return;
@@ -706,9 +715,11 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
                                 <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
                                     {!isSelectionMode && (
                                         <>
-                                            <Button size="icon" variant="secondary" className="h-8 w-8" onClick={() => handleCopyUrl(file)} title={file.session_bound_access ? 'Copy temporary access URL' : 'Copy URL'} disabled={isResolvingAccess(file.id)}>
-                                                {isResolvingAccess(file.id) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
-                                            </Button>
+                                            {!isTrashView ? (
+                                                <Button size="icon" variant="secondary" className="h-8 w-8" onClick={() => handleCopyUrl(file)} title={file.session_bound_access ? 'Copy temporary access URL' : 'Copy URL'} disabled={isResolvingAccess(file.id)}>
+                                                    {isResolvingAccess(file.id) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+                                                </Button>
+                                            ) : null}
                                             {canUpdate && !isTrashView ? (
                                                 <Button size="icon" variant="secondary" className="h-8 w-8" onClick={() => openDetails(file)} title="Edit details">
                                                     <Pencil className="w-4 h-4" />
@@ -814,10 +825,12 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
                                             <Button size="icon" variant="ghost" className="h-8 w-8" title="View details" onClick={() => openDetails(file)}>
                                                 <Info className="w-4 h-4" />
                                             </Button>
-                                            <Button size="sm" variant="ghost" onClick={() => handleCopyUrl(file)} disabled={isResolvingAccess(file.id)}>
-                                                {isResolvingAccess(file.id) ? <Loader2 className="mr-1 w-3 h-3 animate-spin" /> : null}
-                                                {file.session_bound_access ? 'Copy Access URL' : 'Copy URL'}
-                                            </Button>
+                                            {!isTrashView ? (
+                                                <Button size="sm" variant="ghost" onClick={() => handleCopyUrl(file)} disabled={isResolvingAccess(file.id)}>
+                                                    {isResolvingAccess(file.id) ? <Loader2 className="mr-1 w-3 h-3 animate-spin" /> : null}
+                                                    {file.session_bound_access ? 'Copy Access URL' : 'Copy URL'}
+                                                </Button>
+                                            ) : null}
                                             {canUpdate && !isTrashView ? (
                                                 <Button size="sm" variant="ghost" onClick={() => openDetails(file)}>
                                                     Edit
@@ -1006,17 +1019,21 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
                                         <div>
                                             <p className="text-sm font-semibold text-foreground">Access URL</p>
                                             <p className="text-xs text-muted-foreground">
-                                                {activeDetailsFile.session_bound_access
+                                                {isTrashView
+                                                    ? 'Access links are unavailable while this file is in the trash.'
+                                                    : activeDetailsFile.session_bound_access
                                                     ? 'This temporary link stops working when the session-bound window expires.'
                                                     : 'This public URL stays stable for reusable content references.'}
                                             </p>
                                         </div>
-                                        <Button size="sm" variant="outline" onClick={() => handleCopyUrl(activeDetailsFile)} disabled={isResolvingAccess(detailsFile.id)}>
-                                            {isResolvingAccess(detailsFile.id) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Copy className="mr-2 h-4 w-4" />}
-                                            Copy URL
-                                        </Button>
+                                        {!isTrashView ? (
+                                            <Button size="sm" variant="outline" onClick={() => handleCopyUrl(activeDetailsFile)} disabled={isResolvingAccess(detailsFile.id)}>
+                                                {isResolvingAccess(detailsFile.id) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Copy className="mr-2 h-4 w-4" />}
+                                                Copy URL
+                                            </Button>
+                                        ) : null}
                                     </div>
-                                    <Input value={getResolvedFileUrl(activeDetailsFile)} readOnly className="text-xs" />
+                                    <Input value={isTrashView ? '' : getResolvedFileUrl(activeDetailsFile)} readOnly className="text-xs" placeholder={isTrashView ? 'Restore the file to generate an access URL.' : ''} />
                                 </div>
                             </div>
 

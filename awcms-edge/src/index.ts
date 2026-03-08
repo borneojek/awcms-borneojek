@@ -368,6 +368,8 @@ app.get('/api/media/file/:id/access', async (c) => {
     .from('media_objects')
     .select('*')
     .eq('id', mediaId)
+    .eq('status', 'uploaded')
+    .is('deleted_at', null)
     .single()
 
   if (error || !media) {
@@ -424,6 +426,8 @@ app.get('/api/media/file/:id', async (c) => {
     .from('media_objects')
     .select('*')
     .eq('id', mediaId)
+    .eq('status', 'uploaded')
+    .is('deleted_at', null)
     .single();
 
   if (error || !media) {
