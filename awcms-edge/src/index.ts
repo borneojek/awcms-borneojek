@@ -7,7 +7,7 @@ type Bindings = {
   STORAGE: R2Bucket
   VITE_SUPABASE_URL: string
   VITE_SUPABASE_PUBLISHABLE_KEY: string
-  SUPABASE_SERVICE_ROLE_KEY: string
+  SUPABASE_SECRET_KEY: string
   MAILKETING_API_TOKEN: string
   MAILKETING_DEFAULT_LIST_ID?: string
 }
@@ -194,7 +194,7 @@ app.get('/api/media/file/:id', async (c) => {
 // Public proxy for public images
 app.get('/public/media/:storageKey{*.*}', async (c) => {
   const storageKey = c.req.param('storageKey');
-  // Need to use service role or similar to fetch ignoring RLS if it's purely public, or just query without token
+  // Public reads rely on the public-read policy; a publishable key is enough here.
   const supabase = createClient(c.env.VITE_SUPABASE_URL, c.env.VITE_SUPABASE_PUBLISHABLE_KEY);
   
   // Public policy allows anyone to read if status=uploaded and access_control=public
@@ -228,7 +228,7 @@ app.get('/public/sitemap', async (c) => {
   const domainParam = c.req.query('domain');
   const tenantIdParam = c.req.query('tenant_id');
   
-  const supabase = createClient(c.env.VITE_SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = createClient(c.env.VITE_SUPABASE_URL, c.env.SUPABASE_SECRET_KEY);
   
   let tenantId: string | null = null;
   let baseUrl = 'https://awcms.ahliweb.com';
@@ -363,4 +363,3 @@ app.post('/api/mailketing', async (c) => {
 });
 
 export default app
-

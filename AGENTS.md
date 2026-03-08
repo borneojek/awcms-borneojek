@@ -89,7 +89,7 @@ To ensure successful code generation and integration, Agents must adhere to the 
 1. **Context First**: Before generating code, read `README.md` and related component files to understand the existing patterns.
 
 2. **Multi-Tenancy Awareness**:
-   - **RLS is Sacred**: Never bypass RLS unless explicitly creating a Platform Admin feature (using `auth_is_admin()` or a server-side `SUPABASE_SECRET_KEY` path inside Edge Functions).
+   - **RLS is Sacred**: Never bypass RLS unless explicitly creating a Platform Admin feature (using `auth_is_admin()` or a server-side `SUPABASE_SECRET_KEY` path inside approved edge runtimes).
    - **Tenant Context**: Always use `useTenant()` or `usePermissions()` to get `tenantId`.
    - **Public Portal Tenant Context**: Static builds use `PUBLIC_TENANT_ID`/`VITE_PUBLIC_TENANT_ID`; avoid `Astro.locals` in build-time code.
    - **Tenancy**: Use `tenant_id` for all isolation. Respect the **5-level** hierarchy limit.
@@ -628,7 +628,7 @@ The local server provides project-scoped tools:
 - `supabase_gen_types`: Generate TypeScript types.
 
 > [!NOTE]
-> Ensure your `.env` uses `SUPABASE_SECRET_KEY` instead of `SUPABASE_SERVICE_ROLE_KEY` for these tools if applicable.
+> Ensure your `.env` uses the canonical `SUPABASE_SECRET_KEY` name for privileged server-side access.
 
 #### Context7 Tools (AI Documentation)
 
@@ -1734,7 +1734,7 @@ npx supabase secrets set \
 ##### Failure Modes and Guardrails
 
 - **Failure:** Missing CORS headers on error responses. **Guardrail:** include `corsHeaders` in every `new Response()` call, including errors.
-- **Failure:** Using `SUPABASE_SECRET_KEY` in client-side code. **Guardrail:** key only accessible via `Deno.env.get()` in Edge Functions.
+- **Failure:** Using `SUPABASE_SECRET_KEY` in client-side code. **Guardrail:** key must remain accessible only in approved server-side edge runtimes.
 - **Failure:** Mutating soft-deleted rows. **Guardrail:** always chain `.is("deleted_at", null)` on queries.
 - **Failure:** Missing permission check. **Guardrail:** add `has_permission` RPC call or restrict endpoint to admin routes.
 - **Failure:** Function not found after deploy. **Guardrail:** verify project ref and folder path match `supabase/functions/<name>/index.ts`.

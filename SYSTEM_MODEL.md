@@ -41,7 +41,7 @@ Agents must respect these exact versions to ensure compatibility across the mono
 * **Administrative Regions (Indonesia):** Standard government hierarchy (`administrative_regions`, `cahyadsn/wilayah`) for legal/compliance.
 * **Extensions:** Custom PostgreSQL extensions (`pga_...`) handle complex logic.
 * **Constraints:**
-  * **NO** direct database access (Must use Supabase JS Client or Edge Functions).
+  * **NO** direct database access (Must use Supabase JS Client or approved server-side edge runtimes).
   * **NO** Puck Editor Runtime (Use `Render` from `@puckeditor/core` only).
 
 ### 1.3 Backend & Database
@@ -78,7 +78,6 @@ Agents must respect these exact versions to ensure compatibility across the mono
 * **Connected Servers (authoritative baseline):**
   * `context7` (remote)
   * `supabase` (local `awcms-mcp` server)
-  * `stitch` (local proxy)
   * `github` (local Docker-backed `github/github-mcp-server`)
   * Cloudflare managed remote MCPs: `cloudflare-api`, `cloudflare-docs`, `cloudflare-bindings`, `cloudflare-observability`, `cloudflare-builds`, `cloudflare-radar`, `cloudflare-browser`
 * **GitHub Auth Pattern:** token-based local runtime via `GITHUB_PERSONAL_ACCESS_TOKEN` (or equivalent mapped vars).
@@ -96,7 +95,7 @@ Agents must respect these exact versions to ensure compatibility across the mono
   * **Public:** Static builds resolve tenant via build-time env (`PUBLIC_TENANT_ID` or `VITE_PUBLIC_TENANT_ID`); middleware resolution is reserved for SSR/runtime deployments.
 * **RLS (Row Level Security):**
   * **Strict Enforcement:** RLS must be enabled on ALL tables.
-  * **Bypass Rule:** NEVER bypass RLS in client code. Only server-side clients using `SUPABASE_SECRET_KEY` inside scoped Edge Functions may perform privileged operations, and only for explicit administrative tasks.
+  * **Bypass Rule:** NEVER bypass RLS in client code. Only approved server-side runtimes using `SUPABASE_SECRET_KEY` may perform privileged operations, and only for explicit administrative tasks.
 * **Resource Sharing:**
   * **Shared:** `settings`, `branding`, `modules` (Configurable inheritance).
   * **Isolated:** `users`, `content`, `media`, `commerce` (orders, products).
