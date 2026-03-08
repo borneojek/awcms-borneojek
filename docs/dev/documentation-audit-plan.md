@@ -31,8 +31,8 @@ This cycle explicitly includes conflict detection and resolution planning for:
 | Phase 0 - Re-Baseline and Inventory Refresh | In Progress | 2026-03-08 baseline and active plan refresh underway |
 | Phase 1 - Authority Reconciliation | In Progress | `README.md`, `AGENTS.md`, `SYSTEM_MODEL.md`, and navigation surfaces being refreshed first |
 | Phase 2 - Schema, Security, and Tenancy Reconciliation | Pending | Re-validate against current migrations, RLS, and edge/runtime model |
-| Phase 3 - Scripts, Tooling, and Deployment Reconciliation | Pending | Validate commands, MCP topology, build/run scripts, and deploy workflows |
-| Phase 4 - Feature, Module, and Package Documentation Pass | Pending | Reconcile feature docs, package READMEs, and code-linked examples |
+| Phase 3 - Scripts, Tooling, and Deployment Reconciliation | In Progress | Core parity helpers, deploy docs, and public validation flows reconciled; broader script/deploy review remains |
+| Phase 4 - Feature, Module, and Package Documentation Pass | In Progress | High-value module/guides and maintained package README surfaces are being reconciled |
 | Phase 5 - Conflict Resolution and Publication | Pending | Resolve open drift items, rerun checks, and publish updated baseline |
 
 See `docs/dev/documentation-audit-tracker.md` for the live drift register and evidence log.
@@ -71,8 +71,8 @@ See `docs/dev/documentation-audit-tracker.md` for the live drift register and ev
 | --- | --- |
 | Total markdown files in repository | `113` |
 | `docs/**/*.md` count | `71` |
-| Root migrations | `117` SQL files in `supabase/migrations/` |
-| Mirrored migrations | `117` SQL files in `awcms/supabase/migrations/` |
+| Root migrations | `118` SQL files in `supabase/migrations/` |
+| Mirrored migrations | `118` SQL files in `awcms/supabase/migrations/` |
 | MCP servers from `mcp.json` | `cloudflare`, `context7`, `github`, `supabase` |
 | Node baseline | `>=22.12.0` (validated runtime currently `v22.22.0`) |
 | Public runtime model | Astro static output with React islands |

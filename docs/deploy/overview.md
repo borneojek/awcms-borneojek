@@ -62,6 +62,7 @@ npx supabase db push --linked
 ```
 
 > Use `--local` for local dev stacks and `--linked` for remote projects.
+> The function parity helper ignores local-only `supabase/functions/.env` files so secrets stay out of mirrored source trees.
 
 If migration history is out of sync, repair before pushing:
 
@@ -106,6 +107,7 @@ source .env && pio run -t uploadfs && pio run -t upload
 
 - `ci-push.yml` deploys only the admin artifact (`awcms/dist`) through `deploy-production`.
 - Public portal deployments are managed as separate Cloudflare Pages projects/pipelines.
+- Before promoting a public build, run `cd awcms-public/primary && npm run check && npm run build` locally to match the current package validation baseline.
 
 ## Verification
 

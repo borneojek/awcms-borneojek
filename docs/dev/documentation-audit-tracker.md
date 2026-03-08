@@ -20,8 +20,8 @@ dead links, and stale implementation guidance.
 | Phase 0 - Re-Baseline and Inventory Refresh | In Progress | Baseline refreshed to current counts and topology |
 | Phase 1 - Authority Reconciliation | In Progress | README snapshot, authority wording, and audit-plan surfaces updated first |
 | Phase 2 - Schema, Security, and Tenancy Reconciliation | In Progress | Targeted reconciliation completed for `docs/security/**`, `docs/tenancy/**`, and `docs/architecture/database.md`; broader cycle review still open |
-| Phase 3 - Scripts, Tooling, and Deployment Reconciliation | In Progress | Validation gates executed; command and parity issues now logged |
-| Phase 4 - Feature, Module, and Package Documentation Pass | Pending | Feature docs and package READMEs require full pass |
+| Phase 3 - Scripts, Tooling, and Deployment Reconciliation | In Progress | Parity scripts, deploy docs, and public validation baseline reconciled; broader script/deploy review still open |
+| Phase 4 - Feature, Module, and Package Documentation Pass | In Progress | Primary public and MCP package README surfaces reviewed and clarified; broader feature/module pass still open |
 | Phase 5 - Conflict Resolution and Publication | Pending | Validation gates, changelog closure, and final drift review |
 
 ## Baseline Snapshot (2026-03-08)
@@ -30,7 +30,7 @@ dead links, and stale implementation guidance.
 | --- | --- |
 | Total markdown files in repository | `113` (current inventory count) |
 | `docs/**/*.md` | `71` (current docs inventory count) |
-| Migration parity | `117` root migrations and `117` mirrored migrations |
+| Migration parity | `118` root migrations and `118` mirrored migrations |
 | MCP topology | `cloudflare`, `context7`, `github`, `supabase` from `mcp.json` |
 | Node baseline | `>=22.12.0`; current validated runtime in README snapshot is `v22.22.0` |
 | Public runtime model | Astro static output with React islands |
@@ -47,9 +47,9 @@ dead links, and stale implementation guidance.
 | DOCSYNC-005 | Medium | Full per-file review of all maintained docs is not yet rerun for the 2026-03-08 cycle | Open | This tracker; execution remains pending for Phases 2-5 |
 | DOCSYNC-006 | Medium | Dependency/script/security/performance conflict review has a plan but still needs execution across all maintained surfaces | Open | `docs/dev/documentation-audit-plan.md` workstreams + validation gates |
 | DOCSYNC-007 | Medium | Repository-wide markdown lint still fails because the docs surface includes non-canonical package/mobile/template/content markdown that does not meet current markdownlint standards | Open | `npx markdownlint-cli --config .markdownlint.json "**/*.md" --ignore "**/node_modules/**"` |
-| DOCSYNC-008 | High | Migration mirror parity is filename-drifted even though root and mirror counts are both `117` | Open | `scripts/verify_supabase_migration_consistency.sh` reports missing `20260308070000_add_cloudflare_media_schema.sql` in mirror and extra `20260307175000_move_sidebar_items.sql` in mirror |
-| DOCSYNC-009 | Medium | Function parity check reports root-only transitional files not mirrored into `awcms/supabase/functions/` | Open | `scripts/verify_supabase_function_consistency.sh` reports root-only `.env` and `content-transform/index.ts` |
-| DOCSYNC-010 | Medium | Public workspace validation is blocked by formatting drift in `awcms-public/primary/package.json` | Open | `npm run check` in `awcms-public/primary` fails at Prettier check |
+| DOCSYNC-008 | High | Migration mirror parity was filename-drifted and local history was missing the latest mirrored migrations | Resolved | Added `20260307175000_move_sidebar_items.sql` to root, mirrored `20260308070000_add_cloudflare_media_schema.sql`, fixed the media resource registry insert, and re-ran local migration push plus parity verification successfully |
+| DOCSYNC-009 | Medium | Function parity check reported root-only transitional files not mirrored into `awcms/supabase/functions/` | Resolved | Mirrored `content-transform/index.ts` and updated `scripts/verify_supabase_function_consistency.sh` to ignore local-only `supabase/functions/.env` secrets |
+| DOCSYNC-010 | Medium | Public workspace validation was blocked by formatting drift in `awcms-public/primary/package.json` | Resolved | Reformatted `awcms-public/primary/package.json` and re-ran `npm run check` successfully |
 | DOCSYNC-011 | Medium | Dependency drift exists across maintained workspaces (`awcms`, `awcms-public/primary`, `awcms-mcp`) | Open | `npm outdated` results captured in Validation Gate Results |
 
 ## Context7 Verification Log (2026-03-08 Planning Refresh)
@@ -75,27 +75,37 @@ dead links, and stale implementation guidance.
 
 - Reconciled `docs/security/abac.md` and `docs/security/rls.md` audience/runtime wording to use edge-runtime terminology instead of edge-function-only wording.
 - Updated `docs/tenancy/overview.md` so the onboarding blueprint explicitly treats Supabase Edge Functions as a compatibility shape and Cloudflare Workers as the preferred production path.
-- Updated `docs/tenancy/supabase.md` to document that `117/117` migration counts still require filename/content parity verification.
+- Updated `docs/tenancy/supabase.md` to document that migration counts alone do not guarantee filename/content parity verification.
 - Reworked the RLS section in `docs/architecture/database.md` to match the current ABAC + tenant-scoped policy model instead of older generic examples.
+
+### Phase 3 / 4 Progress in This Pass
+
+- Updated `docs/dev/setup.md`, `docs/dev/troubleshooting.md`, `docs/deploy/overview.md`, and `docs/deploy/cloudflare.md` to reflect the current parity-helper behavior and public validation baseline.
+- Reviewed `awcms-public/primary/README.md` and `awcms-mcp/README.md` so package-level setup docs align with current scripts, links, and MCP topology guidance.
+- Corrected the static public data-fetching example in `docs/dev/public.md` so it now fails fast without `PUBLIC_TENANT_ID` and filters by `tenant_id`, `status`, and `deleted_at`.
+- Updated `docs/modules/PUBLIC_PORTAL_ARCHITECTURE.md` to clarify supported build-time env fallbacks for canonical static deployments.
+- Updated `docs/modules/USER_MANAGEMENT.md` to frame `manage-users` as the current transitional server-side handler instead of timeless edge-function-only wording.
+- Revised `docs/guides/wp-data-migration-script.md`, `docs/guides/wp-to-awcms-migration.md`, and `docs/guides/opencode-models.md` to match the current Node baseline, tenant-scoped uniqueness rules, static public architecture wording, and OpenCode runtime branding.
+- Reviewed the remaining maintained package README surfaces in `awcms/`, `awcms-mobile/`, `awcms-esp32/`, and `awcms-ext/` so they now align with current env names, workspace roles, and security guidance.
 
 ### Remaining Work by Phase
 
 #### Phase 2 - Schema, Security, and Tenancy
 
-- Re-verify `docs/architecture/database.md` against the current `117/117` migration baseline.
+- Re-verify `docs/architecture/database.md` against the current `118/118` migration baseline.
 - Re-check `docs/security/**` and `docs/tenancy/**` against current RLS, helper-function, and edge-runtime guidance.
 - Confirm package/env docs do not reintroduce secret-key or legacy key-name drift.
 
 #### Phase 3 - Scripts, Tooling, and Deployment
 
 - Reconcile docs with current package scripts in `awcms/`, `awcms-public/primary/`, and `awcms-mcp/`.
-- Re-run migration/function verification commands and update evidence.
+- Reconcile remaining deployment/docs surfaces beyond `docs/deploy/overview.md`, `docs/deploy/cloudflare.md`, `docs/dev/setup.md`, and `docs/dev/troubleshooting.md`.
 - Review deploy docs for Cloudflare Workers, Supabase functions, and MCP topology consistency.
 
 #### Phase 4 - Feature, Module, and Package Docs
 
 - Review `docs/modules/**` for backlog-vs-shipped clarity.
-- Review `docs/guides/**` and package README command examples.
+- Review `docs/guides/**` and remaining package README command examples beyond `awcms-public/primary/README.md` and `awcms-mcp/README.md`.
 - Re-check feature docs for dead links and route/path drift.
 
 #### Phase 5 - Conflict Resolution and Publication
@@ -120,11 +130,13 @@ dead links, and stale implementation guidance.
 | Gate | Result | Notes |
 | --- | --- | --- |
 | Markdown lint (`**/*.md`) | Failed | Initial run included vendored `awcms-edge/node_modules/**`; scoped rerun still reports non-canonical markdown debt in `awcms-mobile-java/docs/**`, template docs, public content markdown, and temp/debug surfaces |
+| Markdown lint (touched canonical docs) | Passed | Scoped lint succeeds for the authority, deploy, audit, and public-portal docs updated in this pass |
+| Markdown lint (Phase 4 docs and package READMEs) | Passed | Scoped lint succeeds for updated module docs, guides, and maintained workspace README surfaces |
 | Docs link validation (`cd awcms && npm run docs:check`) | Passed | Local file links resolve as expected; `markdown-link-check` shows filesystem links as pending `[ / ]` while still completing successfully |
-| Migration consistency (`scripts/verify_supabase_migration_consistency.sh`) | Failed | Counts are `117/117`, but filenames are drifted between root and mirror |
-| Function consistency (`scripts/verify_supabase_function_consistency.sh`) | Failed | Root contains transitional files not mirrored in `awcms/supabase/functions/` |
+| Migration consistency (`scripts/verify_supabase_migration_consistency.sh`) | Passed | Root/mirror parity now matches at `118/118`; local migration history aligned after applying the two pending local migrations |
+| Function consistency (`scripts/verify_supabase_function_consistency.sh`) | Passed | Root/mirror function source parity now passes; local-only `supabase/functions/.env` is intentionally ignored |
 | Admin package sanity (`cd awcms && npm run lint && npm run build`) | Passed with warnings | ESLint reports warnings only; production build succeeds |
-| Public package sanity (`cd awcms-public/primary && npm run check`) | Failed | `astro check` and ESLint pass, but Prettier check fails on `package.json` |
+| Public package sanity (`cd awcms-public/primary && npm run check`) | Passed | `astro check`, ESLint, and Prettier all pass after formatting `package.json` |
 | Public build (`cd awcms-public/primary && npm run build`) | Passed | Astro build succeeds with static output and Cloudflare adapter |
 | MCP package sanity (`cd awcms-mcp && npm run lint && npm run build`) | Passed | Lint and TypeScript build succeed |
 | Dependency review (`npm outdated`) | Findings logged | Admin, public, and MCP workspaces all have upgrade candidates |

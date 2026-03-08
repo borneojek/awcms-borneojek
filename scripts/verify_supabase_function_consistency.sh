@@ -125,8 +125,18 @@ import sys
 root = Path(sys.argv[1])
 mirror = Path(sys.argv[2])
 
-root_files = {p.relative_to(root).as_posix(): p for p in root.rglob("*") if p.is_file()}
-mirror_files = {p.relative_to(mirror).as_posix(): p for p in mirror.rglob("*") if p.is_file()}
+ignored_files = {".env"}
+
+root_files = {
+    p.relative_to(root).as_posix(): p
+    for p in root.rglob("*")
+    if p.is_file() and p.relative_to(root).as_posix() not in ignored_files
+}
+mirror_files = {
+    p.relative_to(mirror).as_posix(): p
+    for p in mirror.rglob("*")
+    if p.is_file() and p.relative_to(mirror).as_posix() not in ignored_files
+}
 
 root_only = sorted(set(root_files) - set(mirror_files))
 mirror_only = sorted(set(mirror_files) - set(root_files))

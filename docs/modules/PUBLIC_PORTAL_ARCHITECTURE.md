@@ -29,7 +29,7 @@ Describe how the public portal renders tenant content and enforces security cons
 
 ### Tenant Resolution
 
-- Build-time tenant resolution uses `PUBLIC_TENANT_ID` (or `VITE_PUBLIC_TENANT_ID`).
+- Build-time tenant resolution uses `PUBLIC_TENANT_ID` (or `VITE_PUBLIC_TENANT_ID` / `VITE_TENANT_ID` as fallbacks).
 - Tenant-specific routes use `getStaticPaths` to generate output.
 - Middleware-based resolution is not part of the canonical static deployment path.
 
@@ -80,7 +80,7 @@ Describe how the public portal renders tenant content and enforces security cons
 ## Operational Concerns
 
 - Cloudflare Pages uses build-time env variables for static output.
-- Ensure `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, and `PUBLIC_TENANT_ID` are set.
+- Ensure `PUBLIC_TENANT_ID` is set and that either `VITE_SUPABASE_*` or `PUBLIC_SUPABASE_*` env pairs are available for the build.
 
 ## Tenant Variants
 
