@@ -186,7 +186,7 @@ had drifted again after subsequent schema, media, and workflow changes.
 
 - `awcms`: notable drift includes `@supabase/supabase-js`, Tailwind v4 packages, TipTap packages, `react-router-dom`, `recharts`, and `framer-motion`
 - `awcms-public/primary`: notable drift includes `astro-embed`, `lucide-react`, `sharp`, and Tailwind v4 `4.2.x`; the Tailwind toolchain is intentionally pinned at `4.1.18` until Astro's Vite typing surface no longer conflicts with the newer plugin release
-- `awcms-mcp`: notable drift includes `@modelcontextprotocol/sdk`, `@types/pg`, and ESLint
+- `awcms-mcp`: notable drift now centers on `@modelcontextprotocol/sdk`, ESLint, and the optional cross-major move from Node 22 type definitions to `@types/node` `25.x`
 - `awcms-edge`: `npm outdated` produced no current output in this pass; the Worker-specific Supabase version pin remains a deliberate scoped difference already documented elsewhere
 - `packages/awcms-shared`: `npm outdated` produced no current output in this pass
 - `awcms-ext/primary-analytics`: `npm outdated` produced no current output in this pass
@@ -211,7 +211,7 @@ had drifted again after subsequent schema, media, and workflow changes.
 ### 3. `awcms-mcp` (MCP Server)
 
 - **Goal:** Refresh server/tooling dependencies while keeping the TypeScript build and lint surface stable.
-- **Batch A - type/tooling only:** bump `@types/node` and `@types/pg`; run `npm run lint` and `npm run build`.
+- **Batch A - type/tooling only:** completed. `@types/node` was moved to the latest Node 22-compatible patch range (`^22.19.15`) and `@types/pg` to `^8.18.0`; `npm run lint` and `npm run build` both pass.
 - **Batch B - protocol/tooling stack:** review `@modelcontextprotocol/sdk` and ESLint major upgrades together; confirm no API surface changes in the SDK and no config breakage in the lint stack before merging.
 
 ### Sequencing Rules
