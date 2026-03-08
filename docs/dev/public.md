@@ -128,7 +128,7 @@ Public portals require:
 ## 6. Visitor Analytics + Consent
 
 - Consent banner: `awcms-public/primary/src/components/common/ConsentNotice.astro`.
-- Logging: `awcms-public/primary/src/middleware.ts` logs page views only when running with SSR/runtime middleware.
+- Logging: `awcms-public/primary/src/middleware.ts` applies only to non-canonical runtime experiments; the standard public deployment is static-first and does not rely on middleware logging.
 - Public stats: `/visitor-stats` and `/[tenant]/visitor-stats`.
 
 ## 7. DB-Driven Admin Control

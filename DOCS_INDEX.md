@@ -59,9 +59,9 @@ All documentation follows this authority structure:
 
 | Topic | Canonical Doc | Notes |
 | --- | --- | --- |
-| Product Requirements | [docs/product/PRD.md](docs/product/PRD.md) | Scope, personas, capabilities, non-goals |
-| User Stories | [docs/product/USER_STORY.md](docs/product/USER_STORY.md) | Flows by persona and ABAC role |
-| Acceptance Criteria | [docs/product/ACCEPTANCE_CRITERIA.md](docs/product/ACCEPTANCE_CRITERIA.md) | Testable requirements per feature area |
+| Product Requirements | [docs/product/PRD.md](docs/product/PRD.md) | Overview, requirements, feature scope, architecture, and constraints |
+| User Stories | [docs/product/USER_STORY.md](docs/product/USER_STORY.md) | Product-area stories grouped by persona |
+| Acceptance Criteria | [docs/product/ACCEPTANCE_CRITERIA.md](docs/product/ACCEPTANCE_CRITERIA.md) | Testable checks aligned to PRD sections |
 
 ### Tenancy
 

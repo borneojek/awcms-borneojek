@@ -43,7 +43,7 @@ Provide common fixes for local development and deployment issues.
 ### Analytics Not Showing
 
 - Confirm `analytics_events` and `analytics_daily` migrations are applied.
-- Analytics logging requires SSR/runtime middleware; static builds do not log server-side events.
+- Canonical static builds do not log server-side analytics events; middleware-based logging applies only in non-canonical runtime experiments.
 - Ensure `x-tenant-id` is set for scoped public requests.
 
 ### Migration History Mismatch

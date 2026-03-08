@@ -18,6 +18,8 @@ All notable changes to the **AWCMS** project will be documented in this file.
 - Configuration: Added `PUBLIC_TENANT_ID` to `awcms-public/primary/.env.example` and `awcms-public/smandapbun/.env.example`.
 - Configuration: Added `temp_supabase/` to `.gitignore`.
 - Documentation: Updated `AGENTS.md` workflow standards with 3 new agent rule references.
+- Documentation: Restructured `docs/product/PRD.md`, `docs/product/USER_STORY.md`, and `docs/product/ACCEPTANCE_CRITERIA.md` into a minimal, aligned product documentation set and synced `DOCS_INDEX.md` descriptions.
+- Documentation: Aligned public-portal architecture docs to the canonical Astro static-output model and clarified that middleware-based analytics logging is non-canonical runtime behavior.
 - Wiki: Synced 6 new files and 4 updated files to local GitHub wiki, updated `Home.md`.
 
 ## [2.33.0] "Blueprint" - 2026-02-28
