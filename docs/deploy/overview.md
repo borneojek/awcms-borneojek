@@ -33,7 +33,8 @@ For `awcms-public/smandapbun`:
 
 - Root directory: `awcms-public/smandapbun`
 - Required env vars: `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `PUBLIC_TURNSTILE_SITE_KEY`
-- KV bindings: none (sessions use the in-memory driver)
+- No KV bindings are currently required by the maintained repo baseline.
+- Middleware currently uses cookie-based identifiers/tracking rather than an in-repo KV-backed or in-memory session driver.
 
 ### 2. Admin Panel (Cloudflare Pages)
 

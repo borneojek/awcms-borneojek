@@ -33,7 +33,7 @@ This cycle explicitly includes conflict detection and resolution planning for:
 | Phase 2 - Schema, Security, and Tenancy Reconciliation | In Progress | Core schema/security/tenancy docs are being reconciled against the `127/127` migration baseline, current helper functions, and Cloudflare-first edge runtime wording |
 | Phase 3 - Scripts, Tooling, Deployment, and Workflow Reconciliation | In Progress | Core CI/docs validation, workspace coverage, and deploy docs are reconciled; broader deploy/runtime review remains open |
 | Phase 4 - Feature, Module, Client, and Package README Pass | In Progress | High-confidence module drift has been corrected and guides have been spot-checked; broader feature-doc review remains open |
-| Phase 5 - Conflict Resolution, Validation, and Publication | Pending | Close drift items, rerun validation gates, and publish updated baseline |
+| Phase 5 - Conflict Resolution, Validation, and Publication | In Progress | Validation gates are being rerun, dependency drift is being refreshed, and the remaining open items are being narrowed |
 
 See `docs/dev/documentation-audit-tracker.md` for the live drift register and evidence log.
 

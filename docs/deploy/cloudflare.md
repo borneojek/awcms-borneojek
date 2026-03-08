@@ -76,7 +76,10 @@ Environment variables:
 - `PUBLIC_TURNSTILE_SITE_KEY`
 - `NODE_VERSION=22`
 
-KV bindings: none (sessions use the in-memory driver).
+KV bindings: none currently required by the maintained repo baseline.
+
+Middleware currently uses cookie-based identifiers/tracking rather than an in-repo KV-backed or
+in-memory session driver.
 
 ### Optional Secret Sync Helper
 

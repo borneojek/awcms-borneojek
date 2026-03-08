@@ -32,6 +32,9 @@ All notable changes to the **AWCMS** project will be documented in this file.
 - Documentation: Reconciled additional module docs for monitoring, performance, extensions, menu,
   theming, and module inventory so they match current Worker logging boundaries, router usage,
   extension workspace layout, and actual route-backed manager coverage.
+- Documentation: Closed the last high-confidence closure-pass drift in dev/deploy/compliance docs by
+  correcting mirrored function path references, current CI branch/path behavior, PlatformIO-based
+  ESP32 versioning, SMANDAPBUN session wording, and public privacy/terms guidance.
 
 ### Fixed
 

@@ -48,6 +48,41 @@ npm version patch --prefix awcms-public/primary
 ```yaml
 # .github/workflows/ci-push.yml (excerpt)
 jobs:
+  paths-filter:
+    outputs:
+      admin: ${{ steps.filter.outputs.admin }}
+      public: ${{ steps.filter.outputs.public }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            admin:
+              - 'awcms/**'
+            public:
+              - 'awcms-public/**'
+
+  build-admin:
+    if: ${{ needs.paths-filter.outputs.admin == 'true' }}
+    steps:
+      - run: npm run build
+        working-directory: awcms/
+
+  build-public:
+    if: ${{ needs.paths-filter.outputs.public == 'true' }}
+    steps:
+      - run: npm run build
+        working-directory: awcms-public/primary/
+```
+
+Current workflow note:
+
+- PR validation runs on pull requests targeting `main`.
+- Push CI runs on both `main` and `develop`.
+
+```yaml
+# Historical simplified example (superseded)
+jobs:
   deploy-admin:
     if: contains(github.event.commits[0].modified, 'awcms/')
     steps:
@@ -78,7 +113,7 @@ jobs:
 | `awcms` (Admin Panel) | `awcms/package.json` | Cloudflare Pages |
 | `awcms-public/primary` (Public Portal) | `awcms-public/primary/package.json` | Cloudflare Pages |
 | `awcms-mobile/primary` (Flutter App) | `pubspec.yaml` | App Stores / OTA |
-| `awcms-esp32/primary` (IoT Firmware) | `CMakeLists.txt` / `build.json` | OTA via AWCMS API |
+| `awcms-esp32/primary` (IoT Firmware) | `platformio.ini` / firmware config headers | OTA via AWCMS API |
 
 ---
 
@@ -107,17 +142,17 @@ hotfix/*     ← Emergency production patches
 ### Standard Feature Flow
 
 ```bash
-# 1. Branch from develop
-git checkout develop && git pull
+# 1. Branch from main or the active integration branch used by your team
+git checkout main && git pull
 git checkout -b feature/my-new-feature
 
 # 2. Work, commit, push
 git add . && git commit -m "feat(module): add new feature"
 git push origin feature/my-new-feature
 
-# 3. Open PR → develop (CI runs lint + tests)
-# 4. Merge to develop → staging environment updates automatically
-# 5. When ready: open PR from develop → main
+# 3. Open PR → main (current automated PR validation target)
+# 4. Merge to main when approved
+# 5. If your team also uses develop, treat it as an operational workflow layered on top of the current CI setup
 ```
 
 ### Hotfix Flow
