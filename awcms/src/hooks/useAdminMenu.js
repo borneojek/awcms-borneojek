@@ -237,7 +237,7 @@ export function useAdminMenu() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isPlatformAdmin]);
 
   // Initial fetch
   useEffect(() => {

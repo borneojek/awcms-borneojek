@@ -4,7 +4,7 @@
 >
 > **Related Plan:** `docs/dev/documentation-audit-plan.md`
 >
-> **Status:** 2026-03-08 full-scope documentation and repository-integrity cycle in progress.
+> **Status:** 2026-03-08 full-scope documentation and repository-integrity cycle in progress; current remediation batch revalidated locally and against the linked Supabase project.
 
 ## 2026-03-08 Cycle Trigger
 
@@ -20,9 +20,9 @@ dead links, and stale implementation guidance.
 | Phase 0 - Re-Baseline and Inventory Refresh | In Progress | Baseline refreshed to current counts and topology |
 | Phase 1 - Authority Reconciliation | In Progress | README snapshot, authority wording, and audit-plan surfaces updated first |
 | Phase 2 - Schema, Security, and Tenancy Reconciliation | In Progress | Targeted reconciliation completed for `docs/security/**`, `docs/tenancy/**`, and `docs/architecture/database.md`; broader cycle review still open |
-| Phase 3 - Scripts, Tooling, and Deployment Reconciliation | In Progress | Parity scripts, deploy docs, and public validation baseline reconciled; broader script/deploy review still open |
+| Phase 3 - Scripts, Tooling, and Deployment Reconciliation | In Progress | Parity helpers now pass locally and against the linked project; broader script/deploy review still open |
 | Phase 4 - Feature, Module, and Package Documentation Pass | In Progress | Primary public and MCP package README surfaces reviewed and clarified; broader feature/module pass still open |
-| Phase 5 - Conflict Resolution and Publication | Pending | Validation gates, changelog closure, and final drift review |
+| Phase 5 - Conflict Resolution and Publication | In Progress | Validation gates rerun, linked Supabase checks recovered, changelog/tracker closure underway |
 
 ## Baseline Snapshot (2026-03-08)
 
@@ -51,6 +51,10 @@ dead links, and stale implementation guidance.
 | DOCSYNC-009 | Medium | Function parity check reported root-only transitional files not mirrored into `awcms/supabase/functions/` | Resolved | Mirrored `content-transform/index.ts` and updated `scripts/verify_supabase_function_consistency.sh` to ignore local-only `supabase/functions/.env` secrets |
 | DOCSYNC-010 | Medium | Public workspace validation was blocked by formatting drift in `awcms-public/primary/package.json` | Resolved | Reformatted `awcms-public/primary/package.json` and re-ran `npm run check` successfully |
 | DOCSYNC-011 | Medium | Dependency drift exists across maintained workspaces (`awcms`, `awcms-public/primary`, `awcms-mcp`) | Open | `npm outdated` results captured in Validation Gate Results |
+| DOCSYNC-012 | High | `npm update` in `awcms-public/primary` floated the Tailwind toolchain to `4.2.x`, which reintroduced a Vite 7 / Astro Vite 6 type mismatch and broke `astro check` | Resolved | Pinned `@tailwindcss/postcss`, `@tailwindcss/vite`, and `tailwindcss` to `4.1.18`, typed the plugin assignment in `awcms-public/primary/astro.config.ts`, and re-ran `npm run check && npm run build` successfully |
+| DOCSYNC-013 | Medium | Linked migration parity required an explicit `SUPABASE_DB_PASSWORD` even though repository env files already carry derivable database URLs | Resolved | `scripts/verify_supabase_migration_consistency.sh` now derives `SUPABASE_DB_PASSWORD` from `DATABASE_URL` / `DATABASE_ADMIN_URL` when needed; linked check passes |
+| DOCSYNC-014 | Medium | Linked function parity failed because the env-provided `SUPABASE_ACCESS_TOKEN` returned `401`, and JSON validation masked successful fallback output | Resolved | `scripts/verify_supabase_function_consistency.sh` now retries with the local Supabase CLI profile when the env token 401s and validates JSON correctly |
+| DOCSYNC-015 | Low | Benchmark-only `content-transform` source should remain mirrored locally but should not block remote deployed-function inventory parity | Resolved | Linked function parity now excludes benchmark-only `content-transform` from required remote slug coverage while preserving root/mirror source parity checks |
 
 ## Context7 Verification Log (2026-03-08 Planning Refresh)
 
@@ -88,6 +92,8 @@ dead links, and stale implementation guidance.
 - Revised `docs/guides/wp-data-migration-script.md`, `docs/guides/wp-to-awcms-migration.md`, and `docs/guides/opencode-models.md` to match the current Node baseline, tenant-scoped uniqueness rules, static public architecture wording, and OpenCode runtime branding.
 - Reviewed the remaining maintained package README surfaces in `awcms/`, `awcms-mobile/`, `awcms-esp32/`, and `awcms-ext/` so they now align with current env names, workspace roles, and security guidance.
 - Added `.markdownlintignore` for non-canonical content/template/wiki/debug markdown surfaces and fixed the remaining repo-wide markdownlint blockers in `awcms-mobile-java/docs/**`, `docs/architecture/platform-tenant-separation.md`, and `docs/product/PRD.md`.
+- Recovered linked Supabase parity validation by teaching `scripts/verify_supabase_migration_consistency.sh` to derive `SUPABASE_DB_PASSWORD` from existing DB URLs and teaching `scripts/verify_supabase_function_consistency.sh` to fall back to the local Supabase CLI profile when an env token returns `401`.
+- Stabilized the public workspace after `npm update` by pinning the Tailwind v4 toolchain to `4.1.18` and updating `awcms-public/primary/astro.config.ts` so `astro check`, ESLint, Prettier, and the production build all pass again.
 
 ### Remaining Work by Phase
 
@@ -135,17 +141,19 @@ dead links, and stale implementation guidance.
 | Markdown lint (Phase 4 docs and package READMEs) | Passed | Scoped lint succeeds for updated module docs, guides, and maintained workspace README surfaces |
 | Docs link validation (`cd awcms && npm run docs:check`) | Passed | Local file links resolve as expected; `markdown-link-check` shows filesystem links as pending `[ / ]` while still completing successfully |
 | Migration consistency (`scripts/verify_supabase_migration_consistency.sh`) | Passed | Root/mirror parity now matches at `118/118`; local migration history aligned after applying the two pending local migrations |
+| Migration consistency linked (`scripts/verify_supabase_migration_consistency.sh --linked`) | Passed | Linked check now derives `SUPABASE_DB_PASSWORD` from existing DB URLs when needed and validates all `118` remote migration rows |
 | Function consistency (`scripts/verify_supabase_function_consistency.sh`) | Passed | Root/mirror function source parity now passes; local-only `supabase/functions/.env` is intentionally ignored |
-| Admin package sanity (`cd awcms && npm run lint && npm run build`) | Passed with warnings | ESLint reports warnings only; production build succeeds |
-| Public package sanity (`cd awcms-public/primary && npm run check`) | Passed | `astro check`, ESLint, and Prettier all pass after formatting `package.json` |
-| Public build (`cd awcms-public/primary && npm run build`) | Passed | Astro build succeeds with static output and Cloudflare adapter |
+| Function consistency linked (`scripts/verify_supabase_function_consistency.sh --linked`) | Passed | Linked check retries with the local Supabase CLI profile after env-token `401`, then validates the deployed inventory against the 5 non-example local slugs |
+| Admin package sanity (`cd awcms && npm run lint && npm run test -- --run && npm run build`) | Passed | ESLint, Vitest (`77` tests), and production build all succeed |
+| Public package sanity (`cd awcms-public/primary && npm run check`) | Passed | `astro check`, ESLint, and Prettier all pass after the Tailwind/Astro compatibility fix |
+| Public build (`cd awcms-public/primary && npm run build`) | Passed | Astro static build succeeds again with the Cloudflare adapter after the Tailwind toolchain pin |
 | MCP package sanity (`cd awcms-mcp && npm run lint && npm run build`) | Passed | Lint and TypeScript build succeed |
 | Dependency review (`npm outdated`) | Findings logged | Admin, public, and MCP workspaces all have upgrade candidates |
 
 ## Dependency Drift Snapshot (2026-03-08)
 
 - `awcms`: notable drift includes `@supabase/supabase-js`, Tailwind v4 packages, TipTap packages, `react-router-dom`, `recharts`, and `framer-motion`
-- `awcms-public/primary`: notable drift includes `astro`, `@astrojs/rss`, `@astrojs/sitemap`, `@supabase/supabase-js`, Tailwind v4 packages, and ESLint/TypeScript-eslint packages
+- `awcms-public/primary`: notable drift includes `astro-embed`, `lucide-react`, `sharp`, and Tailwind v4 `4.2.x`; the Tailwind toolchain is intentionally pinned at `4.1.18` until Astro's Vite typing surface no longer conflicts with the newer plugin release
 - `awcms-mcp`: notable drift includes `@modelcontextprotocol/sdk`, `@types/pg`, and ESLint
 
 ## Historical Note

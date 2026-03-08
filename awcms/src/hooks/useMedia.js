@@ -57,7 +57,7 @@ export function useMedia() {
         query = '',
         isTrash = false,
         typeFilter = null,
-        categoryId = null
+        _categoryId = null
     } = {}) => {
         if (!tenantId && !isPlatformAdmin) return { data: [], count: 0 };
 
@@ -268,7 +268,7 @@ export function useMedia() {
     }, [fetchStats]);
 
     // Upload a single file via Edge API
-    const uploadFile = useCallback(async (file, folder = '', categoryId = null) => {
+    const uploadFile = useCallback(async (file, folder = '', _categoryId = null) => {
         setUploading(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();

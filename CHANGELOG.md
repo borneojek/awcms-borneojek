@@ -17,6 +17,7 @@ All notable changes to the **AWCMS** project will be documented in this file.
 - Configuration: Renamed `awcms/wrangler.toml` project name from `awcms-public` to `awcms-admin` across all environments.
 - Configuration: Added `PUBLIC_TENANT_ID` to `awcms-public/primary/.env.example` and `awcms-public/smandapbun/.env.example`.
 - Configuration: Added `temp_supabase/` to `.gitignore`.
+- Dependencies: Pinned the public Tailwind v4 toolchain in `awcms-public/primary/package.json` to `4.1.18` until Astro's current Vite typing surface is compatible with the newer `4.2.x` plugin release.
 - Documentation: Updated `AGENTS.md` workflow standards with 3 new agent rule references.
 - Documentation: Refreshed the repository-wide documentation audit plan/tracker for a 2026-03-08 full-scope review and updated authority docs to remove Stitch from the top-level README status baseline.
 - Documentation: Restructured `docs/product/PRD.md`, `docs/product/USER_STORY.md`, and `docs/product/ACCEPTANCE_CRITERIA.md` into a minimal, aligned product documentation set and synced `DOCS_INDEX.md` descriptions.
@@ -29,7 +30,8 @@ All notable changes to the **AWCMS** project will be documented in this file.
 
 - Supabase: Restored root/mirror parity by adding the missing mirrored migration/function files and correcting the `resources_registry` insert in `20260308070000_add_cloudflare_media_schema.sql`.
 - Scripts: Updated `scripts/verify_supabase_function_consistency.sh` to ignore local-only `supabase/functions/.env` files so secret material does not break parity validation.
-- Validation: Resolved public workspace formatting drift in `awcms-public/primary/package.json`, allowing the previously failing check pipeline to pass again.
+- Scripts: Updated `scripts/verify_supabase_migration_consistency.sh` to derive `SUPABASE_DB_PASSWORD` from existing DB URLs for linked checks, and updated `scripts/verify_supabase_function_consistency.sh` to retry with the local Supabase CLI profile when an env token returns `401`.
+- Validation: Resolved public workspace formatting drift in `awcms-public/primary/package.json`, restored `awcms-public/primary/astro.config.ts` compatibility after the Tailwind `4.2.x` regression, and revalidated the public check/build pipeline.
 
 ## [2.33.0] "Blueprint" - 2026-02-28
 
