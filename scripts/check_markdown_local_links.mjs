@@ -42,10 +42,64 @@ const shouldSkipByIgnorePattern = (relativePath, ignorePatterns) => {
   });
 };
 
-const stripCodeFences = (content) => content
-  .replace(/```[\s\S]*?```/g, '')
-  .replace(/~~~[\s\S]*?~~~/g, '')
-  .replace(/<!--([\s\S]*?)-->/g, '');
+const stripCodeFences = (content) => {
+  const lines = content.split(/\r?\n/);
+  const output = [];
+  let activeFence = null;
+  let inHtmlComment = false;
+
+  for (const line of lines) {
+    if (activeFence) {
+      if (new RegExp(`^\\s*${activeFence}`).test(line)) {
+        activeFence = null;
+      }
+      output.push('');
+      continue;
+    }
+
+    if (/^\s*```/.test(line)) {
+      activeFence = '```';
+      output.push('');
+      continue;
+    }
+
+    if (/^\s*~~~/.test(line)) {
+      activeFence = '~~~';
+      output.push('');
+      continue;
+    }
+
+    let cursor = 0;
+    let sanitizedLine = '';
+
+    while (cursor < line.length) {
+      if (inHtmlComment) {
+        const commentEnd = line.indexOf('-->', cursor);
+        if (commentEnd === -1) {
+          cursor = line.length;
+          break;
+        }
+        cursor = commentEnd + 3;
+        inHtmlComment = false;
+        continue;
+      }
+
+      const commentStart = line.indexOf('<!--', cursor);
+      if (commentStart === -1) {
+        sanitizedLine += line.slice(cursor);
+        break;
+      }
+
+      sanitizedLine += line.slice(cursor, commentStart);
+      cursor = commentStart + 4;
+      inHtmlComment = true;
+    }
+
+    output.push(sanitizedLine);
+  }
+
+  return output.join('\n');
+};
 
 const normalizeRawTarget = (rawTarget) => {
   const trimmed = rawTarget.trim();
