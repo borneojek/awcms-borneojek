@@ -4,11 +4,107 @@ import { hooks } from '@/lib/hooks';
 import { normalizeMenuPath, resolveGroupMeta, resolveResourcePath } from '@/lib/adminMenuUtils';
 import { usePermissions } from '@/contexts/PermissionContext';
 
-// Default menu configuration - used as fallback when admin_menus table is empty
-// Default menu configuration - used as fallback when admin_menus table is empty
-// Default menu configuration - used as fallback when admin_menus table is empty
 const DEFAULT_MENU_CONFIG = [];
 const REMOVED_RESOURCE_KEYS = new Set(['stitch_import']);
+const LEGACY_MENU_KEY_MAP = new Map([
+  ['modules_management', 'modules']
+]);
+
+const getCanonicalMenuKey = (item) => {
+  const rawKey = item?.key || item?.feature_key || item?.id || '';
+  return LEGACY_MENU_KEY_MAP.get(rawKey) || rawKey;
+};
+
+const getMenuIdentityKeys = (item) => {
+  const identityKeys = [];
+  const canonicalKey = getCanonicalMenuKey(item);
+  const normalizedPath = normalizeMenuPath(item?.path);
+
+  if (canonicalKey) identityKeys.push(`key:${canonicalKey}`);
+  if (normalizedPath) identityKeys.push(`path:${normalizedPath}`);
+
+  return identityKeys;
+};
+
+const getMenuItemPriority = (item) => {
+  let score = 0;
+
+  if (item?.source === 'plugin') score += 100;
+  if (item?.source === 'extension') score += 200;
+  if (item?.source === 'resource') score += 300;
+  if (!item?.source || item?.source === 'core') score += 400;
+
+  if (item?.tenant_id) score += 80;
+  if (item?.resource_id) score += 25;
+  if (item?.permission) score += 10;
+  if (item?.is_resource_fallback) score -= 40;
+  if (item?.key && getCanonicalMenuKey(item) === item.key) score += 5;
+
+  return score;
+};
+
+const isPreferredMenuItem = (candidate, current) => {
+  if (!current) return true;
+
+  const candidatePriority = getMenuItemPriority(candidate);
+  const currentPriority = getMenuItemPriority(current);
+
+  if (candidatePriority !== currentPriority) {
+    return candidatePriority > currentPriority;
+  }
+
+  const candidateOrder = (candidate?.group_order || 0) * 1000 + (candidate?.order || 0);
+  const currentOrder = (current?.group_order || 0) * 1000 + (current?.order || 0);
+
+  if (candidateOrder !== currentOrder) {
+    return candidateOrder < currentOrder;
+  }
+
+  return false;
+};
+
+const dedupeMenuItems = (items) => {
+  const dedupedItems = [];
+  const identityMap = new Map();
+
+  (items || []).forEach((item) => {
+    const identityKeys = getMenuIdentityKeys(item);
+    if (identityKeys.length === 0) {
+      dedupedItems.push(item);
+      return;
+    }
+
+    const matchedIndexes = [...new Set(identityKeys
+      .map((identityKey) => identityMap.get(identityKey))
+      .filter((value) => value !== undefined))];
+
+    if (matchedIndexes.length === 0) {
+      const nextIndex = dedupedItems.length;
+      dedupedItems.push(item);
+      identityKeys.forEach((identityKey) => identityMap.set(identityKey, nextIndex));
+      return;
+    }
+
+    const targetIndex = matchedIndexes[0];
+    const currentItem = matchedIndexes
+      .map((index) => dedupedItems[index])
+      .filter(Boolean)
+      .reduce((preferred, candidate) => {
+        if (!preferred) return candidate;
+        return isPreferredMenuItem(candidate, preferred) ? candidate : preferred;
+      }, null);
+    const nextItem = isPreferredMenuItem(item, currentItem) ? item : currentItem;
+
+    matchedIndexes.slice(1).forEach((index) => {
+      dedupedItems[index] = null;
+    });
+
+    dedupedItems[targetIndex] = nextItem;
+    getMenuIdentityKeys(nextItem).forEach((identityKey) => identityMap.set(identityKey, targetIndex));
+  });
+
+  return dedupedItems.filter(Boolean);
+};
 
 
 
@@ -170,14 +266,6 @@ export function useAdminMenu() {
         return true; // tenant + shared visible to all authenticated
       });
 
-      // Sort again by group_order then order to ensure merged list is correct
-      combined.sort((a, b) => {
-        if ((a.group_order || 0) !== (b.group_order || 0)) {
-          return (a.group_order || 0) - (b.group_order || 0);
-        }
-        return (a.order || 0) - (b.order || 0);
-      });
-
       // 5. Merge Plugin-registered menu items (via filters)
       try {
         const pluginMenuItems = hooks.applyFilters('admin_menu_items', []);
@@ -224,6 +312,8 @@ export function useAdminMenu() {
       } catch (pluginErr) {
         console.warn('Error loading plugin menu items:', pluginErr);
       }
+
+      combined = dedupeMenuItems(combined);
 
       // Re-sort after adding plugin items
       combined.sort((a, b) => {

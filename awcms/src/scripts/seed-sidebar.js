@@ -421,6 +421,15 @@ async function seedModulesForTenants(tenantIds) {
         return;
     }
 
+    const { data: resources, error: resourcesError } = await supabase
+        .from('resources_registry')
+        .select('key, label, active');
+
+    if (resourcesError) {
+        console.error('Failed to fetch resources for module seeding:', resourcesError);
+        return;
+    }
+
     const now = new Date().toISOString();
     const menuItems = (coreMenus || [])
         .filter(item => item?.key && !item.key.startsWith('group_placeholder_'))
@@ -429,6 +438,17 @@ async function seedModulesForTenants(tenantIds) {
             slug: item.key,
             description: null,
             status: item.is_visible === false ? 'inactive' : 'active'
+        }));
+
+    const menuKeys = new Set(menuItems.map(item => item.slug));
+
+    const resourceItems = (resources || [])
+        .filter(item => item?.active && item?.key && item.key !== 'stitch_import' && !menuKeys.has(item.key))
+        .map(item => ({
+            name: item.label || item.key,
+            slug: item.key,
+            description: 'Available from resources registry',
+            status: 'active'
         }));
 
     const extensionItems = (extMenus || [])
@@ -445,7 +465,7 @@ async function seedModulesForTenants(tenantIds) {
             };
         });
 
-    const moduleEntries = [...menuItems, ...extensionItems];
+    const moduleEntries = [...menuItems, ...resourceItems, ...extensionItems];
     const moduleSlugs = new Set(moduleEntries.map(entry => entry.slug));
 
     for (const tenantId of tenantIds) {
