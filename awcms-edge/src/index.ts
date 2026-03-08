@@ -14,6 +14,7 @@ type Bindings = {
   R2_ACCESS_KEY_ID: string
   R2_SECRET_ACCESS_KEY: string
   R2_BUCKET_NAME: string
+  MEDIA_SECURE_SESSION_MAX_AGE_SECONDS?: string
   MAILKETING_API_TOKEN: string
   MAILKETING_DEFAULT_LIST_ID?: string
 }
@@ -70,8 +71,43 @@ const sanitizeFolder = (folder?: string) => String(folder || '')
   .replace(/(^\/|\/$)/g, '')
   .replace(/[^a-zA-Z0-9/_-]/g, '')
 
-const buildStorageKey = (tenantId: string, fileName: string, folder?: string) => {
-  const baseKey = generateStorageKey(tenantId, fileName)
+const parsePositiveInt = (value: string | undefined, fallback: number) => {
+  const parsed = Number.parseInt(String(value ?? ''), 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
+const decodeJwtClaims = (token: string) => {
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return null
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const decoded = atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '='))
+    return JSON.parse(decoded) as { iat?: number; exp?: number }
+  } catch {
+    return null
+  }
+}
+
+const getSessionBoundAccessWindowSeconds = (env: Bindings, token: string, requestedMaxAgeSeconds?: number | null) => {
+  const claims = decodeJwtClaims(token)
+  const now = Math.floor(Date.now() / 1000)
+  const configuredMaxAge = parsePositiveInt(env.MEDIA_SECURE_SESSION_MAX_AGE_SECONDS, 900)
+  const requestedMaxAge = requestedMaxAgeSeconds && requestedMaxAgeSeconds > 0
+    ? Math.min(requestedMaxAgeSeconds, configuredMaxAge)
+    : configuredMaxAge
+
+  const sessionRemaining = claims?.exp ? claims.exp - now : 0
+  const loginWindowRemaining = claims?.iat ? (claims.iat + requestedMaxAge) - now : requestedMaxAge
+  const expiresIn = Math.max(0, Math.min(sessionRemaining, loginWindowRemaining))
+
+  return {
+    expiresIn,
+    expiresAt: new Date((now + expiresIn) * 1000).toISOString(),
+  }
+}
+
+const buildStorageKey = (tenantId: string, fileName: string, folder?: string, sessionBoundAccess = false) => {
+  const baseKey = generateStorageKey(tenantId, fileName, sessionBoundAccess)
   const normalizedFolder = sanitizeFolder(folder)
 
   if (!normalizedFolder) return baseKey
@@ -188,7 +224,8 @@ app.post('/api/media/upload-session', async (c) => {
       return c.json({ error: 'Forbidden' }, 403)
     }
 
-    const storageKey = buildStorageKey(tenantId, body.fileName, body.folder)
+    const sessionBoundAccess = Boolean(body.sessionBoundAccess)
+    const storageKey = buildStorageKey(tenantId, body.fileName, body.folder, sessionBoundAccess)
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString()
     const s3 = getR2S3Client(c.env)
     const uploadUrl = await getSignedUrl(
@@ -212,7 +249,8 @@ app.post('/api/media/upload-session', async (c) => {
         storage_key: storageKey,
         upload_url: uploadUrl,
         category_id: body.categoryId || null,
-        access_control: body.accessControl || 'public',
+        access_control: sessionBoundAccess ? 'private' : (body.accessControl || 'public'),
+        session_bound_access: sessionBoundAccess,
         meta_data: {
           folder: sanitizeFolder(body.folder),
           source: 'r2',
@@ -291,6 +329,7 @@ app.post('/api/media/upload/:sessionId/finalize', async (c) => {
         uploader_id: user.id,
         status: 'uploaded',
         access_control: session.access_control || 'public',
+        session_bound_access: Boolean(session.session_bound_access),
         meta_data: {
           ...(session.meta_data || {}),
           etag: object.ETag,
@@ -319,6 +358,61 @@ app.post('/api/media/upload/:sessionId/finalize', async (c) => {
   }
 });
 
+app.get('/api/media/file/:id/access', async (c) => {
+  const mediaId = c.req.param('id')
+  const token = c.get('token')
+  const requestedMaxAgeSeconds = Number.parseInt(c.req.query('maxAgeSeconds') || '', 10)
+  const supabase = getAuthedSupabase(c.env, token)
+
+  const { data: media, error } = await supabase
+    .from('media_objects')
+    .select('*')
+    .eq('id', mediaId)
+    .single()
+
+  if (error || !media) {
+    return c.json({ error: 'File not found or access denied' }, 404)
+  }
+
+  if (media.session_bound_access) {
+    const windowState = getSessionBoundAccessWindowSeconds(c.env, token, requestedMaxAgeSeconds)
+    if (windowState.expiresIn <= 0) {
+      return c.json({ error: 'Secure file access has expired for this session' }, 403)
+    }
+
+    ensureR2SigningConfig(c.env)
+    const signedUrl = await getSignedUrl(
+      getR2S3Client(c.env),
+      new GetObjectCommand({
+        Bucket: c.env.R2_BUCKET_NAME,
+        Key: media.storage_key,
+      }),
+      { expiresIn: windowState.expiresIn },
+    )
+
+    await getAdminSupabase(c.env)
+      .from('media_access_audit')
+      .insert({
+        media_object_id: media.id,
+        tenant_id: media.tenant_id,
+        accessor_id: c.get('user')?.id || null,
+        action: 'read',
+      })
+
+    return c.json({
+      url: signedUrl,
+      expiresAt: windowState.expiresAt,
+      sessionBound: true,
+    })
+  }
+
+  return c.json({
+    url: buildPublicMediaUrl(c.req.url, media.storage_key),
+    expiresAt: null,
+    sessionBound: false,
+  })
+})
+
 // Get presigned URL for GET (Or proxy)
 app.get('/api/media/file/:id', async (c) => {
   const mediaId = c.req.param('id');
@@ -334,6 +428,13 @@ app.get('/api/media/file/:id', async (c) => {
 
   if (error || !media) {
     return c.json({ error: 'File not found or access denied' }, 404);
+  }
+
+  if (media.session_bound_access) {
+    const windowState = getSessionBoundAccessWindowSeconds(c.env, token, null)
+    if (windowState.expiresIn <= 0) {
+      return c.json({ error: 'Secure file access has expired for this session' }, 403)
+    }
   }
 
   let object

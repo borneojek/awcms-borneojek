@@ -1,8 +1,11 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { FileUploader } from '@/components/dashboard/media/FileUploader';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { FolderClosed, RefreshCw, Trash2, UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getSecureMediaSessionMaxAgeSeconds } from '@/lib/media';
 
 function FilesHeaderActions({
   showTrash,
@@ -13,9 +16,13 @@ function FilesHeaderActions({
   basePath,
   isUploadOpen,
   setIsUploadOpen,
+  uploadSessionBoundAccess,
+  setUploadSessionBoundAccess,
   handleUpload,
   uploading,
 }) {
+  const secureWindowMinutes = Math.ceil(getSecureMediaSessionMaxAgeSeconds() / 60);
+
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
@@ -72,7 +79,7 @@ function FilesHeaderActions({
             <DialogHeader>
               <DialogTitle>Upload Files</DialogTitle>
               <DialogDescription>
-                Drag and drop files here to upload directly to your media library. Supported formats: JPG, PNG, WEBP, PDF.
+                Drag and drop files here to upload directly to your media library. Supported formats include images, videos, and PDF documents.
                 {selectedCategoryName && (
                   <span className="mt-2 block font-medium text-primary">
                     Uploading to category: {selectedCategoryName}
@@ -80,7 +87,24 @@ function FilesHeaderActions({
                 )}
               </DialogDescription>
             </DialogHeader>
-            <div className="mt-4">
+            <div className="mt-4 space-y-4">
+              <div className="rounded-xl border border-border/70 bg-muted/30 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="upload-session-bound-access" className="text-sm font-semibold text-foreground">
+                      Protect with session-bound access
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      New uploads use an encrypted filename prefix, switch to private delivery, and stay accessible for up to {secureWindowMinutes} minutes from the current login session.
+                    </p>
+                  </div>
+                  <Switch
+                    id="upload-session-bound-access"
+                    checked={uploadSessionBoundAccess}
+                    onCheckedChange={setUploadSessionBoundAccess}
+                  />
+                </div>
+              </div>
               <FileUploader onUpload={handleUpload} uploading={uploading} />
             </div>
           </DialogContent>

@@ -7,7 +7,13 @@ import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { useTenant } from '@/contexts/TenantContext';
 import { usePermissions } from '@/contexts/PermissionContext';
-import { buildMediaPublicUrl, getEdgeBaseUrl, normalizeMediaKind } from '@/lib/media';
+import {
+    buildMediaAccessApiUrl,
+    buildMediaPublicUrl,
+    getEdgeBaseUrl,
+    getSecureMediaSessionMaxAgeSeconds,
+    normalizeMediaKind,
+} from '@/lib/media';
 import { getCategoryTypesForModule } from '@/lib/taxonomy';
 
 const EDGE_URL = getEdgeBaseUrl();
@@ -38,6 +44,7 @@ export function useMedia() {
         if (!mo) return null;
 
         const publicUrl = buildMediaPublicUrl(mo.storage_key);
+        const sessionBoundAccess = Boolean(mo.session_bound_access);
 
         return {
             ...mo,
@@ -51,12 +58,13 @@ export function useMedia() {
             uploaded_by: mo.uploader_id,
             created_at: mo.created_at,
             deleted_at: mo.deleted_at,
-            public_url: publicUrl,
-            url: publicUrl,
+            public_url: sessionBoundAccess ? '' : publicUrl,
+            url: sessionBoundAccess ? '' : publicUrl,
             users: mo.uploader || null,
             uploader: mo.uploader || null,
             category: mo.category || null,
-            media_kind: mo.media_kind || normalizeMediaKind(mo.mime_type)
+            media_kind: mo.media_kind || normalizeMediaKind(mo.mime_type),
+            session_bound_access: sessionBoundAccess,
         };
     };
 
@@ -237,8 +245,36 @@ export function useMedia() {
     // Helper: Get Public URL
     const getFileUrl = useCallback((file) => {
         if (!file) return '';
+        if (file.session_bound_access) return '';
         return buildMediaPublicUrl(file.file_path || file.storage_key || (typeof file === 'string' ? file : ''));
     }, []);
+
+    const getProtectedFileAccessUrl = useCallback(async (fileOrId) => {
+        const mediaId = typeof fileOrId === 'string' ? fileOrId : fileOrId?.id;
+        if (!mediaId) {
+            throw new Error('Missing file identifier');
+        }
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+            throw new Error('Session expired');
+        }
+
+        const response = await fetch(`${buildMediaAccessApiUrl(mediaId)}?maxAgeSeconds=${getSecureMediaSessionMaxAgeSeconds()}`, {
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${session.access_token}`,
+                ...(tenantId ? { 'x-tenant-id': tenantId } : {}),
+            },
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || 'Unable to resolve secure file access');
+        }
+
+        return result;
+    }, [tenantId]);
 
     // Fetch file stats
     const fetchStats = useCallback(async () => {
@@ -281,7 +317,7 @@ export function useMedia() {
     }, [fetchStats]);
 
     // Upload a single file via Edge API
-    const uploadFile = useCallback(async (file, folder = '', categoryId = null) => {
+    const uploadFile = useCallback(async (file, folder = '', categoryId = null, uploadOptions = {}) => {
         setUploading(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
@@ -292,6 +328,8 @@ export function useMedia() {
             if (!(hasPermission('tenant.files.create') || hasPermission('tenant.files.manage') || isPlatformAdmin || isFullAccess)) {
                 throw new Error('Permission denied: Cannot upload files.');
             }
+
+            const sessionBoundAccess = Boolean(uploadOptions.sessionBoundAccess);
 
             // 1. Request Upload Session
             const sessionRes = await fetch(`${EDGE_URL}/api/media/upload-session`, {
@@ -305,7 +343,8 @@ export function useMedia() {
                     fileName: file.name,
                     mimeType: file.type,
                     sizeBytes: file.size,
-                    accessControl: 'public',
+                    accessControl: sessionBoundAccess ? 'private' : 'public',
+                    sessionBoundAccess,
                     folder: folder,
                     categoryId: categoryId || null
                 })
@@ -345,8 +384,8 @@ export function useMedia() {
 
             return { 
                 success: true, 
-                url: buildMediaPublicUrl(uploadResult.mediaObject.storage_key),
-                mediaObject: uploadResult.mediaObject 
+                url: uploadResult.mediaObject?.session_bound_access ? '' : buildMediaPublicUrl(uploadResult.mediaObject.storage_key),
+                mediaObject: formatMediaObject(uploadResult.mediaObject),
             };
         } catch (err) {
             console.error('Upload error:', err);
@@ -355,6 +394,32 @@ export function useMedia() {
             setUploading(false);
         }
     }, [fetchStats, hasPermission, isFullAccess, isPlatformAdmin, tenantId]);
+
+    const updateFileMetadata = useCallback(async (fileId, updates) => {
+        const payload = {
+            title: updates.title ?? null,
+            alt_text: updates.alt_text ?? null,
+            description: updates.description ?? null,
+            session_bound_access: Boolean(updates.session_bound_access),
+            access_control: updates.session_bound_access ? 'private' : 'public',
+            updated_at: new Date().toISOString(),
+        };
+
+        const { data, error } = await supabase
+            .from('media_objects')
+            .update(payload)
+            .eq('id', fileId)
+            .select(`
+                *,
+                tenant:tenants(name),
+                uploader:users!media_objects_uploader_id_fkey(id, email, full_name, avatar_url),
+                category:categories(id, name, slug, type)
+            `)
+            .single();
+
+        if (error) throw error;
+        return formatMediaObject(data);
+    }, []);
 
     // Sync files from storage bucket to database
     const syncFiles = useCallback(async () => {
@@ -388,6 +453,8 @@ export function useMedia() {
         bulkSoftDelete,
         restoreFile,
         getFileUrl,
+        getProtectedFileAccessUrl,
+        updateFileMetadata,
         loading,
         fetchCategories,
         createCategory

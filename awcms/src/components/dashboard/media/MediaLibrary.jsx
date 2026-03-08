@@ -3,14 +3,18 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
-import { Upload, File, Trash2, Copy, Search, Loader2, Grid, List, RefreshCw, Info, Link2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Upload, File, Trash2, Copy, Search, Loader2, Grid, List, RefreshCw, Info, Link2, ChevronLeft, ChevronRight, Shield, Pencil } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { usePermissions } from '@/contexts/PermissionContext';
 import { useMedia } from '@/hooks/useMedia'; // Import useMedia
+import { getSecureMediaSessionMaxAgeSeconds, resolveMediaUrl } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
 const formatFileSize = (bytes) => {
@@ -19,6 +23,25 @@ const formatFileSize = (bytes) => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+const formatDateTime = (value) => {
+    if (!value) return 'Unknown';
+    try {
+        return new Date(value).toLocaleString();
+    } catch {
+        return 'Unknown';
+    }
+};
+
+const isAccessUrlExpired = (entry) => {
+    if (!entry?.url) return true;
+    if (!entry?.expiresAt) return false;
+
+    const expiresAtMs = new Date(entry.expiresAt).getTime();
+    if (!Number.isFinite(expiresAtMs)) return false;
+
+    return expiresAtMs <= Date.now() + 5000;
 };
 
 const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isTrashView = false, categoryId = null }) => {
@@ -33,11 +56,15 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
         bulkSoftDelete,
         restoreFile,
         getFileUrl,
+        getProtectedFileAccessUrl,
+        updateFileMetadata,
         uploading: hookUploading
     } = useMedia();
 
     const canUpload = checkAccess('create', 'files');
     const canDelete = checkAccess('delete', 'files');
+    const canUpdate = checkAccess('update', 'files');
+    const secureWindowMinutes = Math.ceil(getSecureMediaSessionMaxAgeSeconds() / 60);
 
     const [files, setFiles] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -45,6 +72,17 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
     const [viewMode, setViewMode] = useState('grid');
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, fileId: null, fileName: '', isBulk: false });
     const [selectedFiles, setSelectedFiles] = useState(new Set());
+    const [uploadSessionBoundAccess, setUploadSessionBoundAccess] = useState(false);
+    const [detailsFile, setDetailsFile] = useState(null);
+    const [detailsForm, setDetailsForm] = useState({
+        title: '',
+        alt_text: '',
+        description: '',
+        session_bound_access: false,
+    });
+    const [savingDetails, setSavingDetails] = useState(false);
+    const [accessUrlCache, setAccessUrlCache] = useState({});
+    const [resolvingAccessIds, setResolvingAccessIds] = useState(new Set());
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -87,6 +125,144 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
         }
     }, [hookFetchFiles, query, isTrashView, currentPage, itemsPerPage, categoryId]);
 
+    const isResolvingAccess = useCallback((fileId) => resolvingAccessIds.has(fileId), [resolvingAccessIds]);
+
+    const setResolvingAccess = useCallback((fileId, active) => {
+        setResolvingAccessIds((prev) => {
+            const next = new Set(prev);
+            if (active) {
+                next.add(fileId);
+            } else {
+                next.delete(fileId);
+            }
+            return next;
+        });
+    }, []);
+
+    const getResolvedFileUrl = useCallback((file) => {
+        if (!file) return '';
+        const cachedAccess = accessUrlCache[file.id];
+        return resolveMediaUrl({
+            ...file,
+            access_url: isAccessUrlExpired(cachedAccess) ? '' : cachedAccess?.url || file.access_url || '',
+        });
+    }, [accessUrlCache]);
+
+    const updateLocalFile = useCallback((updatedFile) => {
+        if (!updatedFile) return;
+
+        setFiles((prev) => prev.map((file) => file.id === updatedFile.id ? updatedFile : file));
+        setDetailsFile((prev) => (prev?.id === updatedFile.id ? updatedFile : prev));
+    }, []);
+
+    const ensureAccessUrl = useCallback(async (file, options = {}) => {
+        if (!file) return '';
+
+        if (!file.session_bound_access) {
+            return getFileUrl(file);
+        }
+
+        const cachedEntry = accessUrlCache[file.id];
+        if (!isAccessUrlExpired(cachedEntry)) {
+            return cachedEntry.url;
+        }
+
+        if (isResolvingAccess(file.id)) {
+            return '';
+        }
+
+        setResolvingAccess(file.id, true);
+
+        try {
+            const result = await getProtectedFileAccessUrl(file);
+            const resolvedUrl = result?.url || '';
+
+            if (resolvedUrl) {
+                setAccessUrlCache((prev) => ({
+                    ...prev,
+                    [file.id]: {
+                        url: resolvedUrl,
+                        expiresAt: result?.expiresAt || null,
+                    },
+                }));
+            }
+
+            return resolvedUrl;
+        } catch (error) {
+            if (!options.silent) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Secure access unavailable',
+                    description: error.message || 'Unable to resolve access for this file.',
+                });
+            }
+            return '';
+        } finally {
+            setResolvingAccess(file.id, false);
+        }
+    }, [accessUrlCache, getFileUrl, getProtectedFileAccessUrl, isResolvingAccess, setResolvingAccess, toast]);
+
+    const openDetails = useCallback(async (file) => {
+        setDetailsFile(file);
+        setDetailsForm({
+            title: file.title || file.name || '',
+            alt_text: file.alt_text || '',
+            description: file.description || '',
+            session_bound_access: Boolean(file.session_bound_access),
+        });
+
+        if (file.session_bound_access && file.file_type?.startsWith('image/')) {
+            await ensureAccessUrl(file, { silent: true });
+        }
+    }, [ensureAccessUrl]);
+
+    const closeDetails = useCallback((open) => {
+        if (open) return;
+        setDetailsFile(null);
+        setDetailsForm({
+            title: '',
+            alt_text: '',
+            description: '',
+            session_bound_access: false,
+        });
+        setSavingDetails(false);
+    }, []);
+
+    const handleSaveDetails = useCallback(async () => {
+        if (!detailsFile) return;
+
+        setSavingDetails(true);
+        try {
+            const updatedFile = await updateFileMetadata(detailsFile.id, detailsForm);
+            updateLocalFile(updatedFile);
+
+            if (!updatedFile.session_bound_access) {
+                setAccessUrlCache((prev) => {
+                    const next = { ...prev };
+                    delete next[updatedFile.id];
+                    return next;
+                });
+            } else if (updatedFile.file_type?.startsWith('image/')) {
+                await ensureAccessUrl(updatedFile, { silent: true });
+            }
+
+            toast({
+                title: 'File updated',
+                description: 'Media metadata and access settings were saved.',
+            });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Save failed',
+                description: error.message || 'Unable to save file details.',
+            });
+        } finally {
+            setSavingDetails(false);
+        }
+    }, [detailsFile, detailsForm, ensureAccessUrl, toast, updateFileMetadata, updateLocalFile]);
+
+    const isSelectionMode = Boolean(selectionMode);
+
     useEffect(() => {
         fetchFiles();
     }, [fetchFiles, refreshTrigger]);
@@ -117,7 +293,7 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
                     throw new Error('Permission denied: Cannot upload files.');
                 }
 
-                await uploadFile(file, '', categoryId);
+                await uploadFile(file, '', categoryId, { sessionBoundAccess: uploadSessionBoundAccess });
                 successCount++;
             } catch (err) {
                 console.error(`Failed to upload ${file.name}: `, err);
@@ -127,9 +303,10 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
 
         if (successCount > 0) {
             toast({ title: 'Upload Complete', description: `${successCount} files uploaded successfully.` });
+            setUploadSessionBoundAccess(false);
             fetchFiles();
         }
-    }, [categoryId, fetchFiles, toast, canUpload, uploadFile]);
+    }, [categoryId, fetchFiles, toast, canUpload, uploadFile, uploadSessionBoundAccess]);
 
     // ... dropzone ...
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -237,8 +414,55 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
         toast({ title: 'Copied', description: 'URL copied to clipboard' });
     };
 
+    const handleCopyUrl = useCallback(async (file) => {
+        const url = await ensureAccessUrl(file);
+        if (!url) return;
+        copyToClipboard(url);
+    }, [ensureAccessUrl]);
+
+    const handleSelectFile = useCallback(async (file) => {
+        if (!onSelect) return;
+
+        if (file.session_bound_access) {
+            toast({
+                variant: 'destructive',
+                title: 'Protected file unavailable here',
+                description: 'Session-bound files cannot be embedded into reusable content fields or selectors.',
+            });
+            return;
+        }
+
+        onSelect(file);
+    }, [onSelect, toast]);
+
+    const renderAccessBadge = useCallback((file) => {
+        if (file.session_bound_access) {
+            return (
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700">
+                    <Shield className="h-3 w-3" />
+                    Secure
+                </span>
+            );
+        }
+
+        return (
+            <span className="inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
+                Public
+            </span>
+        );
+    }, []);
+
     // Pass uploading state from hook
     const uploading = hookUploading;
+    const activeDetailsFile = detailsFile
+        ? {
+            ...detailsFile,
+            title: detailsForm.title,
+            alt_text: detailsForm.alt_text,
+            description: detailsForm.description,
+            session_bound_access: detailsForm.session_bound_access,
+        }
+        : null;
 
     return (
         <div className="space-y-6 p-4">
@@ -362,7 +586,7 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
             </div>
 
             {/* Selection Toolbar */}
-            {!selectionMode && files.length > 0 && (
+            {!isSelectionMode && files.length > 0 && (
                 <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/65 px-4 py-3 shadow-sm backdrop-blur-sm md:flex-row md:items-center md:justify-between">
                     <div className="flex items-center gap-3">
                         <Checkbox
@@ -407,7 +631,7 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
 
 
 
-            {!selectionMode && !isTrashView && canUpload && (
+            {!isSelectionMode && !isTrashView && canUpload && (
                 <div
                     {...getRootProps()}
                     className={cn(
@@ -428,6 +652,17 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
                             <Upload className="h-8 w-8 text-muted-foreground" />
                             <p className="font-medium">Drag & drop files here, or click to select files</p>
                             <p className="text-sm text-muted-foreground">Supports images, documents, and videos</p>
+                            <div className="mt-4 flex items-center justify-center gap-3 rounded-xl border border-border/70 bg-background/80 px-4 py-3 text-left">
+                                <div className="space-y-1">
+                                    <p className="text-sm font-medium text-foreground">Protect new uploads with session-bound access</p>
+                                    <p className="text-xs text-muted-foreground">Uses private delivery and expires with the current login session, up to {secureWindowMinutes} minutes.</p>
+                                </div>
+                                <Switch
+                                    checked={uploadSessionBoundAccess}
+                                    onCheckedChange={setUploadSessionBoundAccess}
+                                    aria-label="Toggle session-bound access for drag and drop uploads"
+                                />
+                            </div>
                         </div>
                     )}
                 </div>
@@ -444,7 +679,7 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
                     {files.map(file => (
                         <Card key={file.id} className={cn('group relative overflow-hidden border-border/60 bg-card/80 transition-shadow hover:shadow-md', selectedFiles.has(file.id) ? 'ring-2 ring-primary/70' : '')}>
                             {/* Selection Checkbox */}
-                            {!selectionMode && (
+                            {!isSelectionMode && (
                                 <div className="absolute top-2 left-2 z-10">
                                     <Checkbox
                                         checked={selectedFiles.has(file.id)}
@@ -454,17 +689,31 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
                                 </div>
                             )}
                             <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-muted/60">
-                                {file.file_type?.startsWith('image/') ? (
-                                    <img src={getFileUrl(file)} alt={file.name} className="w-full h-full object-cover" />
+                                {file.file_type?.startsWith('image/') && getResolvedFileUrl(file) ? (
+                                    <img src={getResolvedFileUrl(file)} alt={file.name} className="w-full h-full object-cover" />
+                                ) : file.file_type?.startsWith('image/') && file.session_bound_access ? (
+                                    <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-amber-50 via-background to-muted px-4 text-center">
+                                        <Shield className="h-8 w-8 text-amber-600" />
+                                        <p className="text-xs font-medium text-foreground">Protected preview</p>
+                                        <p className="text-[11px] text-muted-foreground">Open details to inspect or copy a temporary access link.</p>
+                                    </div>
                                 ) : (
                                     <File className="h-10 w-10 text-muted-foreground" />
                                 )}
+                                <div className="absolute right-2 top-2 z-10">
+                                    {renderAccessBadge(file)}
+                                </div>
                                 <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                                    {!selectionMode && (
+                                    {!isSelectionMode && (
                                         <>
-                                            <Button size="icon" variant="secondary" className="h-8 w-8" onClick={() => copyToClipboard(getFileUrl(file))} title="Copy URL">
-                                                <Copy className="w-4 h-4" />
+                                            <Button size="icon" variant="secondary" className="h-8 w-8" onClick={() => handleCopyUrl(file)} title={file.session_bound_access ? 'Copy temporary access URL' : 'Copy URL'} disabled={isResolvingAccess(file.id)}>
+                                                {isResolvingAccess(file.id) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
                                             </Button>
+                                            {canUpdate && !isTrashView ? (
+                                                <Button size="icon" variant="secondary" className="h-8 w-8" onClick={() => openDetails(file)} title="Edit details">
+                                                    <Pencil className="w-4 h-4" />
+                                                </Button>
+                                            ) : null}
                                             {isTrashView ? (
                                                 <Button size="icon" variant="secondary" className="h-8 w-8 text-green-600" onClick={() => handleRestore(file.id)} title="Restore">
                                                     <RefreshCw className="w-4 h-4" />
@@ -488,8 +737,10 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
                                             )}
                                         </>
                                     )}
-                                    {selectionMode && (
-                                        <Button size="sm" onClick={() => onSelect(file)}>Select</Button>
+                                    {isSelectionMode && (
+                                        <Button size="sm" onClick={() => handleSelectFile(file)} disabled={file.session_bound_access}>
+                                            {file.session_bound_access ? 'Protected' : 'Select'}
+                                        </Button>
                                     )}
                                 </div>
                             </div>
@@ -501,6 +752,9 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
                                 )}
                                 <p className="truncate text-xs font-medium text-foreground" title={file.name}>{file.name}</p>
                                 <p className="text-[10px] text-muted-foreground">{formatFileSize(file.file_size)}</p>
+                                {isSelectionMode && file.session_bound_access ? (
+                                    <p className="mt-1 text-[10px] text-amber-700">Not selectable in reusable fields</p>
+                                ) : null}
                             </div>
                         </Card>
                     ))}
@@ -511,7 +765,7 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
                         return (
                             <div key={file.id} className={cn('flex items-center justify-between border-b border-border/50 p-3 last:border-0 hover:bg-muted/40', selectedFiles.has(file.id) ? 'bg-primary/10' : '')}>
                                 {/* Selection Checkbox */}
-                                {!selectionMode && (
+                                {!isSelectionMode && (
                                     <div className="flex-shrink-0 mr-3">
                                         <Checkbox
                                             checked={selectedFiles.has(file.id)}
@@ -521,8 +775,10 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
                                 )}
                                 <div className="flex items-center gap-3 overflow-hidden flex-1">
                                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded bg-muted/60">
-                                        {file.file_type?.startsWith('image/') ? (
-                                            <img src={getFileUrl(file)} alt="" className="w-full h-full object-cover rounded" />
+                                        {file.file_type?.startsWith('image/') && getResolvedFileUrl(file) ? (
+                                            <img src={getResolvedFileUrl(file)} alt="" className="w-full h-full object-cover rounded" />
+                                        ) : file.file_type?.startsWith('image/') && file.session_bound_access ? (
+                                            <Shield className="h-5 w-5 text-amber-600" />
                                         ) : (
                                             <File className="h-5 w-5 text-muted-foreground" />
                                         )}
@@ -541,6 +797,8 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
                                             <span>{formatFileSize(file.file_size)}</span>
                                             <span>•</span>
                                             <span>{new Date(file.created_at).toLocaleDateString()}</span>
+                                            <span>•</span>
+                                            {renderAccessBadge(file)}
                                             {file.uploader && (
                                                 <>
                                                     <span>•</span>
@@ -551,66 +809,20 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 ml-2">
-                                    {!selectionMode && (
+                                    {!isSelectionMode && (
                                         <>
-                                            {/* Details Button */}
-                                            <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <Button size="icon" variant="ghost" className="h-8 w-8" title="View Details">
-                                                        <Info className="w-4 h-4" />
-                                                    </Button>
-                                                </DialogTrigger>
-                                                <DialogContent className="max-w-md border-border/60 bg-background/95">
-                                                    <DialogHeader>
-                                                        <DialogTitle>File Details</DialogTitle>
-                                                        <DialogDescription>Information about this file and where it&apos;s used.</DialogDescription>
-                                                    </DialogHeader>
-                                                    <div className="space-y-4 mt-4">
-                                                        {/* Preview */}
-                                                        <div className="flex aspect-video items-center justify-center overflow-hidden rounded-lg bg-muted/60">
-                                                            {file.file_type?.startsWith('image/') ? (
-                                                                <img src={getFileUrl(file)} alt={file.name} className="max-w-full max-h-full object-contain" />
-                                                            ) : (
-                                                                <File className="h-16 w-16 text-muted-foreground" />
-                                                            )}
-                                                        </div>
-                                                        {/* Details */}
-                                                        <div className="grid grid-cols-2 gap-3 text-sm">
-                                                            <div>
-                                                                <p className="text-muted-foreground">File Name</p>
-                                                                <p className="truncate font-medium text-foreground">{file.name}</p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-muted-foreground">Size</p>
-                                                                <p className="font-medium text-foreground">{formatFileSize(file.file_size)}</p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-muted-foreground">Type</p>
-                                                                <p className="font-medium text-foreground">{file.file_type}</p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-muted-foreground">Uploaded</p>
-                                                                <p className="font-medium text-foreground">{new Date(file.created_at).toLocaleDateString()}</p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-muted-foreground">Uploaded By</p>
-                                                                <p className="font-medium text-foreground">{file.uploader?.full_name || file.uploader?.email || 'Unknown'}</p>
-                                                            </div>
-                                                        </div>
-                                                        {/* URL */}
-                                                        <div>
-                                                            <p className="mb-1 text-sm text-muted-foreground">Public URL</p>
-                                                            <div className="flex gap-2">
-                                                                <Input value={getFileUrl(file)} readOnly className="text-xs" />
-                                                                <Button size="sm" onClick={() => copyToClipboard(getFileUrl(file))}>
-                                                                    <Copy className="w-3 h-3" />
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </DialogContent>
-                                            </Dialog>
-                                            <Button size="sm" variant="ghost" onClick={() => copyToClipboard(getFileUrl(file))}>Copy URL</Button>
+                                            <Button size="icon" variant="ghost" className="h-8 w-8" title="View details" onClick={() => openDetails(file)}>
+                                                <Info className="w-4 h-4" />
+                                            </Button>
+                                            <Button size="sm" variant="ghost" onClick={() => handleCopyUrl(file)} disabled={isResolvingAccess(file.id)}>
+                                                {isResolvingAccess(file.id) ? <Loader2 className="mr-1 w-3 h-3 animate-spin" /> : null}
+                                                {file.session_bound_access ? 'Copy Access URL' : 'Copy URL'}
+                                            </Button>
+                                            {canUpdate && !isTrashView ? (
+                                                <Button size="sm" variant="ghost" onClick={() => openDetails(file)}>
+                                                    Edit
+                                                </Button>
+                                            ) : null}
                                             {isTrashView && (
                                                 <Button size="icon" variant="ghost" className="text-emerald-600 hover:bg-emerald-500/10" onClick={() => handleRestore(file.id)} title="Restore">
                                                     <RefreshCw className="w-4 h-4" />
@@ -634,8 +846,10 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
                                             )}
                                         </>
                                     )}
-                                    {selectionMode && (
-                                        <Button size="sm" onClick={() => onSelect(file)}>Select</Button>
+                                    {isSelectionMode && (
+                                        <Button size="sm" onClick={() => handleSelectFile(file)} disabled={file.session_bound_access}>
+                                            {file.session_bound_access ? 'Protected' : 'Select'}
+                                        </Button>
                                     )}
                                 </div>
                             </div>
@@ -712,6 +926,163 @@ const MediaLibrary = ({ onSelect, selectionMode = false, refreshTrigger = 0, isT
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <Dialog open={Boolean(detailsFile)} onOpenChange={closeDetails}>
+                <DialogContent className="max-w-3xl border-border/60 bg-background/95">
+                    <DialogHeader>
+                        <DialogTitle>{canUpdate && !isTrashView ? 'Edit file details' : 'File details'}</DialogTitle>
+                        <DialogDescription>
+                            Review metadata, temporary access behavior, and file delivery details.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {detailsFile ? (
+                        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+                            <div className="space-y-4">
+                                <div className="rounded-2xl border border-border/60 bg-card/70 p-4">
+                                    <div className="mb-4 flex items-center justify-between gap-3">
+                                        <div>
+                                            <p className="text-sm font-semibold text-foreground">Access behavior</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Session-bound files stay private and expire with the active login session.
+                                            </p>
+                                        </div>
+                                        {renderAccessBadge(activeDetailsFile)}
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="media-title">Display title</Label>
+                                            <Input
+                                                id="media-title"
+                                                value={detailsForm.title}
+                                                onChange={(event) => setDetailsForm((prev) => ({ ...prev, title: event.target.value }))}
+                                                disabled={!canUpdate || isTrashView}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="media-alt-text">Alt text</Label>
+                                            <Input
+                                                id="media-alt-text"
+                                                value={detailsForm.alt_text}
+                                                onChange={(event) => setDetailsForm((prev) => ({ ...prev, alt_text: event.target.value }))}
+                                                disabled={!canUpdate || isTrashView}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="media-description">Description</Label>
+                                            <Textarea
+                                                id="media-description"
+                                                value={detailsForm.description}
+                                                onChange={(event) => setDetailsForm((prev) => ({ ...prev, description: event.target.value }))}
+                                                disabled={!canUpdate || isTrashView}
+                                                rows={5}
+                                            />
+                                        </div>
+
+                                        <div className="rounded-xl border border-border/70 bg-muted/30 p-4">
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="space-y-1">
+                                                    <Label htmlFor="media-session-bound-access">Protect with session-bound access</Label>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Uses private delivery, opaque storage keys, and temporary access that expires with the current login session, up to {secureWindowMinutes} minutes.
+                                                    </p>
+                                                </div>
+                                                <Switch
+                                                    id="media-session-bound-access"
+                                                    checked={detailsForm.session_bound_access}
+                                                    onCheckedChange={(checked) => setDetailsForm((prev) => ({ ...prev, session_bound_access: checked }))}
+                                                    disabled={!canUpdate || isTrashView}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-2xl border border-border/60 bg-card/70 p-4">
+                                    <div className="mb-3 flex items-center justify-between gap-3">
+                                        <div>
+                                            <p className="text-sm font-semibold text-foreground">Access URL</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {activeDetailsFile.session_bound_access
+                                                    ? 'This temporary link stops working when the session-bound window expires.'
+                                                    : 'This public URL stays stable for reusable content references.'}
+                                            </p>
+                                        </div>
+                                        <Button size="sm" variant="outline" onClick={() => handleCopyUrl(activeDetailsFile)} disabled={isResolvingAccess(detailsFile.id)}>
+                                            {isResolvingAccess(detailsFile.id) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Copy className="mr-2 h-4 w-4" />}
+                                            Copy URL
+                                        </Button>
+                                    </div>
+                                    <Input value={getResolvedFileUrl(activeDetailsFile)} readOnly className="text-xs" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex aspect-video items-center justify-center overflow-hidden rounded-2xl border border-border/60 bg-muted/60 p-3">
+                                    {activeDetailsFile.file_type?.startsWith('image/') && getResolvedFileUrl(activeDetailsFile) ? (
+                                        <img src={getResolvedFileUrl(activeDetailsFile)} alt={detailsForm.alt_text || detailsFile.name} className="max-h-full max-w-full rounded-xl object-contain" />
+                                    ) : activeDetailsFile.file_type?.startsWith('image/') && activeDetailsFile.session_bound_access ? (
+                                        <div className="space-y-2 text-center">
+                                            <Shield className="mx-auto h-10 w-10 text-amber-600" />
+                                            <p className="text-sm font-medium text-foreground">Protected preview</p>
+                                            <Button size="sm" variant="outline" onClick={() => ensureAccessUrl(activeDetailsFile)} disabled={isResolvingAccess(detailsFile.id)}>
+                                                {isResolvingAccess(detailsFile.id) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                                Load temporary preview
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <File className="h-16 w-16 text-muted-foreground" />
+                                    )}
+                                </div>
+
+                                <div className="rounded-2xl border border-border/60 bg-card/70 p-4 text-sm">
+                                    <div className="space-y-3">
+                                        <div>
+                                            <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">File name</p>
+                                            <p className="mt-1 font-medium text-foreground">{detailsFile.name}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Storage mode</p>
+                                            <p className="mt-1 font-medium text-foreground">{activeDetailsFile.session_bound_access ? 'Private, session-bound' : 'Public'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">File type</p>
+                                            <p className="mt-1 font-medium text-foreground">{detailsFile.file_type}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Size</p>
+                                            <p className="mt-1 font-medium text-foreground">{formatFileSize(detailsFile.file_size)}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Uploaded</p>
+                                            <p className="mt-1 font-medium text-foreground">{formatDateTime(detailsFile.created_at)}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Uploaded by</p>
+                                            <p className="mt-1 font-medium text-foreground">{detailsFile.uploader?.full_name || detailsFile.uploader?.email || 'Unknown'}</p>
+                                        </div>
+                                        {activeDetailsFile.session_bound_access ? (
+                                            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-800">
+                                                Temporary access is capped by the current login session and the configured {secureWindowMinutes}-minute secure media window.
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                </div>
+
+                                {canUpdate && !isTrashView ? (
+                                    <Button className="w-full" onClick={handleSaveDetails} disabled={savingDetails}>
+                                        {savingDetails ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                        Save Changes
+                                    </Button>
+                                ) : null}
+                            </div>
+                        </div>
+                    ) : null}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
