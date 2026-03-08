@@ -35,6 +35,9 @@ All notable changes to the **AWCMS** project will be documented in this file.
 - Documentation: Closed the last high-confidence closure-pass drift in dev/deploy/compliance docs by
   correcting mirrored function path references, current CI branch/path behavior, PlatformIO-based
   ESP32 versioning, SMANDAPBUN session wording, and public privacy/terms guidance.
+- Documentation: Closed the 2026-03-08 maintained-doc audit cycle by rerunning parity/validation
+  gates, restoring local migration history parity, and carrying remaining dependency upgrades into a
+  separate maintenance backlog.
 
 ### Fixed
 

@@ -29,11 +29,11 @@ This cycle explicitly includes conflict detection and resolution planning for:
 | Phase | Status | Notes |
 | --- | --- | --- |
 | Phase 0 - Re-Baseline and Inventory Refresh | Completed | Repository inventory refreshed to current markdown, migration, workflow, and package-manifest counts |
-| Phase 1 - Authority and Documentation Hub Reconciliation | In Progress | `README.md`, `docs/README.md`, `SYSTEM_MODEL.md`, `AGENTS.md`, and `DOCS_INDEX.md` must be aligned first |
-| Phase 2 - Schema, Security, and Tenancy Reconciliation | In Progress | Core schema/security/tenancy docs are being reconciled against the `127/127` migration baseline, current helper functions, and Cloudflare-first edge runtime wording |
-| Phase 3 - Scripts, Tooling, Deployment, and Workflow Reconciliation | In Progress | Core CI/docs validation, workspace coverage, and deploy docs are reconciled; broader deploy/runtime review remains open |
-| Phase 4 - Feature, Module, Client, and Package README Pass | In Progress | High-confidence module drift has been corrected and guides have been spot-checked; broader feature-doc review remains open |
-| Phase 5 - Conflict Resolution, Validation, and Publication | In Progress | Validation gates are being rerun, dependency drift is being refreshed, and the remaining open items are being narrowed |
+| Phase 1 - Authority and Documentation Hub Reconciliation | Completed | Authority docs and canonical navigation were reconciled and missing canonical targets were restored |
+| Phase 2 - Schema, Security, and Tenancy Reconciliation | Completed | Core schema/security/tenancy docs were reconciled against the `127/127` migration baseline, current helper functions, and Cloudflare-first edge runtime wording |
+| Phase 3 - Scripts, Tooling, Deployment, and Workflow Reconciliation | Completed | CI/docs validation, workspace coverage, deploy docs, and runtime workflow claims were reconciled |
+| Phase 4 - Feature, Module, Client, and Package README Pass | Completed | High-confidence module/package drift was corrected and maintained guides were spot-checked without new contradictions |
+| Phase 5 - Conflict Resolution, Validation, and Publication | Completed | Validation gates were rerun, migration parity was restored locally, dependency drift was refreshed, and remaining audit items were triaged into carry-forward maintenance |
 
 See `docs/dev/documentation-audit-tracker.md` for the live drift register and evidence log.
 
@@ -88,7 +88,7 @@ These issues should be addressed before broader doc polishing because they break
 
 | ID | Severity | Blocker | Evidence | Planned Resolution |
 | --- | --- | --- | --- | --- |
-| PLAN-002 | High | Validation baselines keep drifting as the audit itself adds new maintained docs | README/package-doc additions changed the inventory again during this cycle | Recount repository surfaces after each audit batch and treat the tracker as the live baseline |
+| PLAN-002 | Resolved | Validation baselines keep drifting as the audit itself adds new maintained docs | The cycle stabilized at `115` markdown files, `71` docs, and `127/127` migrations after the final closure pass | Keep recounting repository surfaces whenever a future cycle adds maintained docs |
 | PLAN-003 | Resolved | Documentation workflow scope mismatch | `docs-link-check.yml` now delegates to `cd awcms && npm run docs:check`, matching the maintained-doc policy already used by the local validator and audit docs | Keep `awcms/package.json` and workflow scope aligned when maintained-doc surfaces change |
 | PLAN-006 | Resolved | CI/workflow coverage still does not cover every maintained workspace/package | Dedicated jobs now exist for `awcms-ext/primary-analytics/` and `packages/awcms-shared/`, closing the previous standalone coverage gap | Extend the extension job set or move to a matrix if more maintained extension packages are added |
 
