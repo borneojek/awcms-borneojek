@@ -29,6 +29,9 @@ All notable changes to the **AWCMS** project will be documented in this file.
   surface, the current GitHub Actions secret mapping split between push and PR workflows, direct
   public blog queries against `blogs`, package-manifest version authority, and the current editor
   soft-delete baseline.
+- Documentation: Reconciled additional module docs for monitoring, performance, extensions, menu,
+  theming, and module inventory so they match current Worker logging boundaries, router usage,
+  extension workspace layout, and actual route-backed manager coverage.
 
 ### Fixed
 

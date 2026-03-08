@@ -28,7 +28,7 @@ AWCMS uses a dual extension system combining WordPress-style hooks with modern E
 | Type | Location | Loading | Use Case |
 | ---- | -------- | ------- | -------- |
 | **Core Plugin** | `src/plugins/` | Bundled at build | Essential features |
-| **External Extension** | `awcms-ext/{vendor}-{slug}/` (source) | Dynamic at runtime | Third-party modules |
+| **External Extension** | `awcms-ext/` workspaces in-repo; runtime bundles served from `/ext/awcms-ext-{vendor}-{slug}/...` by default | Dynamic at runtime | Third-party modules |
 
 ---
 
@@ -124,13 +124,16 @@ Source packages live under `awcms-ext/` and are served from the external extensi
 
 ```text
 awcms-ext/
-  awcms-ext-ahliweb-analytics/
+  primary-analytics/
   ├── manifest.json     # Extension manifest (NOT plugin.json)
   ├── package.json
   └── src/
       ├── index.js      # Entry point
       └── components/
 ```
+
+The in-repo workspace path does not need to match the runtime-served folder name. The loader derives the
+runtime bundle path from `vendor`, `slug`, `entry`, and `VITE_EXTERNAL_EXTENSIONS_PATH`.
 
 ### Manifest (`manifest.json`)
 
@@ -322,7 +325,7 @@ Tenant-level plugin pages and extension settings should use `tenant.setting.*` p
 
 ## Quick Start: External Extension
 
-1. Create folder `awcms-ext-{vendor}-{slug}/`
+1. Create a workspace under `awcms-ext/` (for example `awcms-ext/my-extension/`)
 2. Create `manifest.json` with required fields
 3. Create `src/index.js` with `register()` export
 4. Register in database with `extension_type: 'external'`

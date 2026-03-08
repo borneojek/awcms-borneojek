@@ -72,6 +72,7 @@ had drifted again after subsequent schema, media, and workflow changes.
 | DOCSYNC-024 | Medium | Dedicated CI coverage still does not include every maintained workspace/package | Resolved | Added dedicated jobs for `awcms-ext/primary-analytics/` and `packages/awcms-shared/`, plus package-level validation scripts/lockfiles so both surfaces can run standalone in CI |
 | DOCSYNC-025 | Medium | Schema/security/tenancy docs still described stale migration counts, helper-function baselines, and tenant provisioning signatures | Resolved | Updated `docs/architecture/database.md`, `docs/security/abac.md`, `docs/security/rls.md`, `docs/tenancy/overview.md`, and `docs/tenancy/supabase.md` to reflect the current `127/127` migration baseline, recursion-safe `current_tenant_id()`, and the canonical 6-argument tenant provisioning RPC |
 | DOCSYNC-026 | Medium | Remaining deploy/module docs still carried stale claims about primary edge deployment, public blog fetch paths, version-source authority, and default editor permissions | Resolved | Updated `docs/deploy/overview.md`, `docs/deploy/cloudflare.md`, `docs/modules/BLOGS_MODULE.md`, `docs/modules/VERSIONING.md`, and `docs/modules/ROLE_HIERARCHY.md` to match current workflows, public queries, and authority guidance |
+| DOCSYNC-027 | Medium | Additional module docs still carried stale runtime assumptions, source-path references, and manager-component inventory claims | Resolved | Updated `docs/modules/MONITORING.md`, `docs/modules/PERFORMANCE.md`, `docs/modules/EXTENSIONS.md`, `docs/modules/MODULES_GUIDE.md`, `docs/modules/MENU_SYSTEM.md`, and `docs/modules/THEMING.md` to match current Worker/runtime boundaries, router reality, extension workspace layout, and actual admin module inventory |
 
 ## Context7 Verification Log (2026-03-08 Planning Refresh)
 
@@ -114,6 +115,11 @@ had drifted again after subsequent schema, media, and workflow changes.
 - Updated `docs/deploy/overview.md` so deployment guidance now treats `awcms-edge/` as the primary edge HTTP deploy surface and scopes Supabase Edge Functions to legacy/transitional flows.
 - Updated `docs/deploy/cloudflare.md` to distinguish production secret mapping in `ci-push.yml` from the mock fork-safe values used by `ci-pr.yml`.
 - Updated `docs/modules/BLOGS_MODULE.md`, `docs/modules/VERSIONING.md`, and `docs/modules/ROLE_HIERARCHY.md` to match current public query paths, package-manifest version authority, and the editor delete baseline from the canonical permission matrix.
+- Updated `docs/modules/MONITORING.md`, `docs/modules/PERFORMANCE.md`,
+  `docs/modules/EXTENSIONS.md`, `docs/modules/MODULES_GUIDE.md`,
+  `docs/modules/MENU_SYSTEM.md`, and `docs/modules/THEMING.md` to match current Worker logging
+  scope, router usage, extension workspace layout, route-backed module inventory, and correct
+  in-repo hook paths.
 - Spot-checked `docs/guides/**` and did not find additional high-confidence repo-state contradictions in the currently maintained guides.
 
 ### Remaining Work by Phase

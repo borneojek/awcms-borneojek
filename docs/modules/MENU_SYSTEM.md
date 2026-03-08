@@ -67,4 +67,4 @@ addFilter('admin_menu_items', 'my_plugin', items => [
 ## References
 
 - `docs/security/abac.md`
-- `../../src/hooks/useAdminMenu.js`
+- `../../awcms/src/hooks/useAdminMenu.js`

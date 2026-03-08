@@ -20,8 +20,8 @@ Describe the monitoring tools and logging practices for AWCMS.
 ## Core Concepts
 
 - Audit logs capture critical actions.
-- Edge functions should log failures and context.
-- Cloudflare Pages provides build and runtime logs.
+- Cloudflare Workers in `awcms-edge/` should log request failures and runtime context.
+- Cloudflare Pages provides build/deploy logs; edge runtime logs come from the Worker layer.
 - Visitor analytics are stored in `analytics_events` with daily rollups in `analytics_daily`.
 
 ## How It Works
@@ -30,6 +30,7 @@ Describe the monitoring tools and logging practices for AWCMS.
 - Extension logs are stored in `extension_logs`.
 - Visitor telemetry is stored in `analytics_events` (raw) and `analytics_daily` (aggregate).
 - All monitoring tables are tenant-scoped and should be filtered by `tenant_id`.
+- Supabase Edge Function logging is legacy/transitional only for flows that still run from `supabase/functions/`.
 
 ## Implementation Patterns
 
