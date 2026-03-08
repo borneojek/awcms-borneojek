@@ -30,7 +30,8 @@ This repository follows a strict documentation hierarchy aligned with the **Cont
 | `awcms-mobile/primary/` | Mobile App | Flutter 3.38.5 |
 | `awcms-esp32/primary/` | IoT Firmware | ESP32, PlatformIO |
 | `awcms-ext/` | External Extensions | JavaScript modules |
-| `supabase/` | Migrations and Edge Functions | Supabase CLI |
+| `awcms-edge/` | Worker API & Edge Logic | Cloudflare Workers, Hono |
+| `supabase/` | Migrations | Supabase CLI |
 | `awcms-mcp/` | MCP Integration | Model Context Protocol tools |
 | `openclaw/` | AI Gateway | OpenClaw multi-tenant AI routing |
 
@@ -101,7 +102,6 @@ This repository uses Context7 for AI-assisted development. Key library IDs:
 - Active servers:
   - Context7: `https://mcp.context7.com/mcp`
   - Supabase (local): `node awcms-mcp/dist/index.js`
-  - Stitch (local): `npx @_davideast/stitch-mcp proxy`
   - Cloudflare (remote): api/docs/bindings/observability/builds/radar/browser endpoints
   - GitHub (local): `scripts/start_github_mcp.sh` (Docker-based `github/github-mcp-server`)
 

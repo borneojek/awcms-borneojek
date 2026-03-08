@@ -40,7 +40,7 @@ export function useDashboardData() {
         supabase.from('products').select('*', { count: 'exact', head: true }).is('deleted_at', null),
         supabase.from('users').select('*', { count: 'exact', head: true }).is('deleted_at', null),
         supabase.from('orders').select('*', { count: 'exact', head: true }),
-        supabase.from('files').select('file_size').is('deleted_at', null)
+        supabase.from('media_objects').select('file_size').is('deleted_at', null)
       ]);
 
       const [

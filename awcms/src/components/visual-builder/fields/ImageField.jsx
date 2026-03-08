@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FolderOpen, X, Trash2 } from 'lucide-react';
 import MediaLibrary from '@/components/dashboard/media/MediaLibrary';
-import { supabase } from '@/lib/customSupabaseClient';
+
 
 /**
  * Image Field with Media Library integration
@@ -22,13 +22,15 @@ export const ImageField = ({ field, value, onChange, name }) => {
     const [urlInput, setUrlInput] = useState(value || '');
 
     const handleSelect = (file) => {
-        const { data } = supabase.storage
-            .from(file.bucket_name || 'cms-uploads')
-            .getPublicUrl(file.file_path);
+        let finalUrl = file.file_path;
+        if (!finalUrl?.startsWith('http')) {
+            const edgeUrl = import.meta.env.VITE_EDGE_URL || 'http://localhost:8787';
+            finalUrl = `${edgeUrl.replace(/\/$/, '')}/public/media/${file.file_path}`;
+        }
 
-        if (data.publicUrl) {
-            onChange(data.publicUrl);
-            setUrlInput(data.publicUrl);
+        if (finalUrl) {
+            onChange(finalUrl);
+            setUrlInput(finalUrl);
             setOpen(false);
         }
     };
@@ -125,12 +127,14 @@ export const MultiImageField = ({ field, value, onChange, name }) => {
         : [];
 
     const handleSelect = (file) => {
-        const { data } = supabase.storage
-            .from(file.bucket_name || 'cms-uploads')
-            .getPublicUrl(file.file_path);
+        let finalUrl = file.file_path;
+        if (!finalUrl?.startsWith('http')) {
+            const edgeUrl = import.meta.env.VITE_EDGE_URL || 'http://localhost:8787';
+            finalUrl = `${edgeUrl.replace(/\/$/, '')}/public/media/${file.file_path}`;
+        }
 
-        if (data.publicUrl) {
-            const newImages = [...imageList, data.publicUrl];
+        if (finalUrl) {
+            const newImages = [...imageList, finalUrl];
             onChange(newImages.join('\n'));
             setOpen(false);
         }

@@ -43,7 +43,7 @@ export function TenantUsage() {
 
                 // 3. Get Storage Usage (Sum file_size)
                 const { data: files } = await supabase
-                    .from('files')
+                    .from('media_objects')
                     .select('file_size')
                     .is('deleted_at', null);
 

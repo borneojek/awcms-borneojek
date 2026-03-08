@@ -115,7 +115,7 @@ To ensure successful code generation and integration, Agents must adhere to the 
 | **Admin Panel**   | React 19.2.4, Vite 7                                                      |
 | **Public Portal** | Astro 5.17.1 (static output), React 19.2.4                                  |
 | Styling           | TailwindCSS 4 utilities (Public uses Vite plugin + `tailwind.config.mjs`) |
-| Backend           | Supabase only (NO Node.js servers)                                        |
+| Backend           | Supabase (Auth, DB, RLS) + Cloudflare Workers (Edge Logic)                |
 
 1. **Environment Security**:
    - **Ignored Files**: Ensure `.env`, `.env.local`, `.env.production`, and `.env.remote` are always ignored by Git.
@@ -142,6 +142,7 @@ When updating docs or implementing library usage, **Context7 is the primary refe
 - `supabase/supabase-js` (Auth, Database)
 - `supabase/cli` (Migration/CLI workflows)
 - `vitejs/vite` (Build Tooling)
+- `cloudflare/cloudflare-docs` (Workers, R2, Platform guidance)
 - `withastro/docs` (Public Portal)
 - `remix-run/react-router` (Routing v7)
 - `websites/react_dev` (React 19)
@@ -451,7 +452,7 @@ While powerful, Agents operating in this environment have specific boundaries:
 
 1. **Shell Access Depends on Host**: In OpenCode, shell commands are available. In other agent hosts, shell access may be restricted or unavailable.
 
-2. **Backend Logic Placement**: Backend business logic must remain in Supabase (Edge Functions, Database Functions, SQL), not custom Node.js servers.
+2. **Backend Logic Placement**: Backend business logic must remain in Cloudflare Workers (Edge Logic) and Supabase (Database Functions, SQL), not custom Node.js servers. Supabase Edge Functions are deprecated in favor of Cloudflare Workers.
 
 3. **Binary Asset Generation**: Agents should not generate binary assets directly; reference existing assets or placeholders.
 
@@ -645,7 +646,6 @@ The local server provides project-scoped tools:
 AWCMS also runs external MCP servers for cloud and ecosystem tasks:
 
 - `context7` (remote): `https://mcp.context7.com/mcp`
-- `stitch` (local proxy): `npx @_davideast/stitch-mcp proxy`
 - `github` (local wrapper): `scripts/start_github_mcp.sh` -> Docker `ghcr.io/github/github-mcp-server`
 - Cloudflare managed remote servers:
   - `cloudflare-api`, `cloudflare-docs`, `cloudflare-bindings`, `cloudflare-observability`, `cloudflare-builds`, `cloudflare-radar`, `cloudflare-browser`

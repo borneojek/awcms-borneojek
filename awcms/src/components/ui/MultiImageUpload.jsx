@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import MediaLibrary from '@/components/dashboard/media/MediaLibrary';
-import { supabase } from '@/lib/customSupabaseClient';
+
 
 // Multi-image upload component for galleries/portfolios
 export function MultiImageUpload({ value = [], onChange, disabled, maxImages = 10 }) {
@@ -13,9 +13,14 @@ export function MultiImageUpload({ value = [], onChange, disabled, maxImages = 1
     const images = Array.isArray(value) ? value : [];
 
     const handleSelect = (file) => {
-        const { data } = supabase.storage.from(file.bucket_name || 'cms-uploads').getPublicUrl(file.file_path);
-        if (data.publicUrl && images.length < maxImages) {
-            const newImages = [...images, { url: data.publicUrl, alt: file.name || '' }];
+        let finalUrl = file.file_path;
+        if (!finalUrl?.startsWith('http')) {
+            const edgeUrl = import.meta.env.VITE_EDGE_URL || 'http://localhost:8787';
+            finalUrl = `${edgeUrl.replace(/\/$/, '')}/public/media/${file.file_path}`;
+        }
+
+        if (finalUrl && images.length < maxImages) {
+            const newImages = [...images, { url: finalUrl, alt: file.name || '' }];
             onChange(newImages);
             setOpen(false);
         }

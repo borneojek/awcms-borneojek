@@ -46,9 +46,9 @@ Agents must respect these exact versions to ensure compatibility across the mono
 
 ### 1.3 Backend & Database
 
-* **Platform:** Supabase (PostgreSQL 17)
-* **Logic Layer:** PostgreSQL Functions (PL/pgSQL) + Edge Functions (Deno/TS).
-* **Node.js Servers:** **FORBIDDEN**. All backend logic must reside in Supabase.
+* **Platform:** Supabase (PostgreSQL 17), Cloudflare (Workers & R2)
+* **Logic Layer:** PostgreSQL Functions + Cloudflare Workers + optional Supabase Edge Functions during transition.
+* **Node.js Servers:** **FORBIDDEN**. Core authorization truth remains in Supabase; edge HTTP orchestration may run in Cloudflare Workers.
 
 ### 1.4 AI Gateway (OpenClaw)
 
