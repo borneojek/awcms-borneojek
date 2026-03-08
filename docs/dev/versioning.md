@@ -89,8 +89,8 @@ All packages follow **Semantic Versioning** (`MAJOR.MINOR.PATCH`):
 | Increment | When | Example |
 |-----------|------|---------|
 | `MAJOR` | Breaking API changes, DB schema incompatibilities | `3.0.0` |
-| `MINOR` | New features, backward-compatible | `2.33.0` |
-| `PATCH` | Bug fixes, hotfixes | `2.32.1` |
+| `MINOR` | New features, backward-compatible | `3.1.0` |
+| `PATCH` | Bug fixes, hotfixes | `3.0.1` |
 
 ---
 
@@ -100,7 +100,7 @@ All packages follow **Semantic Versioning** (`MAJOR.MINOR.PATCH`):
 main         ← Production. Tagged releases only.
 develop      ← Integration branch. All features merge here first.
 feature/*    ← One branch per feature/fix (e.g. feature/add-events-module)
-release/*    ← Release preparation (e.g. release/2.33.0)
+release/*    ← Release preparation (e.g. release/3.0.0)
 hotfix/*     ← Emergency production patches
 ```
 
@@ -149,7 +149,7 @@ Because each client app has its own `package.json` with an independent `version`
 ```bash
 # Bump only the Admin Panel (e.g., after a UI-only change)
 npm version minor --prefix awcms
-# → awcms/package.json: "version": "2.33.0"
+# → awcms/package.json: "version": "3.0.0"
 
 # Bump only the Public Portal
 npm version patch --prefix awcms-public/primary
@@ -164,10 +164,10 @@ The **root** `CHANGELOG.md` is the single source of truth for the overall projec
 ## [Unreleased]
 
 ### Changed
-- **Admin Panel 2.33.0**: Added Events module with calendar view.
+- **AWCMS 3.0.0 "Convergence"**: Landed the Supabase and Cloudflare validation/parity refresh, public-portal query hardening, and repository-wide release cleanup.
 
-## [2.33.0] "Events Launch" - 2026-03-01
-Applies to: `awcms@2.33.0`
+## [3.0.0] "Convergence" - 2026-03-08
+Applies to: `awcms@3.0.0`, `awcms-public-root@3.0.0`, `@onwidget/astrowind@3.0.0`, `smanda-pangkalan-bun@3.0.0`, `awcms-mcp@3.0.0`
 ```
 
 ---
@@ -304,7 +304,7 @@ Production incidents require immediate, client-specific rollback strategies:
 - [ ] Bump version in relevant `package.json` / `pubspec.yaml`
 - [ ] Update `CHANGELOG.md` with release notes
 - [ ] Merge `develop` → `main` via PR
-- [ ] Tag release: `git tag v2.33.0 && git push --tags`
+- [ ] Tag release: `git tag v3.0.0 && git push --tags`
 - [ ] GitHub Actions deploys web portals automatically
 - [ ] Monitor error logs during deployment sequence
 ```

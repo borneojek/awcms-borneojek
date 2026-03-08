@@ -5,6 +5,8 @@ All notable changes to the **AWCMS** project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.0] "Convergence" - 2026-03-08
+
 ### Added
 
 - Agent Rules: Created `styling-guard.md` — enforces semantic CSS variables, prevents hardcoded hex/rgb in components.
