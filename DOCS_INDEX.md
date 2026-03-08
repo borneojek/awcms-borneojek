@@ -99,7 +99,6 @@ All documentation follows this authority structure:
 | Documentation Audit Plan | [docs/dev/documentation-audit-plan.md](docs/dev/documentation-audit-plan.md) | Active full-repository audit, review, and conflict-resolution plan |
 | Documentation Audit Tracker | [docs/dev/documentation-audit-tracker.md](docs/dev/documentation-audit-tracker.md) | 2026-03-08 baseline, drift register, and execution status |
 | Context7 Benchmark Playbook | [docs/dev/context7-benchmark-playbook.md](docs/dev/context7-benchmark-playbook.md) | Canonical benchmark answer structure and topic playbooks |
-| Stitch Integration Plan | [docs/dev/stitch-integration-plan.md](docs/dev/stitch-integration-plan.md) | File-by-file execution checklist + migration skeletons |
 | Admin Panel | [docs/dev/admin.md](docs/dev/admin.md) | React Admin development |
 | Public Portal | [docs/dev/public.md](docs/dev/public.md) | Astro development |
 | Mobile App | [docs/dev/mobile.md](docs/dev/mobile.md) | Flutter development |

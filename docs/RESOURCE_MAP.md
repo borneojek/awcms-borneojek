@@ -47,7 +47,6 @@ Provide a cleaned-up reference for the AWCMS `resources_registry` without repeat
 | `roles` | Tenant | `tenant.role` | Roles & Permissions | `roles` | Tenant role management |
 | `policies` | Tenant | `tenant.policy` | Policies | `policies` | Tenant policy rules |
 | `visitor_stats` | Tenant | `tenant.analytics` | Visitor Statistics | `analytics_events` | Admin analytics surface |
-| `stitch_import` | Tenant | `tenant.stitch_import` | Stitch Import | `stitch_import_jobs` | Stitch import queue/status |
 | `seo_manager` | Tenant | `tenant.seo` | SEO Manager | `seo_metadata` | Registry parity fixed from legacy `seo_settings` mapping |
 | `languages` | Tenant | `tenant.languages` | Languages | `languages` | Tenant language config |
 | `notifications` | Tenant | `tenant.notification` | Notifications | `notifications` | In-app notifications |
@@ -71,7 +70,7 @@ These resource keys are valid, but they are grouped here because they reuse the 
 | `site_images` | `tenant.school_pages` | Site Images | `settings` | Same permission family and settings-backed storage as `school_pages` |
 | `settings_general` | `tenant.setting` | General Settings | `settings` | Shared settings resource family |
 | `settings_branding` | `tenant.setting` | Branding | `settings` | Shared settings resource family |
-| `email_settings` | `tenant.setting` | Email Settings | `settings` | Shared settings resource family |
+| `email_settings` | `tenant.setting` | Email Settings | `settings` | Shared settings resource family; remains visible with activation guidance when Mailketing is inactive |
 | `mobile_config` | `tenant.mobile` | App Config | `settings` | Mobile-specific settings surface |
 | `email_logs` | `tenant.setting` | Email Logs | `email_logs` | Operationally separate table, but grouped with email/settings surfaces to avoid duplicate configuration rows |
 
@@ -80,6 +79,7 @@ These resource keys are valid, but they are grouped here because they reuse the 
 | Entry | Reason |
 | --- | --- |
 | `test_dynamic` | Test-only seed resource from `20260201133000_seed_test_schema.sql`; not a canonical product resource |
+| `stitch_import` | Stitch import surface and runtime were removed; keep only admin-facing transition notes in release/docs history |
 
 ## Dynamic UI Note
 

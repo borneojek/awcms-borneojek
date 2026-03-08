@@ -54,7 +54,6 @@ Describe AWCMS security posture, enforcement points, and operational expectation
 ### XSS Prevention
 
 - TipTap data is rendered with controlled editor mappings.
-- Stitch import HTML is sanitized in `awcms/src/lib/stitch/sanitizeStitchHtml.js` before insertion.
 - Admin fallback HTML rendering uses `awcms/src/utils/sanitize.js` (DOMPurify).
 - Public fallback HTML rendering uses `awcms-public/primary/src/components/common/puckRendererRawHtml.ts` + `awcms-public/primary/src/utils/sanitize.ts` (`sanitize-html`).
 

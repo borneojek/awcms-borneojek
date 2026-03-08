@@ -134,17 +134,11 @@ Agents must respect these exact versions to ensure compatibility across the mono
 * **System:** TailwindCSS v4 with CSS Variables.
 * **Constraint:** **NO** hardcoded hex values (e.g., `bg-[#123456]`) in components. Use semantic variables (`bg-primary`, `text-foreground`) to support white-labeling and dark mode.
 
-### 2.5 Content Import & Sanitization
+### 2.5 Content Sanitization
 
-* **Stitch Import Policy:** Tenant-controlled via `settings.key = 'stitch_import'`.
-* **Config Surface:** `enabled`, `mode`, `max_input_kb`, `allow_raw_html_fallback`.
-* **Import Modes:**
-  * `html`: single sanitized block import.
-  * `mapped`: structured block mapping with optional `RawHTML` fallback.
-* **Sanitization Enforcement:**
-  * Admin import sanitization in `awcms/src/lib/stitch/sanitizeStitchHtml.js`.
-  * Admin fallback rendering sanitization in `awcms/src/utils/sanitize.js`.
-  * Public fallback rendering sanitization in `awcms-public/primary/src/utils/sanitize.ts` via `PuckRenderer`.
+* **Admin Sanitization Enforcement:** Raw HTML rendered in admin-managed flows must pass through `awcms/src/utils/sanitize.js`.
+* **Public Sanitization Enforcement:** Public fallback HTML rendering must pass through `awcms-public/primary/src/utils/sanitize.ts` via `PuckRenderer`.
+* **Removed Capability:** Stitch import is no longer part of the canonical product surface or runtime.
 
 ---
 

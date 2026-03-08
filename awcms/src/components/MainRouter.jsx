@@ -80,10 +80,13 @@ const PlatformSettingsManager = lazy(() => import('@/components/dashboard/Platfo
 const PlatformDashboard = lazy(() => import('@/components/dashboard/PlatformDashboard'));
 
 const SiteImagesManager = lazy(() => import('@/components/dashboard/SiteImagesManager'));
+const SchoolPagesManager = lazy(() => import('@/components/dashboard/SchoolPagesManager'));
 const AuditLogsManager = lazy(() => import('@/components/dashboard/AuditLogsManager'));
 const VisitorStatisticsManager = lazy(() => import('@/components/dashboard/VisitorStatisticsManager'));
 const TenantsManager = lazy(() => import('@/components/dashboard/TenantsManager'));
 const TenantSettings = lazy(() => import('@/components/dashboard/TenantSettings'));
+const EmailSettingsManager = lazy(() => import('@/components/dashboard/email/EmailSettingsManager'));
+const EmailLogsManager = lazy(() => import('@/components/dashboard/email/EmailLogsManager'));
 
 // ESP32 IoT (Lazy Loaded)
 const DevicesManager = lazy(() => import('@/pages/cmspanel/DevicesManager'));
@@ -228,7 +231,7 @@ const MainRouter = () => {
           <Route path="team/*" element={<TeamManager />} />
           <Route path="partners/*" element={<PartnersManager />} />
           <Route path="funfacts/*" element={<FunFactsManager />} />
-          <Route path="testimonies/*" element={<TestimonyManager />} />
+          <Route path="testimonials/*" element={<TestimonyManager />} />
 
           <Route path="gallery/photos/*" element={<PhotoGalleryManager />} />
           <Route path="gallery/videos/*" element={<VideoGalleryManager />} />
@@ -254,6 +257,7 @@ const MainRouter = () => {
 
 
           <Route path="site-images" element={<SiteImagesManager />} />
+          <Route path="school-pages/*" element={<SchoolPagesManager />} />
 
           <Route path="extensions" element={<ExtensionsManager />} />
           <Route path="extensions/marketplace" element={<ExtensionMarketplace />} />
@@ -262,6 +266,8 @@ const MainRouter = () => {
 
           <Route path="settings/general/*" element={<SettingsManager />} />
           <Route path="settings/branding" element={<TenantSettings />} />
+          <Route path="email-settings" element={<EmailSettingsManager />} />
+          <Route path="email-logs" element={<EmailLogsManager />} />
 
           <Route path="platform" element={<PlatformDashboard />} />
           <Route path="platform/settings" element={<PlatformSettingsManager />} />

@@ -60,10 +60,10 @@ function TestimonyManager() {
     return (
         <AdminPageLayout requiredPermission="tenant.testimonies.read">
             <PageHeader
-                title="Testimonies"
+                title="Testimonials"
                 description="Manage customer reviews and testimonials."
                 icon={MessageSquareQuote}
-                breadcrumbs={[{ label: 'Testimonies', icon: MessageSquareQuote }]}
+                breadcrumbs={[{ label: 'Testimonials', icon: MessageSquareQuote }]}
             />
 
             <GenericContentManager

@@ -274,7 +274,7 @@ $$;
 
 - Tenant domains are configured in the `tenants` table (host/subdomain fields).
 - New tenant creation seeds default roles, staff hierarchy, and resource rules via SQL/RPC.
-- Tenant feature flags such as Stitch import controls are stored in `settings` (`key = 'stitch_import'`) and remain tenant-scoped.
+- Tenant-scoped feature flags and structured settings remain isolated through `tenant_id` and `deleted_at IS NULL` constraints in the shared `settings` store.
 
 ## Troubleshooting
 

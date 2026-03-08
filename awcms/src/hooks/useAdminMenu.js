@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { hooks } from '@/lib/hooks';
-import { normalizeMenuPath, resolveGroupMeta } from '@/lib/adminMenuUtils';
+import { normalizeMenuPath, resolveGroupMeta, resolveResourcePath } from '@/lib/adminMenuUtils';
 import { usePermissions } from '@/contexts/PermissionContext';
 
 // Default menu configuration - used as fallback when admin_menus table is empty
 // Default menu configuration - used as fallback when admin_menus table is empty
 // Default menu configuration - used as fallback when admin_menus table is empty
 const DEFAULT_MENU_CONFIG = [];
+const REMOVED_RESOURCE_KEYS = new Set(['stitch_import']);
 
 
 
@@ -98,7 +99,7 @@ export function useAdminMenu() {
         });
 
         // Add missing resources as menu items (resources without admin_menus entries)
-        const missingResources = resources.filter(r => !menuResourceKeys.has(r.key));
+        const missingResources = resources.filter(r => !menuResourceKeys.has(r.key) && !REMOVED_RESOURCE_KEYS.has(r.key));
         resourceFallbackItems = missingResources.map(res => {
           const { label: groupLabel, order: groupOrder } = resolveGroupMeta(
             res.scope?.toUpperCase() || 'SYSTEM',
@@ -109,7 +110,7 @@ export function useAdminMenu() {
             key: res.key,
             label: res.label,
             icon: res.icon || 'FileText',
-            path: res.key, // Use resource key as default path
+            path: resolveResourcePath(res.key, res.key),
             group_label: groupLabel,
             group_order: groupOrder,
             order: 999, // Put at end
@@ -137,6 +138,7 @@ export function useAdminMenu() {
               // If menu label/icon is null (strict DB mode), fallback to Resource
               label: menu.label || matchedRes.label,
               icon: menu.icon || matchedRes.icon,
+              path: resolveResourcePath(matchedRes.key || menu.key, menu.path),
               resource_id: matchedRes.id,
               resource_type: matchedRes.type, // passed for UI to know if it's a Table or Form
               permission: resolvedPermission,
@@ -149,15 +151,18 @@ export function useAdminMenu() {
             menu.group_label,
             menu.group_order
           );
-          return {
-            ...menu,
-            group_label: groupLabel,
-            group_order: groupOrder
-          };
+            return {
+              ...menu,
+              path: resolveResourcePath(menu.key, menu.path),
+              group_label: groupLabel,
+              group_order: groupOrder
+            };
         });
       }
 
-      let combined = [...baseMenus, ...normalizedExtMenus, ...resourceFallbackItems];
+      let combined = [...baseMenus, ...normalizedExtMenus, ...resourceFallbackItems].filter(
+        (item) => !REMOVED_RESOURCE_KEYS.has(item.key)
+      );
 
       // Scope-aware filtering based on platform vs tenant
       combined = combined.filter(item => {
