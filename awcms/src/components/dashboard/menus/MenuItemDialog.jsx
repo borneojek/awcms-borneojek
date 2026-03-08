@@ -9,8 +9,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
-import { getModulesByGroup } from '@/lib/publicModuleRegistry';
-
 function MenuItemDialog({
 	open,
 	onOpenChange,
@@ -24,6 +22,7 @@ function MenuItemDialog({
 	pages,
 	onPageSelect,
 	flatMenus,
+	moduleGroups,
 	onSave,
 }) {
 	const activeLocationLabel = menuLocations.find((location) => location.id === currentLocation)?.label;
@@ -47,7 +46,7 @@ function MenuItemDialog({
 								onChange={(event) => onModuleSelect(event.target.value)}
 							>
 								<option value="">-- Select a module or enter custom --</option>
-								{Object.entries(getModulesByGroup()).map(([group, modules]) => (
+								{Object.entries(moduleGroups || {}).map(([group, modules]) => (
 									<optgroup key={group} label={group}>
 										{modules.map((module) => (
 											<option key={module.key} value={module.key}>{module.label} ({module.url})</option>
@@ -70,6 +69,29 @@ function MenuItemDialog({
 								<option key={page.id} value={page.id}>{page.title} ({page.slug})</option>
 							))}
 						</select>
+						</div>
+
+					<div className="grid grid-cols-2 gap-4">
+						<div className="space-y-2">
+							<Label>Slug</Label>
+							<Input
+								value={menuFormData.slug || ''}
+								onChange={(event) => setMenuFormData({ ...menuFormData, slug: event.target.value })}
+								placeholder="about-us"
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label>Location</Label>
+							<select
+								className="flex h-10 w-full rounded-md border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+								value={menuFormData.location || currentLocation}
+								onChange={(event) => setMenuFormData({ ...menuFormData, location: event.target.value })}
+							>
+								{menuLocations.map((location) => (
+									<option key={location.id} value={location.id}>{location.label}</option>
+								))}
+							</select>
+						</div>
 					</div>
 
 					<div className="grid grid-cols-2 gap-4">
@@ -115,19 +137,6 @@ function MenuItemDialog({
 								.map((menu) => (
 									<option key={menu.id} value={menu.id}>{menu.label}</option>
 								))}
-						</select>
-					</div>
-
-					<div className="space-y-2">
-						<Label>Location</Label>
-						<select
-							className="flex h-10 w-full rounded-md border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-							value={menuFormData.location || currentLocation}
-							onChange={(event) => setMenuFormData({ ...menuFormData, location: event.target.value })}
-						>
-							{menuLocations.map((location) => (
-								<option key={location.id} value={location.id}>{location.label}</option>
-							))}
 						</select>
 					</div>
 
