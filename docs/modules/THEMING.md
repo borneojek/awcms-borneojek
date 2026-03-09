@@ -71,4 +71,4 @@ Describe how tenant branding is stored and applied across the admin UI.
 ## References
 
 - `docs/modules/COMPONENT_GUIDE.md`
-- `../../src/hooks/useTenantTheme.js`
+- `../../awcms/src/hooks/useTenantTheme.js`

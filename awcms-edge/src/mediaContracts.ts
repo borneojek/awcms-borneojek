@@ -3,6 +3,7 @@ export interface UploadSessionRequest {
   mimeType: string;
   sizeBytes: number;
   accessControl?: 'public' | 'private' | 'tenant_only';
+  sessionBoundAccess?: boolean;
   categoryId?: string | null;
   folder?: string;
 }
@@ -59,8 +60,13 @@ export function inferMediaKind(mimeType: string): 'image' | 'video' | 'audio' | 
   return 'other';
 }
 
-export function generateStorageKey(tenantId: string, fileName: string): string {
+export function generateStorageKey(tenantId: string, fileName: string, sessionBoundAccess = false): string {
   const timestamp = Date.now();
   const safeName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  if (sessionBoundAccess) {
+    const encryptedPrefix = crypto.randomUUID().replace(/-/g, '');
+    return `tenants/${tenantId}/protected/${encryptedPrefix}_${timestamp}_${safeName}`;
+  }
+
   return `tenants/${tenantId}/${timestamp}_${safeName}`;
 }

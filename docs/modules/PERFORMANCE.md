@@ -22,7 +22,7 @@ Summarize performance strategies implemented in AWCMS.
 - Route-level code splitting with `React.lazy`.
 - Local caching via `UnifiedDataManager` (60s TTL).
 - Vite 7 warmup for faster dev startup.
-- React Router loaders reduce redundant client fetches.
+- React Router data loaders are a recommended direction, but they are not yet a primary admin-panel data-loading primitive.
 
 ## How It Works
 
@@ -38,8 +38,11 @@ const BlogsManager = lazy(() => import('@/components/dashboard/BlogsManager'));
 
 ### Context7 Guidance (React + Router)
 
-- Prefer `loader` + `useLoaderData` for route data to reduce duplicate `useEffect` fetches.
+- Prefer route-level loaders for future route-module migrations to reduce duplicate `useEffect` fetches.
 - Keep effects separated by concern and include full dependency arrays.
+
+The current admin shell still uses `BrowserRouter` + `Routes` with component-level fetching rather than
+`createBrowserRouter` / `useLoaderData` route modules.
 
 ## Permissions and Access
 

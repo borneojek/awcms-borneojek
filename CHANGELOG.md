@@ -5,13 +5,63 @@ All notable changes to the **AWCMS** project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-03-09
+
 ### Changed
 
 - Media: Unified the admin media system on canonical `media_objects` backed by Cloudflare R2 signed uploads and Worker-side finalize writes, removing the parallel gallery-manager flow and pointing public photo/video galleries at filtered canonical media records.
+- Documentation: Re-baselined the documentation audit plan/tracker to the current repository inventory
+  (`115` markdown files, `71` docs, `127/127` mirrored migrations), refreshed the docs hub and
+  README status snapshot, and added an explicit conflict-resolution queue for broken links,
+  dependency drift, script accuracy, CI coverage, and missing package-doc surfaces.
+- Documentation: Added the missing `docs/architecture/ollama-integration.md`, added a compatibility-only
+  `docs/modules/STITCH_IMPORT.md`, and created maintained README coverage for `awcms-edge/` and
+  `packages/awcms-shared/` while reconciling setup/CI docs against live manifests and workflows.
+- Tooling: Added `scripts/check_markdown_local_links.mjs`, wired it into `awcms` `docs:check` and
+  the docs-link-check workflow, and added dedicated GitHub Actions jobs for `awcms-edge` and
+  `awcms-mcp` validation.
+- CI: Added dedicated validation jobs for `awcms-ext/primary-analytics` and `packages/awcms-shared`,
+  aligned the docs-link workflow with the maintained-doc policy, and added package-level validation
+  scripts/types needed for those new CI surfaces.
+- Documentation: Reconciled schema, security, and tenancy docs with the current migration/helper
+  baseline by updating the database schema snapshot, documenting the recursion-safe
+  `current_tenant_id()` behavior, and standardizing tenant provisioning guidance on the canonical
+  6-argument `create_tenant_with_defaults(...)` signature.
+- Documentation: Updated deploy/module docs to reflect `awcms-edge/` as the primary edge deploy
+  surface, the current GitHub Actions secret mapping split between push and PR workflows, direct
+  public blog queries against `blogs`, package-manifest version authority, and the current editor
+  soft-delete baseline.
+- Documentation: Reconciled additional module docs for monitoring, performance, extensions, menu,
+  theming, and module inventory so they match current Worker logging boundaries, router usage,
+  extension workspace layout, and actual route-backed manager coverage.
+- Documentation: Closed the last high-confidence closure-pass drift in dev/deploy/compliance docs by
+  correcting mirrored function path references, current CI branch/path behavior, PlatformIO-based
+  ESP32 versioning, SMANDAPBUN session wording, and public privacy/terms guidance.
+- Documentation: Closed the 2026-03-08 maintained-doc audit cycle by rerunning parity/validation
+  gates, restoring local migration history parity, and carrying remaining dependency upgrades into a
+  separate maintenance backlog.
+- Documentation: Added a concrete dependency-upgrade follow-up plan for `awcms`,
+  `awcms-public/primary`, and `awcms-mcp` so the remaining package drift can be addressed in staged,
+  validation-backed batches.
+- Configuration: Disabled Supabase storage and edge-runtime services in `supabase/config.toml` for the
+  current local baseline.
+- Dependencies: Completed Batch A MCP dependency maintenance by updating `@types/node` to the latest
+  Node 22-compatible patch range and `@types/pg` to `^8.18.0`, with lint/build validation passing.
+- Dependencies: Completed Batch A public-portal dependency maintenance by updating the low-risk
+  ESLint/globals/lucide packages in `awcms-public/primary` and fixing the surfaced sidebar/menu/
+  localized-slug lint and type issues so `npm run check` and `npm run build` pass again.
+- Dependencies: Completed the safe Batch A admin dependency maintenance path by updating
+  `lucide-react`, `jsdom`, `@types/node`, and the ESLint 9 patch line in `awcms`, while explicitly
+  excluding `e2e/**` from Vitest runs so unit tests remain separate from Playwright coverage.
 
 ### Fixed
 
 - Media: Corrected the Cloudflare Worker tenant-role lookup for upload sessions, aligned admin/media pickers with canonical public URL helpers, and restored category-aware Media Library uploads and filtering.
+- Documentation: Fixed `DOCS_INDEX.md` so optional local `.agents/*` directories are documented as
+  non-link code paths instead of broken local markdown links.
+- Tooling: Reworked `scripts/check_markdown_local_links.mjs` to replace regex-based comment stripping
+  with a stateful scanner for fenced code blocks and HTML comments, resolving the CodeQL
+  incomplete-sanitization finding while keeping docs validation behavior unchanged.
 
 ## [3.0.0] "Convergence" - 2026-03-08
 

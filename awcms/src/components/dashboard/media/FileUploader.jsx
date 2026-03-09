@@ -67,7 +67,7 @@ export function FileUploader({ onUpload, uploading, progress = 0 }) {
             </p>
             <p className="text-sm text-slate-500 mb-4">or click to browse</p>
             <div className="text-xs text-slate-400">
-              Supports images, videos, documents up to 10MB
+              Supports images, videos, and PDFs up to 50MB
             </div>
           </div>
         )}

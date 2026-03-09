@@ -29,6 +29,7 @@ const FilesManager = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [isCreateCategoryOpen, setIsCreateCategoryOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [uploadSessionBoundAccess, setUploadSessionBoundAccess] = useState(false);
 
   const selectedCategoryName = useMemo(
     () => categories.find((category) => category.id === selectedCategory)?.name || null,
@@ -80,7 +81,7 @@ const FilesManager = () => {
     for (const file of acceptedFiles) {
       try {
         // Pass selectedCategory to uploadFile
-        await uploadFile(file, '', selectedCategory);
+        await uploadFile(file, '', selectedCategory, { sessionBoundAccess: uploadSessionBoundAccess });
         successCount++;
       } catch (err) {
         toast({ variant: 'destructive', title: `Failed to upload ${file.name}`, description: err.message });
@@ -89,6 +90,7 @@ const FilesManager = () => {
     if (successCount > 0) {
       toast({ title: 'Success', description: `${successCount} files uploaded successfully.` });
       setIsUploadOpen(false);
+      setUploadSessionBoundAccess(false);
       setRefreshTrigger(prev => prev + 1);
     }
   };
@@ -113,6 +115,8 @@ const FilesManager = () => {
       basePath={basePath}
       isUploadOpen={isUploadOpen}
       setIsUploadOpen={setIsUploadOpen}
+      uploadSessionBoundAccess={uploadSessionBoundAccess}
+      setUploadSessionBoundAccess={setUploadSessionBoundAccess}
       handleUpload={handleUpload}
       uploading={uploading}
     />

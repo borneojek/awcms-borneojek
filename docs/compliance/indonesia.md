@@ -52,7 +52,7 @@ This document outlines how AWCMS supports compliance with Indonesian regulations
 
 - [ ] Determine PSE Category (Private/Public).
 - [ ] Register with Kominfo (PSE Lingkup Privat).
-- [ ] Configure `PRIVACY_POLICY_URL` and `TERMS_URL` in tenant settings.
+- [ ] Publish and verify accessible privacy-policy and terms pages for the active tenant/public site.
 - [ ] Ensure consent checkboxes are present on public forms.
 - [ ] Ensure cookie/analytics notices are enabled for public portals.
 - [ ] Configure retention for analytics and audit tables as required.

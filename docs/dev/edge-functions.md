@@ -128,8 +128,8 @@ Current function inventory:
 | `verify-turnstile` | `supabase/functions/verify-turnstile/` | Validate Turnstile tokens with host-aware secret resolution |
 | `manage-users` | `supabase/functions/manage-users/` | Account request workflow and admin user lifecycle actions |
 | `mailketing` | `supabase/functions/mailketing/` | Mailketing send/subscribe/credits/list integrations |
-| `mailketing-webhook` | `awcms/supabase/functions/mailketing-webhook/` | Mailketing webhook ingestion and email log updates |
-| `serve-sitemap` | `awcms/supabase/functions/serve-sitemap/` | Tenant-aware XML sitemap response |
+| `mailketing-webhook` | `supabase/functions/mailketing-webhook/` (mirrored in `awcms/supabase/functions/`) | Mailketing webhook ingestion and email log updates |
+| `serve-sitemap` | `supabase/functions/serve-sitemap/` (mirrored in `awcms/supabase/functions/`) | Tenant-aware XML sitemap response |
 
 Shared helpers:
 

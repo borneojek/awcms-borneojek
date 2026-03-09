@@ -49,8 +49,8 @@ Modules are categorized to match the **Permission Matrix**. The canonical source
 ### 2. Media
 
 - **Media Library** (`FilesManager.jsx`)
-- **Photo Gallery** (`PhotoGalleryManager.jsx`)
-- **Video Gallery** (`VideoGalleryManager.jsx`)
+- **Photo Gallery** (schema exists, but no current route-backed manager component)
+- **Video Gallery** (schema exists, but no current route-backed manager component)
 
 ### 3. Commerce
 
@@ -58,7 +58,7 @@ Modules are categorized to match the **Permission Matrix**. The canonical source
 - **Product Types** (`ProductTypesManager.jsx`)
 - **Orders** (`OrdersManager.jsx`)
 - **Promotions** (`PromotionsManager.jsx`)
-- **Payment Methods** (`PaymentMethodsManager.jsx`)
+- **Payment Methods** (schema exists, but no current route-backed manager component)
 
 ### 4. Navigation
 
